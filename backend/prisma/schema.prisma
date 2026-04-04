@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  Admin
+  Merchant
+  Driver
+  Customer
+}
+
+enum OrderStatus {
+  PENDING
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  Unpaid
+  Paid
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  name        String?
+  password    String?  // เปลี่ยนเป็น ? เพื่อให้เป็น null ได้สำหรับ Google Login
+  googleId    String?  @unique // เก็บ ID จาก Google
+  phone       String?  @unique // เก็บเบอร์โทร
+  role        Role     @default(Customer)
+  // --- ระบบยืนยันอีเมล ---
+  isVerified       Boolean   @default(false)
+  otpCode          String?
+  otpExpires       DateTime?
+
+  // --- ระบบ Admin จัดการบัญชี ---
+  isActive         Boolean   @default(true) // false = โดนระงับบัญชี
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  ordersAsCustomer Order[]   @relation("CustomerOrders")
+  ordersAsMerchant Order[]   @relation("MerchantOrders")
+  ordersAsDriver   Order[]   @relation("DriverOrders")
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
+}
+
+model Order {
+  id              Int           @id @default(autoincrement())
+  trackingNumber  String        @unique
+  productName     String
+  productDetail   String?
+  quantity        Int           @default(1)
+  price           Float
+  receiverName    String
+  receiverPhone   String
+  address         String
+  weatherWarning  String?
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(Unpaid)
+
+  // --- ข้อมูลการจัดส่งขั้นสูง ---
+  paymentMethod   String?       // เช่น 'COD', 'PROMPTPAY', 'CREDIT_CARD'
+  proofOfDelivery String?       // เก็บ URL รูปถ่ายหลักฐานตอนส่งของสำเร็จหน้าบ้าน
+
+  customerId      Int?
+  merchantId      Int
+  driverId        Int?
+
+  customer        User?         @relation("CustomerOrders", fields: [customerId], references: [id])
+  merchant        User          @relation("MerchantOrders", fields: [merchantId], references: [id])
+  driver          User?         @relation("DriverOrders", fields: [driverId], references: [id])
+
+  trackingLogs    TrackingLog[]
+  messages        Message[]     
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model TrackingLog {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  status    String
+  location  String?
+  lat       Float?   
+  lng       Float?   
+  note      String?
+  
+  // --- เก็บรูปภาพระหว่างการจัดส่ง ---
+  imageUrl  String?  
+
+  createdAt DateTime @default(now())
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  content    String
+  
+  orderId    Int?
+  order      Order?   @relation(fields: [orderId], references: [id])
+
+  senderId   Int
+  receiverId Int
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  
+  createdAt  DateTime @default(now())
+}
