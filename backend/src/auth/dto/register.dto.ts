@@ -1,21 +1,22 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
-import { Role } from '@prisma/client';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional } from 'class-validator';
 
 export class RegisterDto {
-  @IsEmail({}, { message: 'กรุณากรอกอีเมลให้ถูกต้อง' })
-  @IsNotEmpty({ message: 'ต้องระบุอีเมล' })
-  email: string;
+  @IsString()
+  @IsNotEmpty()
+  name!: string; // ใส่ ! เข้าไปแบบนี้ครับ
 
   @IsString()
-  @MinLength(6, { message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' })
-  @IsNotEmpty({ message: 'ต้องระบุรหัสผ่าน' })
-  password: string;
+  @IsNotEmpty()
+  phone!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(6)
+  password!: string;
 
   @IsString()
   @IsOptional()
-  name?: string;
-
-  @IsEnum(Role, { message: 'Role ต้องเป็น Admin, Merchant, Driver หรือ Customer เท่านั้น' })
-  @IsOptional()
-  role?: Role;
+  role?: string; // อันนี้มี ? อยู่แล้วไม่ต้องแก้ครับ
 }

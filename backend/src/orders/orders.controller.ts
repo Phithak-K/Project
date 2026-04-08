@@ -11,18 +11,41 @@ export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   // 2. ใช้ฟังก์ชันสร้างออเดอร์ที่ผ่านการ Validate แล้ว
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)  // ✅ SEC-05: เฉพาะ Merchant เท่านั้นที่สร้าง Order ได้
   @Post()
   create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
-    // merchantId ดึงมาจาก Token เช่นเดิม แต่ข้อมูลใน Body จะถูกตรวจด้วย DTO ก่อนเข้า Service
     return this.ordersService.createOrder(req.user.userId, createOrderDto);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('my-orders')
   getMyOrders(@Req() req: any) {
-    const merchantId = req.user.userId;
-    return this.ordersService.getMyOrders(merchantId);
+    return this.ordersService.getMyOrders(req.user.userId);
+  }
+
+  // ==== 🆕 New Merchant Features ====
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('stats')
+  getOrderStats(@Req() req: any) {
+    return this.ordersService.getOrderStats(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Patch(':id/cancel')
+  cancelOrder(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.cancelOrderByMerchant(Number(id), req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Patch(':id/preparation-time')
+  updatePreparationTime(@Param('id') id: string, @Body() body: { estimatedReadyAt: string }, @Req() req: any) {
+    return this.ordersService.updatePreparationTime(Number(id), req.user.userId, body.estimatedReadyAt);
   }
 
   // ==== Driver Routes ====

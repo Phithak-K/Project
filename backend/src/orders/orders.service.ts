@@ -49,6 +49,7 @@ export class OrdersService {
           productDetail: data.productDetail || null,
           quantity: data.quantity,
           price: data.price,
+          totalPrice: Number(data.price),
           receiverName: data.receiverName,
           receiverPhone: data.receiverPhone,
           address: data.address,
@@ -89,8 +90,10 @@ export class OrdersService {
 
   private async notifyDrivers(order: { trackingNumber: string; productName: string }) {
     try {
+      // ✅ BUG-04: เฉพาะ Driver ที่ verified และ active เท่านั้น
       const drivers = await this.prisma.user.findMany({
-        where: { role: Role.Driver },
+        where: { role: Role.Driver, isVerified: true, isActive: true },
+        select: { email: true },
       });
       const driverEmails = drivers.map(driver => driver.email);
       if (driverEmails.length > 0) {
@@ -111,6 +114,88 @@ export class OrdersService {
       orderBy: { createdAt: 'desc' },
       include: { trackingLogs: true },
     });
+  }
+
+  // ==== Merchant Specific Features ====
+
+  async getOrderStats(merchantId: number) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const pendingCount = await this.prisma.order.count({
+      where: { merchantId: Number(merchantId), status: OrderStatus.PENDING },
+    });
+
+    const activeDeliveringCount = await this.prisma.order.count({
+      where: { merchantId: Number(merchantId), status: OrderStatus.SHIPPING },
+    });
+
+    const deliveredOrders = await this.prisma.order.findMany({
+      where: { merchantId: Number(merchantId), status: OrderStatus.DELIVERED },
+    });
+
+    const todaySales = await this.prisma.order.aggregate({
+      where: {
+        merchantId: Number(merchantId),
+        status: OrderStatus.DELIVERED,
+        updatedAt: { gte: startOfDay },
+      },
+      _sum: { price: true },
+    });
+
+    return {
+      pendingOrders: pendingCount,
+      shippingOrders: activeDeliveringCount,
+      deliveredOrders: deliveredOrders.length,
+      todaySales: todaySales._sum.price || 0,
+    };
+  }
+
+  async cancelOrderByMerchant(orderId: number, merchantId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.merchantId !== merchantId) throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('ยกเลิกได้เฉพาะออเดอร์ที่ยังไม่มีคนขับรับ (สถานะ PENDING) เท่านั้น');
+    }
+
+    const canceledOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELLED },
+    });
+
+    await this.createTrackingLog(orderId, 'CANCELLED', 'ร้านค้ายกเลิกออเดอร์นี้แล้ว');
+    return canceledOrder;
+  }
+
+  async updatePreparationTime(orderId: number, merchantId: number, estimatedReadyAt: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.merchantId !== merchantId) throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
+    
+    // ร้านค้าควรอัปเดตเวลาได้ตอน PENDING หรือ SHIPPING ก็ได้ (เช่น ของมาช้า)
+    if (order.status === OrderStatus.DELIVERED || order.status === OrderStatus.CANCELLED) {
+      throw new BadRequestException('ไม่สามารถเปลี่ยนเวลาเตรียมของได้แล้ว');
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { estimatedReadyAt: new Date(estimatedReadyAt) },
+    });
+
+    await this.createTrackingLog(
+      orderId, 
+      order.status, 
+      `ร้านค้าอัปเดตเวลาเตรียมของเสร็จเป็น: ${new Date(estimatedReadyAt).toLocaleString('th-TH')}`
+    );
+
+    return updatedOrder;
   }
 
   async findAllAvailable() {
@@ -162,6 +247,10 @@ export class OrdersService {
 
     if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
     if (order.driverId !== driverId) throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
+    // ✅ BUG-03: เช็ค Status ก่อนว่าเป็น SHIPPING
+    if (order.status !== OrderStatus.SHIPPING) {
+      throw new BadRequestException('ออเดอร์ต้องอยู่ในสถานะ SHIPPING ก่อนจะสำเร็จได้');
+    }
 
     const completedOrder = await this.prisma.order.update({
       where: { id: orderId },

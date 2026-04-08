@@ -9,9 +9,14 @@ import { ChatModule } from './chat/chat.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ThrottlerModule } from '@nestjs/throttler'; // ✅ ป้องกัน Brute Force
 
 @Module({
   imports: [
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 5,
+    }]),
     ConfigModule.forRoot({
       isGlobal: true,
     }),

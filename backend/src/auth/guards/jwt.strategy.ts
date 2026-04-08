@@ -14,6 +14,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    return { userId: payload.userId, role: payload.role };
+    // ✅ ต้องใช้ payload.sub เพราะ authService.generateToken() sign ด้วย { sub: user.id }
+    return { userId: payload.sub, role: payload.role, email: payload.email };
   }
 }

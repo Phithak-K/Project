@@ -27,20 +27,27 @@ enum PaymentStatus {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  name        String?
-  password    String?  // เปลี่ยนเป็น ? เพื่อให้เป็น null ได้สำหรับ Google Login
-  googleId    String?  @unique // เก็บ ID จาก Google
-  phone       String?  @unique // เก็บเบอร์โทร
-  role        Role     @default(Customer)
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  name             String?
+  password         String?
+  googleId         String?  @unique
+  phone            String?  @unique
+  role             Role     @default(Customer)
+  
+  // --- ข้อมูลเพิ่มเติมตาม Role ---
+  storeName        String?  // สำหรับ Merchant
+  storeAddress     String?  // สำหรับ Merchant
+  vehiclePlate     String?  // สำหรับ Driver
+  vehicleType      String?  // สำหรับ Driver (เช่น มอเตอร์ไซค์, รถยนต์)
+
   // --- ระบบยืนยันอีเมล ---
   isVerified       Boolean   @default(false)
   otpCode          String?
   otpExpires       DateTime?
 
   // --- ระบบ Admin จัดการบัญชี ---
-  isActive         Boolean   @default(true) // false = โดนระงับบัญชี
+  isActive         Boolean   @default(true)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -53,36 +60,43 @@ model User {
 }
 
 model Order {
-  id              Int           @id @default(autoincrement())
-  trackingNumber  String        @unique
-  productName     String
-  productDetail   String?
-  quantity        Int           @default(1)
-  price           Float
-  receiverName    String
-  receiverPhone   String
-  address         String
-  weatherWarning  String?
-  status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(Unpaid)
+  id               Int           @id @default(autoincrement())
+  trackingNumber   String        @unique
+  productName      String
+  productDetail    String?
+  quantity         Int           @default(1)
+  
+  // --- ระบบราคาและสภาพอากาศ ---
+  price            Float         // ราคาต้นทุนสินค้า
+  totalPrice       Float?        // ✅ เพิ่ม: ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
+  weatherWarning   String?
+  
+  receiverName     String
+  receiverPhone    String
+  address          String
+  lat              Float?        // ✅ เพิ่ม: พิกัดละติจูดปลายทาง
+  lng              Float?        // ✅ เพิ่ม: พิกัดลองจิจูดปลายทาง
+  
+  status           OrderStatus   @default(PENDING)
+  paymentStatus    PaymentStatus @default(Unpaid)
+  estimatedReadyAt DateTime?     
 
-  // --- ข้อมูลการจัดส่งขั้นสูง ---
-  paymentMethod   String?       // เช่น 'COD', 'PROMPTPAY', 'CREDIT_CARD'
-  proofOfDelivery String?       // เก็บ URL รูปถ่ายหลักฐานตอนส่งของสำเร็จหน้าบ้าน
+  paymentMethod    String?       
+  proofOfDelivery  String?       
 
-  customerId      Int?
-  merchantId      Int
-  driverId        Int?
+  customerId       Int?
+  merchantId       Int
+  driverId         Int?
 
-  customer        User?         @relation("CustomerOrders", fields: [customerId], references: [id])
-  merchant        User          @relation("MerchantOrders", fields: [merchantId], references: [id])
-  driver          User?         @relation("DriverOrders", fields: [driverId], references: [id])
+  customer         User?         @relation("CustomerOrders", fields: [customerId], references: [id])
+  merchant         User          @relation("MerchantOrders", fields: [merchantId], references: [id])
+  driver           User?         @relation("DriverOrders", fields: [driverId], references: [id])
 
-  trackingLogs    TrackingLog[]
-  messages        Message[]     
+  trackingLogs     TrackingLog[]
+  messages         Message[]     
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 model TrackingLog {
@@ -94,8 +108,8 @@ model TrackingLog {
   lat       Float?   
   lng       Float?   
   note      String?
+  isPublic  Boolean  @default(true) // ✅ เพิ่ม: กำหนดว่าลูกค้าเห็น Log นี้ได้ไหม
   
-  // --- เก็บรูปภาพระหว่างการจัดส่ง ---
   imageUrl  String?  
 
   createdAt DateTime @default(now())

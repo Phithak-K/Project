@@ -6,6 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 1. ตั้งค่า Global Validation Pipe
+  // ช่วยตรวจสอบ Data Transfer Object (DTO) ให้ถูกต้องก่อนเข้า Controller
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -14,23 +15,32 @@ async function bootstrap() {
     }),
   );
 
-  // 2. ตั้งค่า CORS อย่างปลอดภัย
-  // origin: true จะสะท้อน Origin ที่เรียกมาอัตโนมัติ (ปลอดภัยกว่า '*' เมื่อใช้กับ credentials)
-  // ใน main.ts
-app.enableCors({
-  origin: [
-    'http://localhost:3000', // สำหรับ Development
-    'http://localhost:3001',
-    /\.swiftpath\.com$/,    // 🆕 อนุญาตทุกอย่างที่ลงท้ายด้วย .swiftpath.com (Production)
-  ],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true,
-});
+  // 2. ตั้งค่า CORS ให้รองรับ Multi-subdomain (สำคัญมาก!)
+  // เราต้องระบุ Origin ของทุก Subdomain ที่เราใช้งานใน localhost
+ app.enableCors({
+    origin: [
+      'http://localhost:3000',
+      'http://app.localhost:3000',
+      'http://store.localhost:3000',
+      'http://fleet.localhost:3000',
+      'http://app.swiftpath.com:3000',
+      'http://store.swiftpath.com:3000',
+      'http://fleet.swiftpath.com:3000',
+      // ✅ ปรับ Regex ให้รองรับทั้งแบบมี Port และไม่มี Port
+      /https?:\/\/(.+\.)?swiftpath\.com(:\d+)?$/, 
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   // 3. เริ่มรัน Server
-  const port = process.env.PORT ?? 3000;
+  // ใช้ Port 8000 เป็นค่าเริ่มต้นตามที่คุณตั้งไว้
+  const port = process.env.PORT ?? 8000;
   await app.listen(port);
 
-  console.log(`🚀 SwiftPath Backend is running on: ${await app.getUrl()}`);
+  // แสดง URL ที่กำลังรันอยู่เพื่อความสะดวกในการ Debug
+  const url = await app.getUrl();
+  console.log(`🚀 SwiftPath Backend is running on: ${url}`);
+  console.log(`📡 CORS allowed for: http://*.localhost:3000 and *.swiftpath.com`);
 }
 bootstrap();
