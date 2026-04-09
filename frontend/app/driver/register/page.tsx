@@ -28,10 +28,11 @@ export default function DriverRegisterPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, phone, email, password, role }),
       });
@@ -40,13 +41,13 @@ export default function DriverRegisterPage() {
 
       if (response.ok) {
         alert('🎉 สมัครเป็นคนขับสำเร็จ! ยินดีต้อนรับสู่ทีม SwiftPath');
-        const domain = window.location.hostname === 'localhost' ? 'localhost:3000' : 'swiftpath.com:3000';
-        window.location.href = `http://fleet.${domain}/login`;
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        window.location.href = `https://fleet.${baseDomain}/login`;
       } else {
         setErrorMsg(data.message || 'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       }
     } catch (error) {
-      console.error('Register Error:', error);
+      console.error('Catch Error:', error);
       setErrorMsg('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Store, Lock } from 'lucide-react';
 
@@ -9,14 +9,18 @@ export default function MerchantLoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -24,16 +28,20 @@ export default function MerchantLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // เก็บ Token สำหรับยืนยันตัวตน
-        localStorage.setItem('token', data.access_token);
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhost = baseDomain.includes('localhost');
+        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
         
-        // 🚀 Redirect ไปที่หน้า Merchant Dashboard (Dashboard ของร้านค้าเอง)
-        window.location.href = 'http://store.localhost:3000/';
+        document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+        document.cookie = `role=${data.user.role}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+        
+        // Redirect ไปที่หน้า Merchant Dashboard แบบ HTTPS
+        window.location.href = `https://store.${baseDomain}/`;
       } else {
         alert(`❌ เข้าสู่ระบบไม่สำเร็จ: ${data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'}`);
       }
-    } catch (error) {
-      console.error('Login Error:', error);
+    } catch (error: any) {
+      console.error('Catch Error:', error);
       alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);

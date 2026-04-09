@@ -18,9 +18,10 @@ export default function CustomerLoginPage() {
     setNeedsVerification(false);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -30,19 +31,23 @@ export default function CustomerLoginPage() {
       if (response.ok) {
         // 🍪 เก็บ Token และ Role ลงใน Cookie
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhost = baseDomain.includes('localhost');
+        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+
         if (data.access_token) {
-          document.cookie = `token=${data.access_token}; path=/; expires=${expires}; SameSite=Lax`;
+          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} expires=${expires}; SameSite=None; Secure`;
         }
         const role = data.user?.role || 'Customer';
-        document.cookie = `role=${role}; path=/; expires=${expires}; SameSite=Lax`;
+        document.cookie = `role=${role}; path=/; ${cookieDomainStr} expires=${expires}; SameSite=None; Secure`;
 
         // 🚀 Redirect ไปที่หน้า Dashboard ตาม Role
         if (role === 'Driver') {
-          window.location.href = 'http://fleet.localhost:3000/';
+          window.location.href = `https://fleet.${baseDomain}/`;
         } else if (role === 'Merchant') {
-          window.location.href = 'http://store.localhost:3000/';
+          window.location.href = `https://store.${baseDomain}/`;
         } else {
-          window.location.href = 'http://app.localhost:3000/';
+          window.location.href = `https://app.${baseDomain}/`;
         }
       } else {
         const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
@@ -56,7 +61,7 @@ export default function CustomerLoginPage() {
         }
       }
     } catch (error) {
-      console.error('Login Error:', error);
+      console.error('Catch Error:', error);
       setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่');
     } finally {
       setIsLoading(false);

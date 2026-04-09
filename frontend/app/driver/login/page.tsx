@@ -14,9 +14,10 @@ export default function DriverLoginPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -25,23 +26,25 @@ export default function DriverLoginPage() {
 
       if (response.ok) {
         // 🍪 1. เก็บ Token และ Role ลงใน Cookie เพื่อให้ Middleware อ่านได้
-        const expires = new Date(Date.now() + 86400 * 1000).toUTCString(); // หมดอายุใน 1 วัน
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhost = baseDomain.includes('localhost');
+        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
         
         if (data.access_token) {
-          document.cookie = `token=${data.access_token}; path=/; expires=${expires}; SameSite=Lax`;
+          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
         }
         
         // กำหนด Role เป็น Driver (หรือดึงจาก data.user.role ตามที่ Backend ส่งมา)
         const role = data.user?.role || 'Driver';
-        document.cookie = `role=${role}; path=/; expires=${expires}; SameSite=Lax`;
+        document.cookie = `role=${role}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
 
-        // 🚀 2. Redirect ไปที่หน้า Driver Dashboard ผ่าน Subdomain
-        window.location.href = 'http://fleet.localhost:3000/';
+        // 🚀 2. Redirect ไปที่หน้า Driver Dashboard ผ่าน Subdomain แบบ HTTPS
+        window.location.href = `https://fleet.${baseDomain}/`;
       } else {
         alert(`❌ เข้าสู่ระบบไม่สำเร็จ: ${data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'}`);
       }
     } catch (error) {
-      console.error('Login Error:', error);
+      console.error('Catch Error:', error);
       alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);

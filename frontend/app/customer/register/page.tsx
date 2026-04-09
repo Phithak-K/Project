@@ -29,10 +29,11 @@ export default function CustomerRegisterPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, phone, email, password, role }),
       });
@@ -45,7 +46,8 @@ export default function CustomerRegisterPage() {
           ? data.message.join(', ')
           : data.message || 'สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบ OTP ในอีเมล';
         alert(`✅ ${successMsg}`);
-        window.location.href = `/verify-otp?email=${encodeURIComponent(email)}`;
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        window.location.href = `https://app.${baseDomain}/verify-otp?email=${encodeURIComponent(email)}`;
       } else {
         const errMsg = Array.isArray(data.message)
           ? data.message.join(', ')
@@ -53,7 +55,7 @@ export default function CustomerRegisterPage() {
         setErrorMsg(errMsg);
       }
     } catch (error) {
-      console.error('Register Error:', error);
+      console.error('Catch Error:', error);
       setErrorMsg('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);

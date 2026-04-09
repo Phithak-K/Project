@@ -29,12 +29,11 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      // ✅ NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 ใน .env.local
-      // ใช้ 127.0.0.1 แทน localhost เพื่อหลีกเลี่ยง Chrome Private Network restrictions
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -51,8 +50,8 @@ export default function RegisterPage() {
 
       if (response.ok) {
         alert(`✅ ${data.message || 'สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบ OTP ในอีเมล'}`);
-        // 🚀 แก้ไขการ Redirect ให้รักษา Domain ปัจจุบันไว้
-        window.location.href = `${window.location.origin}/verify-otp?email=${encodeURIComponent(email)}`;
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        window.location.href = `https://app.${baseDomain}/verify-otp?email=${encodeURIComponent(email)}`;
       } else {
         const errorMessage = Array.isArray(data.message)
           ? data.message.join(', ')
@@ -60,7 +59,7 @@ export default function RegisterPage() {
         alert(`❌ สมัครไม่สำเร็จ: ${errorMessage}`);
       }
     } catch (error) {
-      console.error('Register Fetch Error:', error);
+      console.error('Catch Error:', error);
       alert('❌ ไม่สามารถติดต่อ Server ได้\n\nตรวจสอบว่ารัน NestJS (Port 8000) และปิด Block Insecure Private Network ใน Chrome Flags หรือยัง');
     } finally {
       setIsLoading(false);

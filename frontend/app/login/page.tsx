@@ -10,12 +10,14 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('--- Login Button Clicked ---');
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
@@ -26,32 +28,31 @@ export default function LoginPage() {
         // 1. 🍪 เก็บ Token และ Role ลงใน Cookie (เพื่อให้ Middleware อ่านได้)
         // ตั้งค่าให้หมดอายุใน 1 วัน (86400 วินาที)
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
-        
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhost = baseDomain.includes('localhost');
+        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+
         if (data.access_token) {
-          document.cookie = `token=${data.access_token}; path=/; expires=${expires}; SameSite=Lax`;
+          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
         }
         
-        const role = data.user?.role || 'Customer';
-        document.cookie = `role=${role}; path=/; expires=${expires}; SameSite=Lax`;
+        const userRole = data.user?.role || 'Customer';
+        document.cookie = `role=${userRole}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
 
         // 2. 🚀 Logic การ Redirect ตาม Role
         let targetSubdomain = 'app'; 
-        if (role === 'Merchant') targetSubdomain = 'store';
-        if (role === 'Driver') targetSubdomain = 'fleet';
+        if (userRole === 'Merchant') targetSubdomain = 'store';
+        if (userRole === 'Driver') targetSubdomain = 'fleet';
 
         // 3. จัดการเรื่อง Domain
-        const hostname = window.location.hostname;
-        const isLocalhost = hostname.includes('localhost');
-        const domain = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000';
-
         // เด้งไปที่ Subdomain นั้นๆ
-        window.location.href = `http://${targetSubdomain}.${domain}/`;
-        
+        window.location.href = `https://${targetSubdomain}.${baseDomain}/`;
+
       } else {
         alert(`❌ ${data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'}`);
       }
     } catch (error) {
-      console.error('Login Error:', error);
+      console.error('Catch Error:', error);
       alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);

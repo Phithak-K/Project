@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react'; // อย่าลืมติดตั้ง lucide-react
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 export default function MerchantRegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -21,13 +23,12 @@ export default function MerchantRegisterPage() {
     e.preventDefault();
     setErrorMsg('');
 
-    // เช็คว่ารหัสผ่านตรงกันไหม
+    // 1. Validation เบื้องต้น
     if (password !== confirmPassword) {
       setErrorMsg('รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง');
       return;
     }
 
-    // เช็คว่าติ๊กยอมรับเงื่อนไขหรือยัง
     if (!agreeTerms) {
       setErrorMsg('กรุณายอมรับเงื่อนไขการใช้บริการ');
       return;
@@ -36,10 +37,12 @@ export default function MerchantRegisterPage() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // ใช้ NEXT_PUBLIC_API_URL จาก Environment
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, phone, email, password, role }),
       });
@@ -47,15 +50,16 @@ export default function MerchantRegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('🎉 สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ');
-        const domain = window.location.hostname === 'localhost' ? 'localhost:3000' : 'swiftpath.com:3000';
-        window.location.href = `http://store.${domain}/login`;
+        alert('🎉 สมัครสมาชิกสำเร็จ! ระบบได้ส่งรหัส OTP ไปที่อีเมลของคุณแล้ว');
+        
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        window.location.href = `https://store.${baseDomain}/verify-otp?email=${encodeURIComponent(email)}`;
       } else {
         setErrorMsg(data.message || 'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       }
     } catch (error) {
-      console.error('Register Error:', error);
-      setErrorMsg('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+      console.error('Catch Error:', error);
+      setErrorMsg('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (กรุณาตรวจสอบว่า Backend รันอยู่)');
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +116,7 @@ export default function MerchantRegisterPage() {
                 type="email" required value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 outline-none transition-all bg-gray-50/50"
-                placeholder="shop@example.com"
+                placeholder="your@email.com"
               />
             </div>
           </div>
@@ -147,7 +151,7 @@ export default function MerchantRegisterPage() {
             />
           </div>
 
-          {/* Terms and Conditions */}
+          {/* ยอมรับเงื่อนไข */}
           <div className="flex items-start gap-3 py-2 ml-1">
             <input 
               type="checkbox" id="terms" 
@@ -156,11 +160,11 @@ export default function MerchantRegisterPage() {
               className="mt-1 w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
             />
             <label htmlFor="terms" className="text-xs text-gray-500 leading-relaxed cursor-pointer">
-              ฉันยอมรับ <span className="text-purple-600 font-bold hover:underline">เงื่อนไขการให้บริการ</span> และ <span className="text-purple-600 font-bold hover:underline">นโยบายความเป็นส่วนตัว</span> ของ SwiftPath
+              ฉันยอมรับ <span className="text-purple-600 font-bold hover:underline">เงื่อนไขการให้บริการ</span> และนโยบายของ SwiftPath
             </label>
           </div>
 
-          {/* Submit Button */}
+          {/* ปุ่มสมัครสมาชิก */}
           <button
             type="submit"
             disabled={isLoading}

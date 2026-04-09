@@ -10,7 +10,7 @@ export default function MerchantDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   // 1. Helper: อ่านคุกกี้
   const getCookie = (name: string) => {

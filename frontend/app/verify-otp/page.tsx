@@ -23,9 +23,10 @@ function VerifyOtpContent() {
     setIsLoading(true);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
       });
@@ -33,12 +34,36 @@ function VerifyOtpContent() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('✅ ยืนยันตัวตนสำเร็จ! กำลังไปหน้า Login');
-        router.push('/login');
+        alert('✅ ยืนยันตัวตนสำเร็จ! กำลังพาท่านเข้าสู่ระบบ...');
+        
+        if (data.access_token && data.user) {
+          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+          const isLocalhost = baseDomain.includes('localhost');
+          const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+
+          if (data.access_token) {
+            document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+          }
+
+          const decodedRole = data.user?.role || 'Customer';
+          document.cookie = `role=${decodedRole}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+
+          // นำทางผู้ใช้ไปยัง Dashboard ตาม Role แบบ HTTPS
+          if (data.user.role === 'Merchant') {
+            window.location.href = `https://store.${baseDomain}/`;
+          } else if (data.user.role === 'Driver') {
+            window.location.href = `https://fleet.${baseDomain}/`;
+          } else {
+            window.location.href = `https://app.${baseDomain}/`;
+          }
+        } else {
+          router.push('/login');
+        }
       } else {
         alert(`❌ รหัสไม่ถูกต้อง: ${data.message}`);
       }
     } catch (error) {
+      console.error('Catch Error:', error);
       alert('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
     } finally {
       setIsLoading(false);
@@ -49,15 +74,16 @@ function VerifyOtpContent() {
     if (!email) return;
     setIsResending(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/resend-otp`, {
         method: 'POST',
+        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
       if (response.ok) {
-        alert('✅ ' + data.message);
+        alert('✅ ' + (data.message || 'ส่งรหัสใหม่เรียบร้อยแล้ว'));
       } else {
         alert('❌ ' + data.message);
       }

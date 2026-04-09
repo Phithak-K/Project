@@ -15,22 +15,16 @@ async function bootstrap() {
     }),
   );
 
-  // 2. ตั้งค่า CORS ให้รองรับ Multi-subdomain (สำคัญมาก!)
-  // เราต้องระบุ Origin ของทุก Subdomain ที่เราใช้งานใน localhost
- app.enableCors({
+  app.enableCors({
     origin: [
-      'http://localhost:3000',
-      'http://app.localhost:3000',
-      'http://store.localhost:3000',
-      'http://fleet.localhost:3000',
-      'http://app.swiftpath.com:3000',
-      'http://store.swiftpath.com:3000',
-      'http://fleet.swiftpath.com:3000',
-      // ✅ ปรับ Regex ให้รองรับทั้งแบบมี Port และไม่มี Port
-      /https?:\/\/(.+\.)?swiftpath\.com(:\d+)?$/, 
+      'https://store.localhost:3000',
+      'https://fleet.localhost:3000',
+      'https://app.localhost:3000',
+      'https://localhost:3000'
     ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   // 3. เริ่มรัน Server

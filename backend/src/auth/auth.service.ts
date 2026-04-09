@@ -167,12 +167,15 @@ export class AuthService implements OnModuleInit {
     if (!user || user.otpCode !== otp) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
     if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
 
-    await this.prisma.user.update({
+    const updatedUser = await this.prisma.user.update({
       where: { email },
       data: { isVerified: true, otpCode: null, otpExpires: null },
     });
 
-    return { message: 'ยืนยันอีเมลสำเร็จแล้ว!' };
+    return {
+      message: 'ยืนยันอีเมลสำเร็จแล้ว!',
+      ...this.generateToken(updatedUser),
+    };
   }
 
   // 3. เข้าสู่ระบบแบบปกติ
