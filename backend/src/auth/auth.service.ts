@@ -5,7 +5,6 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
-import { Role } from '@prisma/client';
 import { OAuth2Client } from 'google-auth-library';
 import * as admin from 'firebase-admin';
 
@@ -30,7 +29,6 @@ export class AuthService implements OnModuleInit {
     private jwtService: JwtService,
   ) {}
 
-  // 🆕 ตั้งค่า Firebase Admin เมื่อ Module เริ่มทำงาน
   onModuleInit() {
     if (admin.apps.length === 0) {
       try {
@@ -38,103 +36,117 @@ export class AuthService implements OnModuleInit {
           credential: admin.credential.cert('./firebase-adminsdk.json'),
         });
         console.log('🔥 Firebase Admin Initialized');
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Firebase Admin Init Error:', error.message);
       }
     }
   }
 
-  // 1. สมัครสมาชิกแบบปกติ (Email/Password)
+  // ตัวช่วยค้นหาตาม Role แบบ Dynamic
+  private getModel(role: string) {
+    if (role === 'Merchant') return this.prisma.merchant;
+    if (role === 'Driver') return this.prisma.driver;
+    return this.prisma.customer;
+  }
+
+  // ตัวช่วยค้นหาอีเมลข้ามตารางสำหรับ OTP (เผื่อ Frontend ลืมส่ง Role มาให้)
+  private async findUserByEmailAcrossRoles(email: string) {
+    let user = await this.prisma.customer.findUnique({ where: { email } });
+    if (user) return { user, model: this.prisma.customer, role: 'Customer' };
+    
+    user = await this.prisma.merchant.findUnique({ where: { email } }) as any;
+    if (user) return { user, model: this.prisma.merchant, role: 'Merchant' };
+
+    user = await this.prisma.driver.findUnique({ where: { email } }) as any;
+    if (user) return { user, model: this.prisma.driver, role: 'Driver' };
+
+    return null;
+  }
+
+  // 1. สมัครสมาชิกแบบปกติ
   async register(dto: RegisterDto) {
-    // 1. ตรวจสอบว่าอีเมลซ้ำไหม
-    const emailExists = await this.prisma.user.findUnique({ where: { email: dto.email } });
-    if (emailExists) throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว');
+    const roleStr = dto.role || 'Customer';
+    if (roleStr === 'Admin') throw new BadRequestException('ไม่สามารถสมัครบัญชีผู้ดูแลระบบได้ด้วยตนเอง');
 
-    // 2. ตรวจสอบว่าเบอร์โทรซ้ำไหม (สำคัญมากสำหรับระบบ Logistics)
-    const phoneExists = await this.prisma.user.findUnique({ where: { phone: dto.phone } });
-    if (phoneExists) throw new BadRequestException('เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว');
+    const model = this.getModel(roleStr);
 
-    // 🛡️ 3. ตรวจสอบสิทธิ์การสมัคร (Role Validation)
-    if (dto.role === 'Admin' || dto.role === Role.Admin) {
-      throw new BadRequestException('ไม่สามารถสมัครบัญชีผู้ดูแลระบบได้ด้วยตนเอง');
-    }
+    const emailExists = await (model as any).findUnique({ where: { email: dto.email } });
+    if (emailExists) throw new BadRequestException(`อีเมลนี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
 
-    // ตรวจสอบชื่อร้านค้าถ้าเป็น Merchant
-    if (dto.role === Role.Merchant && !dto.name) {
+    const phoneExists = await (model as any).findUnique({ where: { phone: dto.phone } });
+    if (phoneExists) throw new BadRequestException(`เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+
+    if (roleStr === 'Merchant' && !dto.name) {
       throw new BadRequestException('กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant');
     }
 
-    // 4. เตรียมข้อมูล OTP และ Hash Password
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
-
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    // 5. บันทึกข้อมูลลงฐานข้อมูล
     let user;
     try {
-      user = await this.prisma.user.create({
+      user = await (model as any).create({
         data: {
           email: dto.email,
           password: hashedPassword,
           name: dto.name,
           phone: dto.phone,
-          role: dto.role as Role,
           otpCode: otp,
           otpExpires: expiry,
           isVerified: false,
         },
       });
-    } catch (error) {
+      user.role = roleStr;
+    } catch (error: any) {
       throw new BadRequestException('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
     }
 
-    // 6. ส่งอีเมลยืนยัน (แยก try/catch ไว้เพื่อไม่ให้ user creation พัง)
     try {
       await this.mailerService.sendMail({
         to: user.email,
-        subject: `รหัสยืนยันสำหรับ SwiftPath - [${user.role}]`,
+        subject: `รหัสยืนยันสำหรับ SwiftPath - [${roleStr}]`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #333;">ยืนยันตัวตนสำหรับบัญชี ${escapeHtml(user.role)}</h2>
+            <h2 style="color: #333;">ยืนยันตัวตนสำหรับบัญชี ${escapeHtml(roleStr)}</h2>
             <p>สวัสดีคุณ ${escapeHtml(user.name || 'ลูกค้า')},</p>
             <p>รหัส OTP ของคุณคือ:</p>
             <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #007bff;">
               ${otp}
             </div>
             <p>รหัสนี้จะหมดอายุภายใน 10 นาที</p>
-            <hr />
-            <p style="font-size: 12px; color: #999;">หากคุณไม่ได้สมัครสมาชิก SwiftPath โปรดเพิกเฉยต่ออีเมลฉบับนี้</p>
           </div>
         `,
       });
 
       return {
-        message: `สมัครสมาชิกในฐานะ ${user.role} สำเร็จ! กรุณาตรวจสอบ OTP ในอีเมล`,
+        message: `สมัครสมาชิกในฐานะ ${roleStr} สำเร็จ! กรุณาตรวจสอบ OTP ในอีเมล`,
         emailSent: true,
-        role: user.role,
+        role: roleStr,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Mail Error:', error.message);
       return {
-        message: `สมัครสมาชิกสำเร็จ แต่ระบบไม่สามารถส่งอีเมล OTP ได้ กรุณากดขอรหัสใหม่`,
+        message: `สมัครสมาชิกสำเร็จ แต่ระบบอีเมลมึปัญหาชั่วคราว`,
         emailSent: false,
-        role: user.role,
+        role: roleStr,
       };
     }
   }
 
   async resendOtp(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user) throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้');
-    if (user.isVerified) throw new BadRequestException('บัญชีนี้ยืนยันตัวตนแล้วสามารถเข้าสู่ระบบได้เลย');
+    const result = await this.findUserByEmailAcrossRoles(email);
+    if (!result) throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้ในระบบใดเลย');
+    
+    const { user, model, role } = result;
+    if (user.isVerified) throw new BadRequestException('บัญชีนี้ยืนยันตัวตนแล้วเข้าสู่ระบบได้เลย');
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
 
-    await this.prisma.user.update({
+    await (model as any).update({
       where: { email },
       data: { otpCode: otp, otpExpires: expiry },
     });
@@ -142,16 +154,13 @@ export class AuthService implements OnModuleInit {
     try {
       await this.mailerService.sendMail({
         to: user.email,
-        subject: `รหัสยืนยันใหม่สำหรับ SwiftPath - [${user.role}]`,
+        subject: `รหัสยืนยันใหม่สำหรับ SwiftPath - [${role}]`,
         html: `
           <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #333;">ยืนยันตัวตนสำหรับบัญชี ${escapeHtml(user.role)}</h2>
-            <p>สวัสดีคุณ ${escapeHtml(user.name || 'ลูกค้า')},</p>
             <p>รหัส OTP ใหม่ของคุณคือ:</p>
             <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #007bff;">
               ${otp}
             </div>
-            <p>รหัสนี้จะหมดอายุภายใน 10 นาที</p>
           </div>
         `,
       });
@@ -161,37 +170,46 @@ export class AuthService implements OnModuleInit {
     }
   }
 
-  // 2. ยืนยัน OTP จากอีเมล
+  // 2. ยืนยัน OTP
   async verifyOtp(email: string, otp: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-    if (!user || user.otpCode !== otp) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    const result = await this.findUserByEmailAcrossRoles(email);
+    if (!result) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
+    
+    const { user, model, role } = result;
+
+    if (user.otpCode !== otp) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
     if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
 
-    const updatedUser = await this.prisma.user.update({
+    const updatedUser = await (model as any).update({
       where: { email },
       data: { isVerified: true, otpCode: null, otpExpires: null },
     });
 
+    updatedUser.role = role;
     return {
       message: 'ยืนยันอีเมลสำเร็จแล้ว!',
       ...this.generateToken(updatedUser),
     };
   }
 
-  // 3. เข้าสู่ระบบแบบปกติ
+  // 3. เข้าสู่ระบบแบบเฉพาะเจาะจงตาราง (Strict Isolation)
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: loginDto.email } });
-    if (!user) throw new BadRequestException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    const roleStr = loginDto.role || 'Customer'; // บังคับให้เป็น Customer ถ้าระบุไม่ชัดเจน
+    const model = this.getModel(roleStr);
+
+    const user = await (model as any).findUnique({ where: { email: loginDto.email } });
+    if (!user) throw new BadRequestException(`ไม่พบบัญชีนี้ในระบบ ${roleStr} (คุณอาจสมัครไว้ในระบบอื่น)`);
     if (!user.password) throw new BadRequestException('บัญชีนี้สมัครใช้งานผ่านช่องทางอื่น โปรดเข้าสู่ระบบด้วย Google หรือ Phone');
     if (!user.isVerified) throw new BadRequestException('บัญชีนี้ยังไม่ได้ยืนยันตัวตน');
 
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) throw new BadRequestException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
 
+    user.role = roleStr;
     return this.generateToken(user);
   }
 
-  // 4. เข้าสู่ระบบด้วย Google
+  // 4. เข้าสู่ระบบด้วย Google -> บังคับลง Customer โดย Default
   async googleLogin(token: string) {
     try {
       const ticket = await client.verifyIdToken({
@@ -203,61 +221,60 @@ export class AuthService implements OnModuleInit {
 
       const { email, name, sub: googleId } = payload;
 
-      let user = await this.prisma.user.findFirst({
+      let user = await this.prisma.customer.findFirst({
         where: { OR: [{ googleId }, { email: email! }] }
       });
 
       if (!user) {
-        user = await this.prisma.user.create({
+        user = await this.prisma.customer.create({
           data: {
             email: email!,
             name: name!,
             googleId,
-            role: Role.Customer,
             isVerified: true,
           },
         });
       } else if (!user.googleId) {
-        user = await this.prisma.user.update({
+        user = await this.prisma.customer.update({
           where: { id: user.id },
           data: { googleId, isVerified: true }
         });
       }
 
+      (user as any).role = 'Customer';
       return this.generateToken(user);
     } catch (error) {
       throw new BadRequestException('การยืนยันตัวตนกับ Google ล้มเหลว');
     }
   }
 
-  // 5. ยืนยันรหัส OTP จากโทรศัพท์ (Firebase)
+  // 5. Firebase Phone -> បังคับลง Customer โดย Default
   async verifyFirebasePhone(idToken: string) {
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const phoneNumber = decodedToken.phone_number;
       if (!phoneNumber) throw new BadRequestException('ไม่พบเบอร์โทรศัพท์ใน Token');
 
-      let user = await this.prisma.user.findUnique({ where: { phone: phoneNumber } });
+      let user = await this.prisma.customer.findUnique({ where: { phone: phoneNumber } });
 
       if (!user) {
-        user = await this.prisma.user.create({
+        user = await this.prisma.customer.create({
           data: {
             email: `${phoneNumber}@swiftpath.tmp`,
             phone: phoneNumber,
             name: `User ${phoneNumber.slice(-4)}`,
-            role: Role.Customer,
             isVerified: true
           }
         });
       }
 
+      (user as any).role = 'Customer';
       return this.generateToken(user);
     } catch (error) {
       throw new BadRequestException('การยืนยัน OTP โทรศัพท์ล้มเหลว');
     }
   }
 
-  // 6. ฟังก์ชันออก Token
   private generateToken(user: any) {
     const payload = { sub: user.id, role: user.role, email: user.email };
     return {

@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { Role } from '../../auth/roles.enum';
 
 export class CreateUserDto {
   email: string;

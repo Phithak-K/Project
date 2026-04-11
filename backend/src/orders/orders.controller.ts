@@ -3,8 +3,8 @@ import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { Role } from '@prisma/client';
-import { CreateOrderDto } from './dto/create-order.dto'; // 1. อย่าลืม Import DTO ที่เรากำลังจะสร้าง
+import { Role } from '../auth/roles.enum';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Controller('orders')
 export class OrdersController {

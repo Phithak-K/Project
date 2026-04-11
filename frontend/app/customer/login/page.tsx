@@ -23,7 +23,7 @@ export default function CustomerLoginPage() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: 'Customer' }),
       });
 
       const data = await response.json();

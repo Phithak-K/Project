@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { OrderStatus, Role } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -91,8 +91,8 @@ export class OrdersService {
   private async notifyDrivers(order: { trackingNumber: string; productName: string }) {
     try {
       // ✅ BUG-04: เฉพาะ Driver ที่ verified และ active เท่านั้น
-      const drivers = await this.prisma.user.findMany({
-        where: { role: Role.Driver, isVerified: true, isActive: true },
+      const drivers = await this.prisma.driver.findMany({
+        where: { isVerified: true, isActive: true },
         select: { email: true },
       });
       const driverEmails = drivers.map(driver => driver.email);

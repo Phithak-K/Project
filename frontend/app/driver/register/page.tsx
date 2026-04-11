@@ -40,9 +40,9 @@ export default function DriverRegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('🎉 สมัครเป็นคนขับสำเร็จ! ยินดีต้อนรับสู่ทีม SwiftPath');
+        alert('🎉 สมัครเป็นคนขับสำเร็จ! กรุณายืนยันรหัส OTP ในอีเมลของคุณ');
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        window.location.href = `https://fleet.${baseDomain}/login`;
+        window.location.href = `https://fleet.${baseDomain}/verify-otp?email=${encodeURIComponent(email)}`;
       } else {
         setErrorMsg(data.message || 'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
       }

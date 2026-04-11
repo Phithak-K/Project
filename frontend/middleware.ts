@@ -21,6 +21,9 @@ export function middleware(request: NextRequest) {
     currentHost = hostParts[0]
   }
 
+  // DEBUG LOG (ทิ้งไว้ตามที่ผู้ใช้ขอ)
+  console.log(`[Middleware] Path: ${pathname} | Host: ${hostname} | Subdomain: ${currentHost} | Token: ${!!token} | Role: ${userRole}`);
+
   // 2. ข้ามไฟล์ระบบและไฟล์รูปภาพ (Static Files)
   if (
     pathname.startsWith('/_next') ||
@@ -32,36 +35,72 @@ export function middleware(request: NextRequest) {
 
   // ฟังก์ชันช่วยสร้าง URL ให้ตรงกับ Host ปัจจุบันแบบ Dynamic
   const getRedirectUrl = (path: string, subdomain: string = '') => {
-    const protocol = request.nextUrl.protocol.replace(':', '') || 'https'
+    const protocol = 'https'; // บังคับ HTTPS ตลอดเพื่อแก้ปัญหา Redirect Loop จาก --experimental-https
     const baseHost = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000'
     const newHost = subdomain ? `${subdomain}.${baseHost}` : baseHost
     return `${protocol}://${newHost}${path}`
   }
 
-  // 3. 🔒 Logic การป้องกัน (Route Protection)
+  // ฟังก์ชันล้าง Cookie แบบขุดรากถอนโคน (แก้ปัญหา Cookie ดื้อติดอยู่ตาม Subdomain ต่างๆ)
+  const clearBadCookies = (response: NextResponse) => {
+    const cookieOptions = [
+      { path: '/' },
+      { path: '/', domain: 'localhost' },
+      { path: '/', domain: '.localhost' }
+    ];
+    cookieOptions.forEach(opt => {
+      response.cookies.set('token', '', { ...opt, maxAge: 0 });
+      response.cookies.set('role', '', { ...opt, maxAge: 0 });
+    });
+    return response;
+  }
+
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/verify-otp')
 
-  // CASE A: ยังไม่ได้ล็อกอิน แต่อยากเข้าหน้า Dashboard
-  if (!token && !isAuthPage) {
-    // ป้องกัน Loop โดยการส่งไปที่หน้า Login ของ Subdomain นั้นๆ แบบระบุ URL เต็ม
-    const loginUrl = getRedirectUrl('/login', currentHost || 'app')
-    return NextResponse.redirect(new URL(loginUrl, request.url))
-  }
-
-  // CASE B: ล็อกอินแล้ว แต่พยายามเข้าหน้า Login/Register/Verify-OTP อีกครั้ง
-  if (token && isAuthPage) {
-    // ดีดกลับไปหน้า Dashboard ของ Subdomain ตัวเอง
-    const dashboardUrl = getRedirectUrl('/', currentHost || 'app')
-    return NextResponse.redirect(new URL(dashboardUrl, request.url))
-  }
-
-  // CASE C: เช็ค Role Security (กันคนขับแอบเข้าหน้าพ่อค้า)
-  if (token && !isAuthPage) {
-    if (currentHost === 'store' && userRole !== 'Merchant') {
-      return NextResponse.redirect(new URL(getRedirectUrl('/login', 'app'), request.url))
+  // STRICT NULL CHECK: ถ้าไม่มีรหัส Token, ไปผุดที่ Login ของตัวเองเท่านั้น
+  if (!token) {
+    if (!isAuthPage) {
+      const loginUrl = getRedirectUrl('/login', currentHost || 'app')
+      return NextResponse.redirect(new URL(loginUrl, request.url))
     }
+  }
+
+  // BYPASS AUTH PAGES: ปล่อยผ่านหน้า Auth โดยไม่มี Redirection ใดๆ (กันเงื่อนไขตีกัน)
+  if (isAuthPage) {
+    if (token && userRole) {
+       // ล็อกอินแล้วแต่มาหน้าล็อกอิน -> ส่งกลับ
+       let targetHost = currentHost || 'app';
+       if (userRole === 'Merchant') targetHost = 'store';
+       else if (userRole === 'Driver') targetHost = 'fleet';
+       else if (userRole === 'Customer') targetHost = 'app';
+       
+       const response = NextResponse.redirect(new URL(getRedirectUrl('/', targetHost), request.url))
+       if (targetHost !== currentHost) {
+           // Auto-clean: ลบ Cookie ที่อยู่ผิดโดเมนทิ้งทันที เพื่อแก้ปัญหาเตะไปเตะมา (Ping-Pong)
+           return clearBadCookies(response);
+       }
+       return response;
+    }
+    // ถ้ายังไม่ล็อกอิน ปล่อยให้เห็นหน้าล็อกอินไปเลย (จะไป Rewrite ท้ายไฟล์)
+  } else {
+    // ROLE VERIFICATION (ถ้าไม่ใช่หน้า Auth)
+    if (currentHost === 'app') {
+      if (userRole && userRole !== 'Customer') {
+        const response = NextResponse.redirect(new URL(getRedirectUrl('/login', ''), request.url));
+        return clearBadCookies(response); // เตะไป localhost:3000/login
+      }
+    }
+    
+    if (currentHost === 'store' && userRole !== 'Merchant') {
+      const correctHost = userRole === 'Driver' ? 'fleet' : 'app';
+      const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url));
+      return clearBadCookies(response);
+    }
+
     if (currentHost === 'fleet' && userRole !== 'Driver') {
-      return NextResponse.redirect(new URL(getRedirectUrl('/login', 'app'), request.url))
+      const correctHost = userRole === 'Merchant' ? 'store' : 'app';
+      const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url));
+      return clearBadCookies(response);
     }
   }
 

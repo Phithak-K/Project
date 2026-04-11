@@ -19,7 +19,7 @@ export default function DriverLoginPage() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: 'Driver' }),
       });
 
       const data = await response.json();

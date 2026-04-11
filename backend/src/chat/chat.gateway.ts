@@ -54,7 +54,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // เก็บข้อมูล user ไว้ใน client data เพื่อใช้ภายหลัง
       (client as any).user = payload;
 
-      this.logger.log(`Client ${client.id} เชื่อมต่อสำเร็จ (userId: ${payload.userId})`);
+      this.logger.log(`Client ${client.id} เชื่อมต่อสำเร็จ (userId: ${payload.sub})`);
     } catch (error) {
       this.logger.warn(`Client ${client.id} ถูกตัดการเชื่อมต่อ: Token ไม่ถูกต้องหรือหมดอายุ`);
       client.emit('error', { message: 'Authentication failed: Token ไม่ถูกต้องหรือหมดอายุ' });
@@ -69,7 +69,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // เมื่อมีข้อความส่งมาจากหน้าบ้าน (Event: send_message)
   @SubscribeMessage('send_message')
   async handleMessage(
-    @MessageBody() data: { orderId: number; receiverId: number; content: string },
+    @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
     // ใช้ senderId จาก JWT Token ที่ตรวจสอบแล้ว (ไม่ใช่จาก client)
@@ -83,8 +83,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const newMessage = await this.prisma.message.create({
       data: {
         orderId: data.orderId,
-        senderId: user.userId, // ดึงจาก JWT ป้องกันการปลอม senderId
+        senderId: user.sub, // ดึงจาก sub ใน JWT
+        senderRole: user.role,
         receiverId: data.receiverId,
+        receiverRole: data.receiverRole,
         content: data.content,
       },
     });

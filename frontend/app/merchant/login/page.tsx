@@ -22,7 +22,7 @@ export default function MerchantLoginPage() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: 'Merchant' }),
       });
 
       const data = await response.json();
