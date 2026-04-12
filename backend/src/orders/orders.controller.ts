@@ -25,6 +25,18 @@ export class OrdersController {
     return this.ordersService.getMyOrders(req.user.userId);
   }
 
+  @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
+  @Get(':id')
+  getOrderById(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.getOrderById(Number(id), req.user.userId, req.user.role);
+  }
+
+  @UseGuards(JwtAuthGuard) 
+  @Get(':id/messages')
+  getOrderMessages(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.getOrderMessages(Number(id), req.user.userId, req.user.role);
+  }
+
   // ==== 🆕 New Merchant Features ====
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -59,6 +71,13 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
+  @Get('stats/driver')
+  getDriverStats(@Req() req: any) {
+    return this.ordersService.getDriverStats(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
   @Patch(':id/accept')
   acceptOrder(@Param('id') id: string, @Req() req: any) {
     const driverId = req.user.userId;
@@ -67,9 +86,41 @@ export class OrdersController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
-  @Patch(':id/complete')
-  completeOrder(@Param('id') id: string, @Req() req: any) {
+  @Patch(':id/pickup')
+  pickupOrder(@Param('id') id: string, @Req() req: any) {
     const driverId = req.user.userId;
-    return this.ordersService.completeOrder(Number(id), driverId);
+    return this.ordersService.pickupOrder(Number(id), driverId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Patch(':id/ship')
+  startShippingOrder(@Param('id') id: string, @Req() req: any) {
+    const driverId = req.user.userId;
+    return this.ordersService.startShippingOrder(Number(id), driverId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Patch(':id/complete')
+  completeOrder(@Param('id') id: string, @Body() body: { proofOfDelivery?: string }, @Req() req: any) {
+    const driverId = req.user.userId;
+    return this.ordersService.completeOrder(Number(id), driverId, body.proofOfDelivery);
+  }
+
+  // ==== 💰 Enterprise Features ====
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Patch(':id/pay')
+  payOrder(@Param('id') id: string, @Req() req: any) {
+    const driverId = req.user.userId;
+    return this.ordersService.payOrder(Number(id), driverId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Customer, Role.Merchant)
+  @Post(':id/rate')
+  rateOrder(@Param('id') id: string, @Body() body: { score: number, comment?: string }, @Req() req: any) {
+    return this.ordersService.rateOrder(Number(id), req.user.userId, req.user.role, body.score, body.comment);
   }
 }

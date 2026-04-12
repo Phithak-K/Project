@@ -3,8 +3,10 @@ import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { WeatherModule } from '../weather/weather.module';
 
+import { ChatModule } from '../chat/chat.module';
+
 @Module({
-  imports: [WeatherModule],
+  imports: [WeatherModule, ChatModule],
   providers: [OrdersService],
   controllers: [OrdersController]
 })

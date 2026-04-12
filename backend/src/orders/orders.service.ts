@@ -1,7 +1,8 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
+import { ChatGateway } from '../chat/chat.gateway';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -12,6 +13,8 @@ export class OrdersService {
     private prisma: PrismaService,
     private weatherService: WeatherService,
     private mailerService: MailerService,
+    @Inject(forwardRef(() => ChatGateway))
+    private chatGateway: ChatGateway,
   ) {}
 
   private async createTrackingLog(orderId: number, status: string, note: string) {
@@ -40,26 +43,12 @@ export class OrdersService {
   async createOrder(merchantId: number, data: CreateOrderDto) {
     try {
       const trackingNumber = this.generateTrackingNumber();
+      
+      let finalTotalPrice = Number(data.price);
+      let weatherWarning: string | null = null;
+      let weatherLogMessage: string | null = null;
 
-      const newOrder = await this.prisma.order.create({
-        data: {
-          merchantId: Number(merchantId),
-          trackingNumber,
-          productName: data.productName,
-          productDetail: data.productDetail || null,
-          quantity: data.quantity,
-          price: data.price,
-          totalPrice: Number(data.price),
-          receiverName: data.receiverName,
-          receiverPhone: data.receiverPhone,
-          address: data.address,
-          status: OrderStatus.PENDING,
-        },
-      });
-
-      await this.createTrackingLog(newOrder.id, 'PENDING', 'ร้านค้าสร้างออเดอร์สำเร็จและรอคนขับมารับพัสดุ');
-
-      let finalOrder = newOrder;
+      // ---- 1. Check Weather for Surge Pricing ----
       if (data.address) {
         const addressParts = data.address.trim().split(/\s+/);
         const city = addressParts[addressParts.length - 1];
@@ -70,18 +59,50 @@ export class OrdersService {
             const mainWeather = weatherData.weather[0].main;
 
             if (mainWeather === 'Rain' || mainWeather === 'Thunderstorm') {
-              finalOrder = await this.prisma.order.update({
-                where: { id: newOrder.id },
-                data: { weatherWarning: `⚠️ คำเตือน: ตรวจพบฝนใน ${city} โปรดป้องกันสินค้าเปียกชื้น` },
-              });
-              await this.createTrackingLog(newOrder.id, 'PENDING', `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง`);
+              // เพิ่มค่าบริการ 20% (Surge +20%)
+              finalTotalPrice = finalTotalPrice * 1.20;
+              weatherWarning = `⚠️ คำเตือน: ตรวจพบฝนใน ${city} โปรดป้องกันสินค้าเปียกชื้น (เพิ่มค่าบริการ 20%)`;
+              weatherLogMessage = `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง (ปรับราคาสุทธิเพิ่ม 20%)`;
             }
           }
         }
       }
 
-      this.notifyDrivers(finalOrder);
-      return finalOrder;
+      // ---- 2. Create Order in Database ----
+      const newOrder = await this.prisma.order.create({
+        data: {
+          merchantId: Number(merchantId),
+          trackingNumber,
+          productName: data.productName,
+          productDetail: data.productDetail || null,
+          quantity: data.quantity,
+          price: Number(data.price),        // ราคาฐานดั้งเดิม
+          totalPrice: finalTotalPrice,      // ราคาหลังบวก Surge
+          weatherWarning: weatherWarning,
+          receiverName: data.receiverName,
+          receiverPhone: data.receiverPhone,
+          address: data.address,
+          status: OrderStatus.PENDING,
+        },
+      });
+
+      // ---- 3. Create Tracking Logs ----
+      await this.createTrackingLog(newOrder.id, 'PENDING', 'ร้านค้าสร้างออเดอร์สำเร็จและรอคนขับมารับพัสดุ');
+      if (weatherLogMessage) {
+        await this.createTrackingLog(newOrder.id, 'PENDING', weatherLogMessage);
+      }
+
+      this.notifyDrivers(newOrder);
+
+      // 📡 Push Notification via WebSocket (Driver Radar)
+      if (this.chatGateway && this.chatGateway.server) {
+        this.chatGateway.server.emit('new_available_order', {
+          ...newOrder,
+          message: '🚨 มีออเดอร์ใหม่เข้ามาในพื้นที่!',
+        });
+      }
+
+      return newOrder;
     } catch (error) {
       console.error('Create Order Error:', error);
       throw new BadRequestException('ไม่สามารถสร้างออเดอร์ได้ กรุณาตรวจสอบข้อมูลอีกครั้ง');
@@ -113,6 +134,42 @@ export class OrdersService {
       where: { merchantId: Number(merchantId) },
       orderBy: { createdAt: 'desc' },
       include: { trackingLogs: true },
+    });
+  }
+
+  async getOrderById(orderId: number, userId: number, role: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        trackingLogs: { orderBy: { createdAt: 'desc' } },
+        merchant: { select: { storeName: true, phone: true } },
+        driver: { select: { name: true, phone: true, vehiclePlate: true } },
+        customer: { select: { name: true } },
+      },
+    });
+
+    if (!order) throw new BadRequestException('Order not found');
+
+    // Access Control: Only people involved can see it
+    if (role === 'Merchant' && order.merchantId !== userId) throw new ForbiddenException('Access denied');
+    if (role === 'Driver' && order.driverId && order.driverId !== userId) throw new ForbiddenException('Access denied');
+    if (role === 'Customer' && order.customerId && order.customerId !== userId) throw new ForbiddenException('Access denied');
+
+    return order;
+  }
+
+  async getOrderMessages(orderId: number, userId: number, role: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('Order not found');
+
+    // Access Control
+    if (role === 'Merchant' && order.merchantId !== userId) throw new ForbiddenException('Access denied');
+    if (role === 'Driver' && order.driverId && order.driverId !== userId) throw new ForbiddenException('Access denied');
+    if (role === 'Customer' && order.customerId && order.customerId !== userId) throw new ForbiddenException('Access denied');
+
+    return this.prisma.message.findMany({
+      where: { orderId: Number(orderId) },
+      orderBy: { createdAt: 'asc' },
     });
   }
 
@@ -209,54 +266,210 @@ export class OrdersService {
   }
 
   async acceptOrder(orderId: number, driverId: number) {
-    // ดึง Order มาเช็คสถานะก่อน
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) {
-      throw new BadRequestException('ไม่พบออเดอร์นี้');
-    }
-
-    // ป้องกันการรับงานซ้อน หรือรับงานที่ถูกยกเลิกแล้ว
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
     if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException(
-        `ไม่สามารถรับออเดอร์นี้ได้ เนื่องจากสถานะปัจจุบันคือ "${order.status}" (ต้องเป็น PENDING เท่านั้น)`,
-      );
+      throw new BadRequestException(`ออเดอร์ถูกรับไปแล้ว (สถานะ: ${order.status})`);
     }
-
-    if (order.driverId !== null) {
-      throw new BadRequestException('ออเดอร์นี้มีคนขับรับไปแล้ว');
-    }
+    if (order.driverId !== null) throw new BadRequestException('ออเดอร์นี้มีคนขับรับไปแล้ว');
 
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
-      data: {
-        driverId,
-        status: OrderStatus.SHIPPING,
-      },
+      data: { driverId, status: OrderStatus.ACCEPTED },
     });
-    await this.createTrackingLog(orderId, 'SHIPPING', 'คนขับได้รับพัสดุแล้ว กำลังเริ่มจัดส่ง');
+    
+    await this.createTrackingLog(orderId, 'ACCEPTED', 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า');
+    
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+      this.chatGateway.server.emit('order_taken', { orderId }); // ลบออกจาก Radar
+    }
+    
     return updatedOrder;
   }
 
-  async completeOrder(orderId: number, driverId: number) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
+  async pickupOrder(orderId: number, driverId: number) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
     if (order.driverId !== driverId) throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
-    // ✅ BUG-03: เช็ค Status ก่อนว่าเป็น SHIPPING
-    if (order.status !== OrderStatus.SHIPPING) {
-      throw new BadRequestException('ออเดอร์ต้องอยู่ในสถานะ SHIPPING ก่อนจะสำเร็จได้');
-    }
+    if (order.status !== OrderStatus.ACCEPTED) throw new BadRequestException('ต้องรับงานก่อน (ACCEPTED)');
 
-    const completedOrder = await this.prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
-      data: { status: OrderStatus.DELIVERED },
+      data: { status: OrderStatus.PICKED_UP },
     });
-    await this.createTrackingLog(orderId, 'DELIVERED', 'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้ว');
-    return completedOrder;
+    
+    await this.createTrackingLog(orderId, 'PICKED_UP', 'คนขับรับพัสดุจากร้านค้าเรียบร้อยแล้ว');
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+    }
+    return updatedOrder;
+  }
+
+  async startShippingOrder(orderId: number, driverId: number) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.driverId !== driverId) throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
+    if (order.status !== OrderStatus.PICKED_UP) throw new BadRequestException('ต้องรับของก่อน (PICKED_UP)');
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.SHIPPING },
+    });
+    
+    await this.createTrackingLog(orderId, 'SHIPPING', 'พัสดุกำลังเดินทางไปหาผู้รับพัสดุ');
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+    }
+    return updatedOrder;
+  }
+
+  async completeOrder(orderId: number, driverId: number, proofOfDeliveryBase64?: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.driverId !== driverId) throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
+    if (order.status !== OrderStatus.SHIPPING) throw new BadRequestException('ต้องเริ่มการจัดส่งก่อน (SHIPPING)');
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { 
+        status: OrderStatus.DELIVERED,
+        proofOfDelivery: proofOfDeliveryBase64 || null
+      },
+    });
+    
+    await this.createTrackingLog(orderId, 'DELIVERED', 'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้วพร้อมหลักฐาน');
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+    }
+    return updatedOrder;
+  }
+
+  // ==== 💰 Enterprise Features: Payment & Wallet ====
+  async payOrder(orderId: number, driverId: number) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.driverId !== driverId) throw new ForbiddenException('สิทธิ์ถูกปฏิเสธ');
+    if (order.paymentStatus === 'Paid') throw new BadRequestException('ออเดอร์นี้ชำระเงินแล้ว');
+
+    const amountToPay = order.totalPrice || order.price;
+    const driverCut = amountToPay * 0.2; // 20%
+    const merchantCut = order.price; 
+
+    // เริ่ม Transaction พร้อม ป้องกัน Race Condition
+    await this.prisma.$transaction(async (tx) => {
+      // 0. Atomic update เพื่อป้องกัน Race Condition (Double Execution)
+      const lockUpdate = await tx.order.updateMany({
+        where: { id: orderId, paymentStatus: 'Unpaid' },
+        data: { paymentStatus: 'Paid' }
+      });
+      
+      if (lockUpdate.count === 0) {
+        throw new BadRequestException('ออเดอร์นี้ชำระเงินไปแล้ว หรืออยู่ระหว่างทำรายการ');
+      }
+
+      // 1. หักเงินลูกค้า (ถ้ามี)
+      if (order.customerId) {
+        await tx.customer.update({
+          where: { id: order.customerId },
+          data: { balance: { decrement: amountToPay } }
+        });
+        await tx.transaction.create({
+          data: { amount: amountToPay, type: 'DEBIT', note: `ชำระค่าออเดอร์ #${order.trackingNumber}`, userId: order.customerId, userRole: 'Customer', orderId: order.id }
+        });
+      }
+
+      // 2. เพิ่มเงินให้ร้านค้า
+      if (order.merchantId) {
+        await tx.merchant.update({
+          where: { id: order.merchantId },
+          data: { balance: { increment: merchantCut } }
+        });
+        await tx.transaction.create({
+          data: { amount: merchantCut, type: 'CREDIT', note: `รับเงินค่าสินค้า #${order.trackingNumber}`, userId: order.merchantId, userRole: 'Merchant', orderId: order.id }
+        });
+      }
+
+      // 3. เพิ่มเงินให้คนขับ
+      await tx.driver.update({
+        where: { id: driverId },
+        data: { balance: { increment: driverCut } }
+      });
+      await tx.transaction.create({
+        data: { amount: driverCut, type: 'CREDIT', note: `ค่ารอบจัดส่ง #${order.trackingNumber}`, userId: driverId, userRole: 'Driver', orderId: order.id }
+      });
+
+      // 4. บันทึกข้อมูลสำเร็จ (paymentStatus ถูกอัปเดตไปแล้วตั้งแต่สเต็ป 0)
+    });
+
+    const refreshedOrder = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', refreshedOrder);
+    }
+    
+    return { success: true, message: 'ชำระเงินและโอนเข้า Wallet สำเร็จ' };
+  }
+
+  // ==== ⭐ Enterprise Features: Rating System ====
+  async rateOrder(orderId: number, userId: number, role: string, score: number, comment?: string) {
+    if (score < 1 || score > 5) throw new BadRequestException('คะแนนต้องอยู่ระหว่าง 1 ถึง 5');
+    
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (!order.driverId) throw new BadRequestException('ออเดอร์นี้ไม่มีคนขับ');
+
+    const existingRating = await this.prisma.rating.findUnique({ where: { orderId } });
+    if (existingRating) throw new BadRequestException('ออเดอร์นี้ถูกให้คะแนนไปแล้ว');
+
+    const newRating = await this.prisma.rating.create({
+      data: {
+        score,
+        comment,
+        orderId,
+        raterId: userId,
+        raterRole: role,
+        driverId: order.driverId
+      }
+    });
+
+    return newRating;
+  }
+
+  // ==== 📊 Driver Stats ====
+  async getDriverStats(driverId: number) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const activeOrdersCount = await this.prisma.order.count({
+      where: { 
+        driverId, 
+        status: { in: [OrderStatus.ACCEPTED, OrderStatus.PICKED_UP, OrderStatus.SHIPPING] } 
+      },
+    });
+
+    const deliveredOrdersCount = await this.prisma.order.count({
+      where: { driverId, status: OrderStatus.DELIVERED, updatedAt: { gte: startOfDay } },
+    });
+
+    // สมมติ: คนขับได้ค่า GP หรือได้โบนัสจาก Surge
+    const todayEarnings = await this.prisma.order.aggregate({
+      where: {
+        driverId,
+        status: OrderStatus.DELIVERED,
+        updatedAt: { gte: startOfDay },
+      },
+      _sum: { totalPrice: true, price: true },
+    });
+
+    const totalIncome = todayEarnings._sum.totalPrice || 0;
+    const baseIncome = todayEarnings._sum.price || 0;
+    const weatherBonus = totalIncome - baseIncome; // ส่วนต่างของ Surge
+
+    return {
+      activeOrders: activeOrdersCount,
+      completedTrips: deliveredOrdersCount,
+      totalIncome: totalIncome,
+      weatherBonus: weatherBonus, // โชว์โบนัสให้คนขับเห็นชัดๆ
+    };
   }
 }

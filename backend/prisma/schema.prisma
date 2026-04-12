@@ -11,6 +11,8 @@ datasource db {
 
 enum OrderStatus {
   PENDING
+  ACCEPTED
+  PICKED_UP
   SHIPPING
   DELIVERED
   CANCELLED
@@ -33,6 +35,7 @@ model Customer {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
+  balance          Float     @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -55,6 +58,7 @@ model Merchant {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
+  balance          Float     @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -77,6 +81,7 @@ model Driver {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
+  balance          Float     @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -110,15 +115,17 @@ model Order {
   proofOfDelivery  String?       
 
   customerId       Int?
-  merchantId       Int
+  merchantId       Int?
   driverId         Int?
 
   customer         Customer?     @relation("CustomerOrders", fields: [customerId], references: [id])
-  merchant         Merchant      @relation("MerchantOrders", fields: [merchantId], references: [id])
+  merchant         Merchant?     @relation("MerchantOrders", fields: [merchantId], references: [id])
   driver           Driver?       @relation("DriverOrders", fields: [driverId], references: [id])
 
   trackingLogs     TrackingLog[]
   messages         Message[]     
+  transactions     Transaction[]
+  rating           Rating?
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
@@ -153,4 +160,35 @@ model Message {
   receiverId Int
   
   createdAt  DateTime @default(now())
+}
+
+model Transaction {
+  id        Int      @id @default(autoincrement())
+  amount    Float
+  type      String   // "DEBIT", "CREDIT"
+  note      String?  // e.g. "Payment for Order #123"
+  
+  userId    Int
+  userRole  String   // "Customer", "Merchant", "Driver"
+  
+  orderId   Int?
+  order     Order?   @relation(fields: [orderId], references: [id])
+  
+  createdAt DateTime @default(now())
+}
+
+model Rating {
+  id          Int      @id @default(autoincrement())
+  score       Int      // 1-5
+  comment     String?
+  
+  orderId     Int      @unique
+  order       Order    @relation(fields: [orderId], references: [id])
+  
+  raterId     Int
+  raterRole   String   // "Customer" or "Merchant"
+  
+  driverId    Int?     // Target of rating
+  
+  createdAt   DateTime @default(now())
 }
