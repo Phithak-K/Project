@@ -48,7 +48,12 @@ export default function CreateOrderPage() {
       if (data.weather && data.weather[0]) {
         const main = data.weather[0].main;
         const isRainy = main === 'Rain' || main === 'Thunderstorm';
-        setWeatherData({ main, surge: isRainy ? 20 : 0 });
+        
+        // ถ้าฝนตก ให้พรีวิวบวกเพิ่ม 20% (เป็นการโชว์ให้ User ดูเฉยๆ)
+        const basePrice = parseFloat(formData.price) || 0;
+        const previewSurge = isRainy ? basePrice * 0.20 : 0;
+        
+        setWeatherData({ main, surge: previewSurge });
       }
     } catch (err) {
       console.error("Weather check failed");
@@ -71,10 +76,11 @@ export default function CreateOrderPage() {
     }
 
     try {
-      // คำนวณราคาสุทธิ (ราคาฐาน + ค่าบริการพิเศษ)
+      // ✅ ความปลอดภัย: หน้าบ้านส่งไปแค่ "ราคาฐาน" (Base Price) เท่านั้น!
+      // การบวกเพิ่ม 20% ของจริง จะถูกคำนวณและบังคับใช้ที่ฝั่ง Backend เพื่อป้องกันการโกงราคา
+      // (finalTotalPrice ในหน้านี้เป็นแค่ Preview เท่านั้น)
       const basePrice = parseFloat(formData.price) || 0;
-      const surgePrice = weatherData?.surge || 0;
-      const finalTotalPrice = basePrice + surgePrice;
+      const finalTotalPrice = basePrice + (weatherData?.surge || 0);
 
       const res = await fetch(`${API_URL}/orders`, {
         method: 'POST',
@@ -84,13 +90,13 @@ export default function CreateOrderPage() {
         },
         body: JSON.stringify({
           ...formData,
-          price: finalTotalPrice, // ส่งราคาที่รวม Surge แล้ว
+          price: basePrice, // ส่งราคาตั้งต้น
           quantity: parseInt(formData.quantity)
         })
       });
 
       if (res.ok) {
-        alert(`สร้างออเดอร์สำเร็จ! ยอดรวมสุทธิ ฿${finalTotalPrice.toLocaleString()}`);
+        alert(`สร้างออเดอร์สำเร็จ! ยอดรวมพรีวิว ฿${finalTotalPrice.toLocaleString()}`);
         router.push('/merchant'); 
       } else {
         const err = await res.json();
@@ -178,7 +184,7 @@ export default function CreateOrderPage() {
                   <p className="font-black text-sm uppercase tracking-wide">รายงานสภาพอากาศ: {weatherData.main}</p>
                   <p className="text-xs font-medium opacity-80">
                     {weatherData.surge > 0 
-                      ? `ตรวจพบฝน/พายุในพื้นที่ ระบบบวกค่าบริการพิเศษ +฿${weatherData.surge}` 
+                      ? `ตรวจพบฝน/พายุในพื้นที่ ระบบแสดงพรีวิวบวกค่าบริการพิเศษ +20% (฿${weatherData.surge})` 
                       : 'สภาพอากาศปกติ ไม่มีค่าบริการเพิ่มเติม'}
                   </p>
                 </div>
