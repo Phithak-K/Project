@@ -3,15 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  FiArrowLeft, FiPackage, FiUser, FiPhone, 
-  FiMapPin, FiCloudRain, FiAlertTriangle, FiPlus, FiDollarSign 
-} from 'react-icons/fi';
+  ArrowLeft, Package, User, Phone, 
+  MapPin, CloudRain, AlertTriangle, Plus, DollarSign, Shield, Clock, Navigation, Map, CheckCircle
+} from 'lucide-react';
 
 export default function CreateOrderPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [weatherChecking, setWeatherChecking] = useState(false);
-  const [weatherData, setWeatherData] = useState<{ main: string; surge: number } | null>(null);
+  const [weatherData, setWeatherData] = useState<{ main: string; surge: number; eta: number | null } | null>(null);
 
   const [formData, setFormData] = useState({
     productName: '',
@@ -20,11 +20,13 @@ export default function CreateOrderPage() {
     receiverName: '',
     receiverPhone: '',
     address: '', 
+    lat: '',
+    lng: '',
+    hasInsurance: false,
   });
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // 1. Helper: อ่าน Token จาก Cookie
   const getAuthToken = () => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; token=`);
@@ -32,28 +34,30 @@ export default function CreateOrderPage() {
     return null;
   };
 
-  // 2. ฟังก์ชันเช็คสภาพอากาศล่วงหน้า (UX Preview)
   const checkWeatherPreview = async () => {
     if (!formData.address) return alert('กรุณากรอกที่อยู่เพื่อเช็คสภาพอากาศ');
     setWeatherChecking(true);
     
     try {
-      // ดึงคำสุดท้ายของที่อยู่ (จังหวัด)
       const addressParts = formData.address.trim().split(/\s+/);
       const city = addressParts[addressParts.length - 1];
-      
       const res = await fetch(`${API_URL}/weather/${city}`);
       const data = await res.json();
       
       if (data.weather && data.weather[0]) {
         const main = data.weather[0].main;
-        const isRainy = main === 'Rain' || main === 'Thunderstorm';
-        
-        // ถ้าฝนตก ให้พรีวิวบวกเพิ่ม 20% (เป็นการโชว์ให้ User ดูเฉยๆ)
+        const isRainy = main === 'Rain' || main === 'Thunderstorm' || main === 'Drizzle';
         const basePrice = parseFloat(formData.price) || 0;
         const previewSurge = isRainy ? basePrice * 0.20 : 0;
         
-        setWeatherData({ main, surge: previewSurge });
+        let previewEta = 30;
+        if (formData.lat && formData.lng) {
+          const dist = Math.sqrt(Math.pow(parseFloat(formData.lat) - 13.75, 2) + Math.pow(parseFloat(formData.lng) - 100.5, 2)) * 111; 
+          previewEta = Math.ceil(dist * 2) + 10;
+        }
+        if (isRainy) previewEta += 15;
+        
+        setWeatherData({ main, surge: previewSurge, eta: previewEta });
       }
     } catch (err) {
       console.error("Weather check failed");
@@ -63,7 +67,6 @@ export default function CreateOrderPage() {
     }
   };
 
-  // 3. ฟังก์ชันสร้างออเดอร์จริง (รวมราคา Surge แล้ว)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -71,17 +74,12 @@ export default function CreateOrderPage() {
 
     if (!token) {
       alert('เซสชันหมดอายุ กรุณาล็อกอินใหม่');
-      router.push('/merchant/login');
+      router.push('/login');
       return;
     }
 
     try {
-      // ✅ ความปลอดภัย: หน้าบ้านส่งไปแค่ "ราคาฐาน" (Base Price) เท่านั้น!
-      // การบวกเพิ่ม 20% ของจริง จะถูกคำนวณและบังคับใช้ที่ฝั่ง Backend เพื่อป้องกันการโกงราคา
-      // (finalTotalPrice ในหน้านี้เป็นแค่ Preview เท่านั้น)
       const basePrice = parseFloat(formData.price) || 0;
-      const finalTotalPrice = basePrice + (weatherData?.surge || 0);
-
       const res = await fetch(`${API_URL}/orders`, {
         method: 'POST',
         headers: {
@@ -90,13 +88,14 @@ export default function CreateOrderPage() {
         },
         body: JSON.stringify({
           ...formData,
-          price: basePrice, // ส่งราคาตั้งต้น
-          quantity: parseInt(formData.quantity)
+          price: basePrice, 
+          quantity: parseInt(formData.quantity),
+          lat: formData.lat ? parseFloat(formData.lat) : null,
+          lng: formData.lng ? parseFloat(formData.lng) : null,
         })
       });
 
       if (res.ok) {
-        alert(`สร้างออเดอร์สำเร็จ! ยอดรวมพรีวิว ฿${finalTotalPrice.toLocaleString()}`);
         router.push('/merchant'); 
       } else {
         const err = await res.json();
@@ -109,117 +108,187 @@ export default function CreateOrderPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <div className="max-w-3xl mx-auto">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-slate-500 mb-6 hover:text-purple-600 transition-colors font-bold">
-          <FiArrowLeft /> ย้อนกลับ
-        </button>
+  const totalAmount = (parseFloat(formData.price) || 0) + (weatherData?.surge || 0) + (formData.hasInsurance ? 50 : 0);
 
-        <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-100">
-          <div className="bg-purple-600 p-8 text-white">
-            <h1 className="text-2xl font-black flex items-center gap-3">
-              <FiPlus className="bg-white/20 p-1 rounded-lg" /> สร้างออเดอร์ใหม่
-            </h1>
-            <p className="text-purple-100 opacity-80 text-sm mt-1">กรอกรายละเอียดพัสดุและข้อมูลผู้รับให้ครบถ้วนเพื่อคำนวณค่าบริการ</p>
+  return (
+    <div className="sp-page">
+      <nav className="sp-nav">
+        <button onClick={() => router.back()} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer' }}>
+          <ArrowLeft size={16} /> ย้อนกลับ
+        </button>
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
+        <div style={{ width: '80px' }} />
+      </nav>
+
+      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+        
+        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+          <span className="sp-section-eyebrow">Store Portal</span>
+          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>สร้างออเดอร์จัดส่ง</h1>
+          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>กรอกข้อมูลพัสดุและผู้รับเพื่อเรียกคนขับ</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="sp-stagger">
+          
+          {/* Section 1: Item Details */}
+          <div className="sp-card" style={{ marginBottom: '1.5rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Package size={14} /> ข้อมูลสินค้า
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ชื่อสินค้า</label>
+                <input 
+                  type="text" required value={formData.productName} 
+                  onChange={e => setFormData({...formData, productName: e.target.value})}
+                  className="sp-input" placeholder="เช่น กล่องรองเท้า, เสื้อผ้า"
+                />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">ราคาฐาน (บาท)</label>
+                <input 
+                  type="number" required value={formData.price} 
+                  onChange={e => setFormData({...formData, price: e.target.value})}
+                  className="sp-input" placeholder="0.00"
+                />
+              </div>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-8 space-y-6">
-            {/* ข้อมูลพัสดุ */}
-            <div className="space-y-4">
-              <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs flex items-center gap-2">
-                <FiPackage className="text-purple-600" /> ข้อมูลพัสดุ
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input 
-                  type="text" placeholder="ชื่อสินค้า" required
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
-                  value={formData.productName} onChange={e => setFormData({...formData, productName: e.target.value})}
+          {/* Section 2: Receiver Info */}
+          <div className="sp-card" style={{ marginBottom: '1.5rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <User size={14} /> ข้อมูลผู้รับ
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ชื่อผู้รับ</label>
+                <input id="receiver-name"
+                  type="text" required value={formData.receiverName}
+                  onChange={e => setFormData({...formData, receiverName: e.target.value})}
+                  className="sp-input" placeholder="ชื่อ-นามสกุล"
                 />
-                <input 
-                  type="number" placeholder="ราคาสินค้าพื้นฐาน (บาท)" required
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
-                  value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})}
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">เบอร์โทรศัพท์</label>
+                <input id="receiver-phone"
+                  type="tel" required value={formData.receiverPhone}
+                  onChange={e => setFormData({...formData, receiverPhone: e.target.value})}
+                  className="sp-input" placeholder="08XXXXXXXX"
                 />
               </div>
             </div>
 
-            {/* ข้อมูลผู้รับ */}
-            <div className="space-y-4 pt-4">
-              <h3 className="font-black text-slate-800 uppercase tracking-widest text-xs flex items-center gap-2">
-                <FiUser className="text-purple-600" /> ข้อมูลผู้รับ
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input 
-                  type="text" placeholder="ชื่อผู้รับ" required
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
-                  value={formData.receiverName} onChange={e => setFormData({...formData, receiverName: e.target.value})}
-                />
-                <input 
-                  type="text" placeholder="เบอร์โทรศัพท์" required
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
-                  value={formData.receiverPhone} onChange={e => setFormData({...formData, receiverPhone: e.target.value})}
-                />
-              </div>
-              <div className="relative">
+            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+              <label className="sp-label">ที่อยู่จัดส่ง</label>
+              <div style={{ position: 'relative' }}>
                 <textarea 
-                  placeholder="ที่อยู่จัดส่ง (ระบุ จังหวัด ไว้ท้ายสุด เพื่อเช็คค่าบริการพิเศษ เช่น ... กรุงเทพ)" required rows={3}
-                  className="w-full px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50 focus:ring-2 focus:ring-purple-500 outline-none transition-all font-medium"
-                  value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})}
+                  required rows={3} value={formData.address}
+                  onChange={e => setFormData({...formData, address: e.target.value})}
+                  className="sp-input" style={{ resize: 'none' }}
+                  placeholder="เลขที่บ้าน, ถนน, แขวง, เขต, จังหวัด"
                 />
                 <button 
                   type="button" onClick={checkWeatherPreview} disabled={weatherChecking}
-                  className="absolute right-3 bottom-3 text-xs bg-white border border-slate-100 px-3 py-2 rounded-xl font-bold text-purple-600 hover:bg-purple-50 shadow-sm transition-all"
+                  className="sp-btn-ghost" 
+                  style={{ position: 'absolute', right: '0.75rem', bottom: '0.75rem', padding: '0.3rem 0.6rem', fontSize: '0.75rem' }}
                 >
-                  {weatherChecking ? 'กำลังเช็ค...' : '🔍 เช็คสภาพอากาศ'}
+                  {weatherChecking ? 'กำลังเช็ค...' : 'เช็คสภาพอากาศ & ETA'}
                 </button>
               </div>
             </div>
 
-            {/* Weather & Surge Display */}
-            {weatherData && (
-              <div className={`p-5 rounded-2xl border flex items-start gap-4 animate-in fade-in slide-in-from-top-2 ${weatherData.surge > 0 ? 'bg-orange-50 border-orange-100 text-orange-800' : 'bg-green-50 border-green-100 text-green-800'}`}>
-                {weatherData.surge > 0 ? <FiCloudRain size={24} /> : <FiAlertTriangle size={24} />}
-                <div>
-                  <p className="font-black text-sm uppercase tracking-wide">รายงานสภาพอากาศ: {weatherData.main}</p>
-                  <p className="text-xs font-medium opacity-80">
-                    {weatherData.surge > 0 
-                      ? `ตรวจพบฝน/พายุในพื้นที่ ระบบแสดงพรีวิวบวกค่าบริการพิเศษ +20% (฿${weatherData.surge})` 
-                      : 'สภาพอากาศปกติ ไม่มีค่าบริการเพิ่มเติม'}
-                  </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">Latitude</label>
+                <input 
+                  type="number" step="any" value={formData.lat}
+                  onChange={e => setFormData({...formData, lat: e.target.value})}
+                  className="sp-input" placeholder="13.75..."
+                />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">Longitude</label>
+                <input 
+                  type="number" step="any" value={formData.lng}
+                  onChange={e => setFormData({...formData, lng: e.target.value})}
+                  className="sp-input" placeholder="100.5..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Value Add & Summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            
+            <div className="sp-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div>
+                <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1rem' }}>บริการเสริม</h3>
+                <div className="sp-checkbox">
+                  <input 
+                    type="checkbox" id="insure" checked={formData.hasInsurance}
+                    onChange={e => setFormData({...formData, hasInsurance: e.target.checked})}
+                  />
+                  <label htmlFor="insure" className="sp-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Shield size={14} style={{ color: 'var(--brand-500)' }} />
+                    SwiftPath Insurance (+฿50)
+                  </label>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--n-400)', marginTop: '0.5rem', marginLeft: '1.6rem' }}>
+                  คุ้มครองสินค้าเสียหายสูงสุด 5,000 บาท
+                </p>
+              </div>
+
+              {weatherData && (
+                <div style={{ marginTop: '1.5rem', padding: '0.75rem', borderRadius: '0.5rem', background: weatherData.surge > 0 ? 'var(--warning-bg)' : 'var(--success-bg)', color: weatherData.surge > 0 ? 'var(--warning-text)' : 'var(--success-text)', fontSize: '0.8rem', display: 'flex', gap: '0.5rem' }}>
+                  {weatherData.surge > 0 ? <CloudRain size={16} /> : <CheckCircle size={16} />}
+                  <div>
+                    <span style={{ fontWeight: 700 }}>{weatherData.main}</span>: {weatherData.surge > 0 ? `Surge +฿${weatherData.surge}` : 'ไม่มีค่าบริการเพิ่ม'}
+                    <div style={{ opacity: 0.8, fontSize: '0.7rem' }}>ETA ประมาณ {weatherData.eta} นาที</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="sp-card-dark" style={{ background: 'var(--n-850)' }}>
+              <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.5rem' }}>สรุปยอดชำระ</h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--n-500)' }}>ราคาสินค้า</span>
+                  <span style={{ color: 'var(--n-50)' }}>฿{(parseFloat(formData.price) || 0).toLocaleString()}</span>
+                </div>
+                {weatherData && weatherData.surge > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                    <span style={{ color: 'var(--n-500)' }}>ค่า Surge ({weatherData.main})</span>
+                    <span style={{ color: 'var(--brand-400)' }}>+ ฿{weatherData.surge.toLocaleString()}</span>
+                  </div>
+                )}
+                {formData.hasInsurance && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                    <span style={{ color: 'var(--n-500)' }}>ค่าประกันภัย</span>
+                    <span style={{ color: 'oklch(65% 0.12 270)' }}>+ ฿50</span>
+                  </div>
+                )}
+                <div style={{ height: '1px', background: 'var(--n-800)', margin: '0.5rem 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <span className="sp-caps" style={{ color: 'var(--n-500)' }}>รวมสุทธิ</span>
+                  <span className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>
+                    ฿{totalAmount.toLocaleString()}
+                  </span>
                 </div>
               </div>
-            )}
-
-            {/* Price Summary Before Submission */}
-            <div className="bg-slate-50 p-6 rounded-3xl border border-dashed border-slate-200 space-y-2">
-                <div className="flex justify-between text-sm text-slate-500 font-medium">
-                    <span>ราคาสินค้า:</span>
-                    <span>฿{(parseFloat(formData.price) || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm text-orange-600 font-medium">
-                    <span>ค่าบริการพิเศษ (Surge):</span>
-                    <span>+ ฿{(weatherData?.surge || 0).toLocaleString()}</span>
-                </div>
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
-                    <span className="font-black text-slate-800">ยอดรวมสุทธิ:</span>
-                    <span className="text-2xl font-black text-purple-600">
-                        ฿{( (parseFloat(formData.price) || 0) + (weatherData?.surge || 0) ).toLocaleString()}
-                    </span>
-                </div>
             </div>
 
-            <div className="pt-2">
-              <button 
-                type="submit" disabled={loading}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-purple-200 transition-all transform active:scale-[0.98] disabled:bg-slate-300 disabled:shadow-none"
-              >
-                {loading ? 'กำลังส่งข้อมูล...' : 'ยืนยันและชำระเงิน'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
+          </div>
+
+          <button id="btn-submit" type="submit" disabled={loading} className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem', fontSize: '1.1rem' }}>
+            {loading ? <span className="sp-spinner" /> : <>ยืนยันและสร้างออเดอร์</>}
+          </button>
+
+        </form>
+
+      </main>
     </div>
   );
 }

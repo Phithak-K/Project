@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { FiSend, FiX } from 'react-icons/fi';
+import { Send, X, Image as ImageIcon, Camera, Loader2, Paperclip } from 'lucide-react';
 
 interface ChatBoxProps {
   orderId: number;
@@ -18,7 +18,10 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sendingImage, setSendingImage] = useState(false);
+  
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -36,7 +39,6 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
     const token = getAuthToken();
     if (!token) return;
 
-    // Load old messages
     fetch(`${API_URL}/orders/${orderId}/messages`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -47,12 +49,14 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
         setLoading(false);
       });
 
-    // Create a NEW socket connection just for chat or reuse? Better to create one focused on this component
     const newSocket = io(API_URL, { auth: { token: `Bearer ${token}` } });
     newSocket.emit('join_order', { orderId });
 
     newSocket.on('receive_message', (msg: any) => {
-      setMessages(prev => [...prev, msg]);
+      setMessages(prev => {
+        if (prev.find(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
 
     setSocket(newSocket);
@@ -64,55 +68,96 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   }, [isOpen, orderId, API_URL]);
 
   useEffect(() => {
-    // Scroll to bottom when messages update
     if (bottomRef.current) {
       bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = (e: React.FormEvent, imageUrl?: string) => {
     e.preventDefault();
-    if (!newMessage.trim() || !socket || !receiverId) return;
+    if (!socket || !receiverId) return;
+    if (!newMessage.trim() && !imageUrl) return;
 
     socket.emit('send_message', {
       orderId,
       receiverId,
       receiverRole,
-      content: newMessage.trim()
+      content: newMessage.trim() || (imageUrl ? 'ส่งรูปภาพ' : ''),
+      imageUrl: imageUrl || null
     });
 
     setNewMessage('');
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSendingImage(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      handleSend({ preventDefault: () => {} } as any, base64);
+      setSendingImage(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (!isOpen) return null;
 
+  const getRoleBadge = (role: string) => {
+    if (role === 'Customer') return 'ลูกค้า';
+    if (role === 'Merchant') return 'ร้านค้า';
+    if (role === 'Driver')   return 'คนขับ';
+    return role;
+  };
+
   return (
-    <div className="fixed bottom-4 right-4 left-4 md:left-auto md:w-96 bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[500px] z-50">
+    <div className="sp-chat-panel sp-animate">
       {/* Header */}
-      <div className="bg-indigo-600 text-white p-4 flex justify-between items-center">
-        <div>
-          <h4 className="font-bold">คุยกับ {receiverRole === 'Customer' ? 'ลูกค้า' : receiverRole === 'Driver' ? 'คนขับ' : 'ร้านค้า'}</h4>
-          {!receiverId && <p className="text-xs text-indigo-300">ยังไม่มีผู้รับข้อความนี้</p>}
+      <div className="sp-chat-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: receiverId ? 'var(--success-text)' : 'var(--n-500)', boxShadow: receiverId ? '0 0 8px var(--success-text)' : 'none' }} />
+          <div>
+            <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>แชทกับ{getRoleBadge(receiverRole)}</p>
+            <p className="sp-caps" style={{ color: 'var(--n-400)', fontSize: '0.55rem', marginTop: '0.1rem' }}>
+              {receiverId ? 'เชื่อมต่อแล้ว' : 'รอการเชื่อมต่อ...'}
+            </p>
+          </div>
         </div>
-        <button onClick={onClose} className="text-indigo-200 hover:text-white transition-colors">
-          <FiX size={24} />
+        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--n-400)', cursor: 'pointer', padding: '4px' }}>
+          <X size={18} />
         </button>
       </div>
 
-      {/* Messages list */}
-      <div className="flex-1 p-4 overflow-y-auto bg-slate-50 space-y-3">
+      {/* Messages */}
+      <div className="sp-chat-messages">
         {loading ? (
-          <p className="text-center text-slate-400 text-sm mt-10">กำลังโหลด...</p>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
+            <Loader2 className="sp-spinner" style={{ color: 'var(--n-200)' }} />
+          </div>
         ) : messages.length === 0 ? (
-          <p className="text-center text-slate-400 text-sm mt-10">ยังไม่มีข้อความ เริ่มคุยได้เลย!</p>
+          <div className="sp-empty-centered" style={{ padding: '2rem' }}>
+            <p className="sp-caps" style={{ color: 'var(--n-300)', fontSize: '0.6rem' }}>เริ่มการสนทนา</p>
+          </div>
         ) : (
-          messages.map(msg => {
+          messages.map((msg, i) => {
             const isMe = msg.senderRole === currentRole;
             return (
-              <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[75%] p-3 rounded-2xl ${isMe ? 'bg-indigo-500 text-white rounded-br-sm' : 'bg-white text-slate-800 border border-slate-200 rounded-bl-sm'}`}>
-                  <p className="text-sm">{msg.content}</p>
+              <div key={msg.id || i} className={`sp-msg ${isMe ? 'sp-msg-self' : 'sp-msg-other'}`}>
+                <div className="sp-msg-bubble">
+                  {msg.imageUrl && (
+                    <img 
+                      src={msg.imageUrl} 
+                      alt="Attached" 
+                      style={{ borderRadius: '0.5rem', marginBottom: '0.5rem', maxWidth: '100%', display: 'block' }} 
+                    />
+                  )}
+                  {msg.content && <span>{msg.content}</span>}
                 </div>
+                <span className="sp-msg-time">
+                  {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             );
           })
@@ -121,21 +166,34 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex gap-2">
+      <form onSubmit={handleSend} className="sp-chat-input-row">
         <input 
-          type="text" 
-          value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
-          placeholder={receiverId ? "พิมพ์ข้อความ..." : "รอจับคู่..."}
-          disabled={!receiverId}
-          className="flex-1 bg-slate-100 border-transparent rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-0"
+          type="file" accept="image/*" ref={fileInputRef} className="hidden" 
+          onChange={handleImageUpload} 
         />
         <button 
-          type="submit" 
-          disabled={!newMessage.trim() || !receiverId}
-          className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0"
+          type="button" onClick={() => fileInputRef.current?.click()}
+          disabled={!receiverId || sendingImage}
+          style={{ background: 'none', border: 'none', color: 'var(--n-400)', cursor: 'pointer', display: 'flex' }}
         >
-          <FiSend className={newMessage.trim() && receiverId ? 'translate-x-[-1px] translate-y-[1px]' : ''} />
+          {sendingImage ? <Loader2 size={18} className="sp-spinner" /> : <Camera size={18} />}
+        </button>
+        <input 
+          type="text" value={newMessage} onChange={e => setNewMessage(e.target.value)}
+          placeholder={receiverId ? "พิมพ์ข้อความ..." : "ไม่สามารถส่งได้"}
+          disabled={!receiverId}
+          className="sp-chat-input"
+        />
+        <button 
+          type="submit" disabled={!receiverId || !newMessage.trim()}
+          style={{ 
+            background: 'var(--brand-500)', border: 'none', color: '#fff', 
+            width: '32px', height: '32px', borderRadius: '50%', 
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', opacity: (!receiverId || !newMessage.trim()) ? 0.4 : 1
+          }}
+        >
+          <Send size={14} />
         </button>
       </form>
     </div>

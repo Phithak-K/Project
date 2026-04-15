@@ -1,22 +1,26 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Onest } from "next/font/google";
 import "./globals.css";
-// 1. Import ตัว Provider เข้ามา
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Editorial display font — dramatic contrast, logistics gravitas
+const fraunces = Fraunces({
+  variable: "--font-display",
   subsets: ["latin"],
+  weight: ["300", "700", "900"],
+  style: ["normal", "italic"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Modern humanist body font — legible, purposeful
+const onest = Onest({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
-  title: "SwiftPath - Logistics Solution",
-  description: "ระบบจัดการขนส่งอัจฉริยะ",
+  title: "SwiftPath — Enterprise Logistics",
+  description: "ระบบจัดการขนส่งระดับ Enterprise",
 };
 
 export default function RootLayout({
@@ -24,16 +28,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 2. ดึง Client ID จาก .env.local
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
 
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="th"
+      className={`${fraunces.variable} ${onest.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {/* 3. หุ้ม children ด้วย GoogleOAuthProvider */}
+      <body className="min-h-full flex flex-col font-body">
         <GoogleOAuthProvider clientId={googleClientId}>
           {children}
         </GoogleOAuthProvider>

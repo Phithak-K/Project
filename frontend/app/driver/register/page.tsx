@@ -2,178 +2,157 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Truck, CheckCircle2 } from 'lucide-react'; // อย่าลืม npm install lucide-react
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function DriverRegisterPage() {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  
-  const [role] = useState('Driver');
+  const [form, setForm] = useState({
+    name: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
+  });
+  const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [error, setError] = useState('');
+
+  const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
-
-    if (password !== confirmPassword) {
-      setErrorMsg('รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง');
-      return;
-    }
+    setError('');
+    if (form.password !== form.confirmPassword) { setError('รหัสผ่านไม่ตรงกัน'); return; }
 
     setIsLoading(true);
-
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
       const response = await fetch(`${apiUrl}/auth/register`, {
-        method: 'POST',
-        mode: 'cors',
+        method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone, email, password, role }),
+        body: JSON.stringify({
+          name: form.name, phone: form.phone, email: form.email,
+          password: form.password, role: 'Driver',
+          vehiclePlate: form.vehiclePlate, vehicleType: form.vehicleType
+        }),
       });
-
       const data = await response.json();
-
       if (response.ok) {
-        alert('🎉 สมัครเป็นคนขับสำเร็จ! กรุณายืนยันรหัส OTP ในอีเมลของคุณ');
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        window.location.href = `https://fleet.${baseDomain}/verify-otp?email=${encodeURIComponent(email)}`;
+        window.location.href = `https://fleet.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
       } else {
-        setErrorMsg(data.message || 'ข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+        setError(Array.isArray(data.message) ? data.message.join(', ') : data.message || 'ข้อมูลไม่ถูกต้อง');
       }
-    } catch (error) {
-      console.error('Catch Error:', error);
-      setErrorMsg('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+    } catch {
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-10 border border-orange-100 relative overflow-hidden">
-        
-        {/* Background Decor */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-50 rounded-full blur-3xl opacity-50"></div>
-
-        {/* Header */}
-        <div className="text-center mb-8 relative">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500 rounded-2xl mb-4 shadow-lg shadow-orange-200">
-            <Truck className="text-white" size={32} />
+    <div className="sp-auth-wrap">
+      <div className="sp-auth-form-panel">
+        <div style={{ maxWidth: '420px', width: '100%' }}>
+          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+            <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">ร่วมทีมกับเรา</h2>
-          <p className="text-gray-400 mt-2 font-medium">สมัครเป็นคนขับรถส่งของ (Driver)</p>
-          
-          <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-xs font-bold border border-orange-200 uppercase tracking-wider">
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></div>
-            Role: Driver Only
+
+          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+            <span className="sp-section-eyebrow">สมัครคนขับ</span>
+            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>ร่วมทีมกับเรา</h1>
+            <p style={{ color: 'var(--n-500)', marginTop: '0.375rem', fontSize: '0.9rem' }}>สมัครเป็น Partner Driver ของ SwiftPath</p>
+          </div>
+
+          {error && <div className="sp-alert sp-alert-error sp-animate" style={{ marginBottom: '1.25rem' }}>{error}</div>}
+
+          <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="sp-field">
+              <label className="sp-label">ชื่อ - นามสกุล</label>
+              <input id="driver-name" type="text" required value={form.name} onChange={set('name')} className="sp-input" placeholder="สมชาย ใจดี" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">เบอร์โทรศัพท์</label>
+                <input id="driver-phone" type="tel" required value={form.phone} onChange={set('phone')} className="sp-input" placeholder="08XXXXXXXX" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">อีเมล</label>
+                <input id="driver-email" type="email" required value={form.email} onChange={set('email')} className="sp-input" placeholder="driver@email.com" />
+              </div>
+            </div>
+
+            {/* Vehicle info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ทะเบียนรถ</label>
+                <input id="driver-plate" type="text" required value={form.vehiclePlate} onChange={set('vehiclePlate')} className="sp-input" placeholder="กข 1234" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">ประเภทรถ</label>
+                <select
+                  id="driver-vehicle-type"
+                  value={form.vehicleType}
+                  onChange={set('vehicleType') as any}
+                  className="sp-input"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <option value="">เลือกประเภท</option>
+                  <option value="motorcycle">มอเตอร์ไซค์</option>
+                  <option value="car">รถยนต์</option>
+                  <option value="van">รถตู้</option>
+                  <option value="truck">รถบรรทุก</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">รหัสผ่าน</label>
+              <div className="sp-input-wrap">
+                <input id="driver-password" type={showPw ? 'text' : 'password'} required minLength={6} value={form.password} onChange={set('password')} className="sp-input" placeholder="6 ตัวขึ้นไป" />
+                <button type="button" className="sp-input-toggle" onClick={() => setShowPw(!showPw)}>
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">ยืนยันรหัสผ่าน</label>
+              <input id="driver-confirm-password" type={showPw ? 'text' : 'password'} required value={form.confirmPassword} onChange={set('confirmPassword')} className="sp-input" placeholder="พิมพ์รหัสผ่านอีกครั้ง" />
+            </div>
+
+            <button id="btn-driver-register" type="submit" disabled={isLoading} className="sp-btn-primary sp-btn-full" style={{ padding: '0.875rem' }}>
+              {isLoading ? <span className="sp-spinner" /> : <>สมัครเป็นพาร์ทเนอร์คนขับ <ArrowRight size={16} /></>}
+            </button>
+          </form>
+
+          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+              เป็นคนขับอยู่แล้ว?{' '}
+              <Link href="/driver/login" className="sp-link">เข้าสู่ระบบ</Link>
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Error Alert */}
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-            {errorMsg}
-          </div>
-        )}
-
-        <form onSubmit={handleRegister} className="space-y-5">
-          {/* ชื่อ-นามสกุล */}
+      <div className="sp-auth-brand-panel">
+        <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+        <div>
+          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>รายได้ดี ยืดหยุ่น</p>
+          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+            ทำงาน<br />ตามเวลาคุณ
+          </p>
+          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+            รับงานเมื่อพร้อม ปฏิเสธได้ตลอด มีระบบ Surge Pricing ช่วยเพิ่มรายได้ในวันที่อากาศไม่ดี
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '2rem' }}>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">ชื่อ - นามสกุลคนขับ</label>
-            <input
-              type="text" required value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all bg-gray-50/50"
-              placeholder="นายสมชาย ใจดี"
-            />
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>+20%</p>
+            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Rainy Day Bonus</p>
           </div>
-
-          {/* เบอร์โทรศัพท์ */}
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">เบอร์โทรศัพท์ (ใช้รับงาน)</label>
-            <input
-              type="tel" required value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all bg-gray-50/50"
-              placeholder="08XXXXXXXX"
-            />
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>COD</p>
+            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>รองรับเก็บเงินปลายทาง</p>
           </div>
-
-          {/* อีเมล */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">อีเมล</label>
-            <input
-              type="email" required value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all bg-gray-50/50"
-              placeholder="driver@swiftpath.com"
-            />
-          </div>
-
-          {/* รหัสผ่าน */}
-          <div className="relative">
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">รหัสผ่าน</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              required minLength={6} value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all bg-gray-50/50"
-              placeholder="รหัสผ่านเข้าใช้งานแอป"
-            />
-            <button 
-              type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-[42px] text-gray-400 hover:text-orange-600 transition-colors"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-
-          {/* ยืนยันรหัสผ่าน */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">ยืนยันรหัสผ่าน</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              required value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-orange-100 focus:border-orange-500 outline-none transition-all bg-gray-50/50"
-              placeholder="พิมพ์รหัสผ่านอีกครั้ง"
-            />
-          </div>
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className={`w-full font-bold py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 ${
-              isLoading 
-              ? 'bg-gray-300 cursor-not-allowed' 
-              : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-100 transform hover:-translate-y-1'
-            }`}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <CheckCircle2 size={20} />
-                สมัครเป็นพาร์ทเนอร์คนขับ
-              </>
-            )}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-gray-500">
-          เป็นคนขับอยู่แล้ว?{' '}
-          <Link href="/login" className="text-orange-600 hover:text-orange-700 font-black">
-            เข้าสู่ระบบที่นี่
-          </Link>
-        </p>
-        
+        </div>
       </div>
     </div>
   );

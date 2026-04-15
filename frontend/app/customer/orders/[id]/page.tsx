@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
-import { FiMapPin, FiPackage, FiTruck, FiCheckCircle, FiClock, FiAlertCircle } from 'react-icons/fi';
+import { 
+  ArrowLeft, Package, MapPin, Truck, CheckCircle, Clock, 
+  Shield, Star, MessageSquare, AlertCircle
+} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import OrderMap from '@/components/OrderMap';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -13,9 +15,6 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [socket, setSocket] = useState<Socket | null>(null);
-
-  // Rating State
   const [ratingScore, setRatingScore] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [hasRated, setHasRated] = useState(false);
@@ -30,45 +29,29 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
     return null;
   };
 
-  useEffect(() => {
+  const fetchOrder = useCallback(async () => {
     const token = getAuthToken();
-    if (!token) {
-      router.push('/customer/login');
-      return;
-    }
+    if (!token) { router.push('/login'); return; }
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setOrder(await res.json());
+      else        router.push('/customer');
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  }, [API_URL, orderId, router]);
 
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`${API_URL}/orders/${orderId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setOrder(data);
-          // Check if already rated (using messages array logic or just hide rating UI if backend throws error, but simple is best)
-        } else {
-          router.push('/customer');
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  useEffect(() => {
     fetchOrder();
+    const token = getAuthToken();
+    if (!token) return;
 
     const newSocket = io(API_URL, { auth: { token: `Bearer ${token}` } });
     newSocket.emit('join_order', { orderId: Number(orderId) });
-
-    newSocket.on('order_status_update', (updated: any) => {
-      console.log("WS status Update", updated);
-      // Fetch fresh order details to get latest logs
-      fetchOrder();
-    });
-
-    setSocket(newSocket);
+    newSocket.on('order_status_update', () => fetchOrder());
     return () => { newSocket.disconnect(); };
-  }, [API_URL, orderId, router]);
+  }, [API_URL, orderId, fetchOrder]);
 
   const submitRating = async () => {
     if (ratingScore === 0) return;
@@ -76,157 +59,143 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
     try {
       const res = await fetch(`${API_URL}/orders/${orderId}/rate`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ score: ratingScore, comment: ratingComment })
       });
       if (res.ok) {
-        alert('ขอบคุณสำหรับคะแนนประเมิน!');
         setHasRated(true);
-      } else {
-        const error = await res.json();
-        alert(error.message);
+        alert('ขอบคุณสำหรับคะแนนประเมิน!');
       }
-    } catch {
-      alert('เกิดข้อผิดพลาด');
-    }
+    } catch { alert('เกิดข้อผิดพลาด'); }
   };
 
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6"><div className="text-slate-500 font-bold">กำลังโหลดจุดพิกัด...</div></div>;
+  if (loading) return <div className="sp-page-loading"><span className="sp-spinner sp-spinner-lg" /></div>;
   if (!order) return null;
 
-  const currentStepIndex = STATUS_FLOW.indexOf(order.status);
+  const currentStepIdx = STATUS_FLOW.indexOf(order.status);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 p-6 pb-24 font-sans border-t-8 border-indigo-500">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="sp-page">
+      <nav className="sp-nav">
+        <button onClick={() => router.push('/customer')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>
+          <ArrowLeft size={16} /> กลับไปยังรายการพัสดุ
+        </button>
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
+        <div style={{ width: '120px' }} />
+      </nav>
+
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
         
-        <header className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-          <p className="text-slate-400 text-sm font-bold tracking-widest uppercase">TRACKING NO</p>
-          <h1 className="text-2xl font-black text-indigo-600 mb-4">{order.trackingNumber}</h1>
-          <div className="flex items-center gap-3">
-             <div className="bg-indigo-50 p-3 rounded-xl text-indigo-500 shrink-0">
-               <FiPackage size={24} />
-             </div>
-             <div>
-               <p className="font-bold text-lg text-slate-800">{order.productName}</p>
-               <p className="text-sm text-slate-500">ร้านค้าพาร์ทเนอร์: {order.merchant?.storeName || 'ไม่ระบุ'}</p>
-             </div>
-          </div>
-        </header>
-
-        {/* Map Visualization (Leaflet) */}
-        {order.lat && order.lng && (
-          <OrderMap lat={order.lat} lng={order.lng} label={`ผู้รับ: ${order.receiverName}`} />
-        )}
-
-        {/* Live Timeline Display */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-          <h3 className="font-bold mb-6 text-slate-800 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-            สถานะการจัดส่ง
-          </h3>
-
-          <div className="relative pl-6 space-y-8 before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-slate-200">
-             {STATUS_FLOW.map((status, index) => {
-               const isCompleted = index <= currentStepIndex;
-               const isCurrent = index === currentStepIndex;
-
-               // Labels matching status
-               let title = '';
-               let icon = <FiClock size={12} />;
-               if (status === 'PENDING') { title = 'รอยืนยันเวลา'; icon = <FiClock size={12} />; }
-               if (status === 'ACCEPTED') { title = 'เริ่มให้บริการ (คนขับรับงาน)'; icon = <FiTruck size={12} />; }
-               if (status === 'PICKED_UP') { title = 'รับพัสดุจากร้านค้าแล้ว'; icon = <FiPackage size={12} />; }
-               if (status === 'SHIPPING') { title = 'กำลังเดินทางไปส่งลูกค้า'; icon = <FiMapPin size={12} />; }
-               if (status === 'DELIVERED') { title = 'จัดส่งสำเร็จเรียบร้อย'; icon = <FiCheckCircle size={12} />; }
-
-               return (
-                 <div key={status} className={`relative ${!isCompleted ? 'opacity-40' : ''}`}>
-                    <div className={`absolute -left-9 top-1 w-6 h-6 rounded-full border-4 border-white flex items-center justify-center
-                      ${isCurrent ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]' : isCompleted ? 'bg-indigo-500 text-white' : 'bg-slate-300'}
-                    `}>
-                      {icon}
-                    </div>
-                    {isCurrent && <div className="absolute -left-9 top-1 w-6 h-6 rounded-full bg-indigo-500 animate-ping opacity-20"></div>}
-                    
-                    <p className={`font-bold ${isCurrent ? 'text-indigo-600' : 'text-slate-700'}`}>{title}</p>
-                 </div>
-               );
-             })}
+        {/* Header Unit */}
+        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+          <span className="sp-section-eyebrow">พัสดุของฉัน</span>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>{order.trackingNumber}</h1>
+              <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{order.productName}</p>
+            </div>
+            <StatusBadge status={order.status} />
           </div>
         </div>
 
-        {/* Proof of Delivery Card */}
-        {order.status === 'DELIVERED' && order.proofOfDelivery && (
-          <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl shadow-sm">
-            <h3 className="font-bold text-emerald-800 mb-4 flex items-center gap-2">
-               <FiCheckCircle />
-               รับพัสดุสำเร็จ & หลักฐานการจัดส่ง
-            </h3>
-            <div className="rounded-2xl overflow-hidden shadow-sm">
-               <img src={order.proofOfDelivery} alt="Proof of delivery" className="w-full object-cover" />
-            </div>
+        {/* Timeline unit */}
+        <div className="sp-card sp-animate-d1" style={{ marginBottom: '1.5rem' }}>
+          <div className="sp-section-header">
+            <h3 className="sp-section-title">สถานะการจัดส่ง</h3>
+            <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>Live Update</span>
           </div>
-        {/* Payment QR Code Request */}
+          <div className="sp-timeline" style={{ marginTop: '1.5rem' }}>
+            {STATUS_FLOW.map((status, idx) => {
+              const active = idx <= currentStepIdx;
+              const current = idx === currentStepIdx;
+              return (
+                <div key={status} className="sp-timeline-item" style={{ marginBottom: '1.5rem', opacity: active ? 1 : 0.4 }}>
+                  <div className={`sp-timeline-dot ${current ? 'sp-timeline-dot-active' : ''}`} style={{ background: active ? 'var(--brand-500)' : 'var(--n-200)' }} />
+                  <div>
+                    <p style={{ fontWeight: 700, color: 'var(--n-900)', fontSize: '0.95rem' }}><StatusLabel status={status} /></p>
+                    {current && <p style={{ fontSize: '0.75rem', color: 'var(--brand-600)', marginTop: '0.1rem' }}>กำลังดำเนินการ</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Payment QR (if needed) */}
         {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-          <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-xl flex flex-col items-center text-center">
-            <h3 className="font-bold text-xl mb-2">🚚 ยอดชำระเงิน: ฿{order.totalPrice || order.price}</h3>
-            <p className="text-indigo-200 text-sm mb-6">กรุณาแสดง QR Code นี้ให้คนขับสแกนเพื่อยืนยันการรับสินค้าและชำระเงิน</p>
-            <div className="bg-white p-4 rounded-2xl">
-              <QRCodeSVG 
-                value={JSON.stringify({ orderId: order.id, type: 'SwiftPath_Payment', timestamp: Date.now() })} 
-                size={200}
-                level="Q"
-                includeMargin={true}
-              />
+          <div className="sp-card-dark sp-animate" style={{ background: 'var(--brand-500)', border: 'none', textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h3 className="sp-font-display" style={{ color: 'var(--n-50)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>
+              มียอดชำระ: ฿{(order.totalPrice || order.price).toLocaleString()}
+            </h3>
+            <p style={{ color: 'oklch(100% 0 0 / 0.8)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              กรุณาให้คนขับสแกน QR Code เพื่อยืนยันการรับสินค้า
+            </p>
+            <div style={{ background: '#fff', padding: '1rem', borderRadius: '1rem', display: 'inline-block' }}>
+              <QRCodeSVG value={JSON.stringify({ orderId: order.id, type: 'SwiftPath_Payment' })} size={180} />
             </div>
-          </div>
-        )}
-        
-        {/* Payment Success Banner */}
-        {order.paymentStatus === 'Paid' && (
-          <div className="bg-emerald-500 text-white p-4 rounded-2xl text-center shadow-lg font-bold flex items-center justify-center gap-2">
-            <FiCheckCircle size={24} /> ชำระเงินและการจัดส่งเสร็จสมบูรณ์!
           </div>
         )}
 
-        {/* Driver Rating Component */}
+        {/* Rating unit */}
         {order.paymentStatus === 'Paid' && !hasRated && (
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 text-center">
-            <h3 className="font-bold text-slate-800 mb-2">ให้คะแนนคนขับรถ</h3>
-            <p className="text-sm text-slate-500 mb-4">บริการจัดส่งเป็นอย่างไรบ้าง?</p>
-            <div className="flex justify-center gap-2 mb-4">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button 
-                  key={star} 
-                  onClick={() => setRatingScore(star)}
-                  className={`text-3xl transition-transform ${ratingScore >= star ? 'text-amber-400 scale-110' : 'text-slate-200'}`}
-                >
-                  ★
+          <div className="sp-card sp-animate" style={{ textAlign: 'center', border: '1.5px solid var(--brand-100)' }}>
+            <p className="sp-caps" style={{ color: 'var(--brand-500)', marginBottom: '0.75rem' }}>ประเมินการบริการ</p>
+            <h3 className="sp-font-display" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>คุณพอใจการส่งครั้งนี้ไหม?</h3>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setRatingScore(s)} style={{ background: 'none', border: 'none', cursor: 'pointer', transition: 'transform 0.1s' }} className="hover:scale-110">
+                  <Star size={32} fill={ratingScore >= s ? 'var(--brand-500)' : 'none'} color={ratingScore >= s ? 'var(--brand-500)' : 'var(--n-200)'} />
                 </button>
               ))}
             </div>
             {ratingScore > 0 && (
-              <div className="space-y-3 animate-fade-in">
+              <div className="sp-animate-d1">
                 <input 
-                  type="text" 
-                  value={ratingComment}
-                  onChange={(e) => setRatingComment(e.target.value)}
-                  placeholder="เขียนคำชมเชยหรือข้อเสนอแนะ..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                  type="text" value={ratingComment} onChange={e => setRatingComment(e.target.value)}
+                  className="sp-input" placeholder="เขียนคำชมเชยหรือข้อเสนอแนะ..."
+                  style={{ marginBottom: '0.75rem' }}
                 />
-                <button 
-                  onClick={submitRating}
-                  className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition"
-                >
-                  ส่งความคิดเห็น
-                </button>
+                <button onClick={submitRating} className="sp-btn-brand sp-btn-full">ส่งความคิดเห็น</button>
               </div>
             )}
           </div>
         )}
 
-      </div>
+        {/* Details Footer */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem' }}>
+          <div>
+            <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.5rem' }}>ผู้ส่ง</p>
+            <p style={{ fontWeight: 700 }}>{order.merchant?.storeName || 'Partner Store'}</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.5rem' }}>ค่าบริการรวม</p>
+            <p className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 900 }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
+          </div>
+        </div>
+
+      </main>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    PENDING: 'sp-badge sp-badge-pending', ACCEPTED: 'sp-badge sp-badge-accepted',
+    PICKED_UP: 'sp-badge sp-badge-picked', SHIPPING: 'sp-badge sp-badge-shipping',
+    DELIVERED: 'sp-badge sp-badge-delivered', CANCELLED: 'sp-badge sp-badge-cancelled',
+  };
+  const labels: Record<string, string> = {
+    PENDING: 'รอยืนยัน', ACCEPTED: 'รับงานแล้ว', PICKED_UP: 'รับพัสดุแล้ว',
+    SHIPPING: 'กำลังส่ง', DELIVERED: 'สำเร็จ', CANCELLED: 'ยกเลิก',
+  };
+  return <span className={map[status] || 'sp-badge sp-badge-pending'}>{labels[status] || status}</span>;
+}
+
+function StatusLabel({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    PENDING: 'คำสั่งซื้อถูกส่งเข้าระบบ', ACCEPTED: 'คนขับยอมรับงานและกำลังเดินทาง',
+    PICKED_UP: 'พัสดุออกจากร้านค้าแล้ว', SHIPPING: 'พัสดุอยู่ใกล้คุณแล้ว',
+    DELIVERED: 'พัสดุถึงมือผู้รับเรียบร้อย',
+  };
+  return map[status] || status;
 }

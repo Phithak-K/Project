@@ -1,98 +1,155 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Package, MapPin, Clock, CheckCircle, LogOut, Navigation } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Package, Search, Clock, LogOut, ChevronRight } from 'lucide-react';
 
 export default function CustomerDashboard() {
-  const [trackingId, setTrackingId] = useState('');
+  const router = useRouter();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [trackingInput, setTrackingInput] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  // ฟังก์ชัน Logout
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    window.location.href = "/login";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  const getCookie = (name: string) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return null;
   };
 
-  // ข้อมูลสมมติประวัติการสั่งซื้อ
-  const myOrders = [
-    { id: 'SP-9921', status: 'กำลังจัดส่ง', from: 'ร้านสมใจการค้า', date: '06/04/2026' },
-    { id: 'SP-9850', status: 'สำเร็จ', from: 'เจ๊หมวยของสด', date: '01/04/2026' },
-  ];
+  const fetchOrders = useCallback(async () => {
+    const token = getCookie('token');
+    if (!token) { router.push('/login'); return; }
+    try {
+      const res = await fetch(`${API_URL}/orders/my-orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setOrders(await res.json());
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
+  }, [API_URL, router]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+  const handleLogout = () => {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    window.location.href = '/login';
+  };
+
+  const handleTrack = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trackingInput.trim()) router.push(`/track/${trackingInput.trim()}`);
+  };
+
+  if (isLoading) return (
+    <div className="sp-page-loading">
+      <span className="sp-spinner sp-spinner-lg" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Navbar สำหรับลูกค้า */}
-      <nav className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-100">
-            <Package size={20} />
-          </div>
-          <span className="font-black text-xl text-slate-800 tracking-tight">SwiftPath <span className="text-blue-600">App</span></span>
-        </div>
-        <button onClick={handleLogout} className="text-slate-400 hover:text-red-500 transition-colors">
-          <LogOut size={22} />
+    <div className="sp-page">
+      {/* ── Nav ── */}
+      <nav className="sp-nav">
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span>
+          <span className="sp-caps" style={{ color: 'var(--n-400)', marginLeft: '0.5rem' }}>App</span>
+        </span>
+        <button id="btn-logout" onClick={handleLogout} className="sp-btn-danger">
+          <LogOut size={16} />
         </button>
       </nav>
 
-      <main className="p-6 max-w-2xl mx-auto">
-        {/* ส่วนค้นหาพัสดุ (Tracking Search) */}
-        <div className="bg-blue-600 rounded-[2.5rem] p-8 text-white mb-10 shadow-xl shadow-blue-100 relative overflow-hidden">
-          <div className="relative z-10">
-            <h2 className="text-2xl font-black mb-2">ติดตามพัสดุของคุณ</h2>
-            <p className="text-blue-100 text-sm mb-6 font-medium">ใส่หมายเลขพัสดุเพื่อเช็คสถานะแบบ Real-time</p>
-            
-            <div className="relative">
-              <input 
-                type="text" 
-                value={trackingId}
-                onChange={(e) => setTrackingId(e.target.value)}
-                placeholder="กรอกหมายเลขพัสดุ เช่น SP-XXXX"
-                className="w-full py-4 px-6 pr-16 rounded-2xl text-slate-900 font-bold outline-none shadow-inner"
-              />
-              <button className="absolute right-2 top-2 bg-blue-500 hover:bg-blue-400 p-2.5 rounded-xl transition-all">
-                <Search size={20} />
-              </button>
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+
+        {/* ── Tracking Search Box ── */}
+        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+          <span className="sp-section-eyebrow">ติดตามพัสดุ</span>
+          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, marginBottom: '1rem' }}>
+            พัสดุของคุณอยู่ที่ไหน?
+          </h1>
+          <form id="form-track" onSubmit={handleTrack} style={{ display: 'flex', gap: '0.625rem' }}>
+            <input
+              id="tracking-input"
+              type="text"
+              value={trackingInput}
+              onChange={e => setTrackingInput(e.target.value)}
+              className="sp-input"
+              style={{ flex: 1 }}
+              placeholder="กรอกหมายเลขพัสดุ เช่น SP-XXXX"
+            />
+            <button id="btn-track" type="submit" className="sp-btn-primary" style={{ whiteSpace: 'nowrap' }}>
+              <Search size={16} /> ค้นหา
+            </button>
+          </form>
+        </div>
+
+        {/* ── Order History ── */}
+        <div className="sp-section-header">
+          <h2 className="sp-section-title">พัสดุของฉัน</h2>
+          <span className="sp-caps" style={{ color: 'var(--n-400)' }}>{orders.length} รายการ</span>
+        </div>
+
+        {orders.length === 0 ? (
+          <div className="sp-card">
+            <div className="sp-empty-centered">
+              <Clock size={28} className="sp-empty-icon" />
+              <p className="sp-empty-title">ยังไม่มีรายการพัสดุ</p>
+              <p className="sp-empty-body">พัสดุที่จัดส่งถึงคุณจะแสดงที่นี่</p>
             </div>
           </div>
-          <Navigation className="absolute -right-6 -bottom-6 text-white/10" size={150} />
-        </div>
-
-        {/* ประวัติการสั่งซื้อ (Order History) */}
-        <h3 className="font-black text-slate-800 text-lg mb-4 ml-2">พัสดุของฉัน</h3>
-        <div className="space-y-4">
-          {myOrders.map((order) => (
-            <div key={order.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:shadow-md transition-all cursor-pointer group">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl ${order.status === 'สำเร็จ' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
-                  <Package size={24} />
+        ) : (
+          <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {orders.map(order => (
+              <Link key={order.id} href={`/orders/${order.id}`} style={{ textDecoration: 'none' }}>
+                <div className="sp-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'border-color var(--t-fast)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <Package size={20} style={{ color: 'var(--n-400)', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontWeight: 700, color: 'var(--n-900)', fontSize: '0.95rem' }}>{order.trackingNumber}</p>
+                      <p className="sp-caps" style={{ color: 'var(--n-400)', marginTop: '0.125rem' }}>{order.productName}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+                    <StatusBadge status={order.status} />
+                    <ChevronRight size={16} style={{ color: 'var(--n-300)' }} />
+                  </div>
                 </div>
-                <div>
-                  <p className="font-black text-slate-900 group-hover:text-blue-600 transition-colors">{order.id}</p>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-tight">{order.from}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${
-                  order.status === 'สำเร็จ' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                }`}>
-                  {order.status}
-                </span>
-                <p className="text-slate-300 text-[10px] font-bold mt-1 uppercase">{order.date}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State กรณีไม่มีข้อมูล */}
-        {myOrders.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
-            <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
-              <Clock size={32} />
-            </div>
-            <p className="text-slate-400 font-bold">ยังไม่มีรายการพัสดุ</p>
+              </Link>
+            ))}
           </div>
         )}
+
+        {/* ── Footer CTA ── */}
+        <div className="sp-divider" style={{ marginTop: '3rem' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <p className="sp-caps" style={{ color: 'var(--n-400)' }}>ต้องการใช้งานในฐานะอื่น?</p>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href="/merchant/register">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เปิดร้านค้า</button>
+            </Link>
+            <Link href="/driver/register">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>สมัครเป็นคนขับ</button>
+            </Link>
+          </div>
+        </div>
       </main>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    PENDING: 'sp-badge sp-badge-pending', ACCEPTED: 'sp-badge sp-badge-accepted',
+    PICKED_UP: 'sp-badge sp-badge-picked', SHIPPING: 'sp-badge sp-badge-shipping',
+    DELIVERED: 'sp-badge sp-badge-delivered', CANCELLED: 'sp-badge sp-badge-cancelled',
+  };
+  const labels: Record<string, string> = {
+    PENDING: 'รอยืนยัน', ACCEPTED: 'รับงานแล้ว', PICKED_UP: 'รับพัสดุแล้ว',
+    SHIPPING: 'กำลังส่ง', DELIVERED: 'สำเร็จ', CANCELLED: 'ยกเลิก',
+  };
+  return <span className={map[status] || 'sp-badge sp-badge-pending'}>{labels[status] || status}</span>;
 }

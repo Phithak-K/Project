@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('--- Login Button Clicked ---');
     setIsLoading(true);
+    setError('');
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -25,8 +28,6 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 1. 🍪 เก็บ Token และ Role ลงใน Cookie (เพื่อให้ Middleware อ่านได้)
-        // ตั้งค่าให้หมดอายุใน 1 วัน (86400 วินาที)
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
         const isLocalhost = baseDomain.includes('localhost');
@@ -35,85 +36,146 @@ export default function LoginPage() {
         if (data.access_token) {
           document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
         }
-        
         const userRole = data.user?.role || 'Customer';
         document.cookie = `role=${userRole}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
 
-        // 2. 🚀 Logic การ Redirect ตาม Role
-        let targetSubdomain = 'app'; 
+        let targetSubdomain = 'app';
         if (userRole === 'Merchant') targetSubdomain = 'store';
-        if (userRole === 'Driver') targetSubdomain = 'fleet';
+        if (userRole === 'Driver')   targetSubdomain = 'fleet';
 
-        // 3. จัดการเรื่อง Domain
-        // เด้งไปที่ Subdomain นั้นๆ
         window.location.href = `https://${targetSubdomain}.${baseDomain}/`;
-
       } else {
-        alert(`❌ ${data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'}`);
+        setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
-    } catch (error) {
-      console.error('Catch Error:', error);
-      alert('❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
+    } catch {
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
-      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-100">
-            <span className="text-white text-2xl font-black">S</span>
+    <div className="sp-auth-wrap">
+      {/* ── Left: Form ── */}
+      <div className="sp-auth-form-panel">
+        <div style={{ maxWidth: '400px', width: '100%' }}>
+          {/* Logo */}
+          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+            <span className="sp-logo">
+              Swift<span className="sp-logo-accent">Path</span>
+            </span>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">เข้าสู่ระบบ</h2>
-          <p className="text-gray-400 mt-2 font-medium">SwiftPath Delivery System</p>
-        </div>
-        
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">อีเมล</label>
-            <input 
-              type="email" required value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-gray-50/50"
-              placeholder="name@example.com"
-            />
+
+          {/* Heading */}
+          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+            <span className="sp-section-eyebrow">Customer Portal</span>
+            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>
+              เข้าสู่ระบบ
+            </h1>
+            <p style={{ color: 'var(--n-500)', marginTop: '0.375rem', fontSize: '0.9rem' }}>
+              ติดตามพัสดุและจัดการออเดอร์ของคุณ
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">รหัสผ่าน</label>
-            <input 
-              type="password" required value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-gray-50/50"
-              placeholder="••••••••"
-            />
+
+          {/* Error */}
+          {error && (
+            <div className="sp-alert sp-alert-error sp-animate" style={{ marginBottom: '1.25rem' }}>
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="sp-field">
+              <label className="sp-label">อีเมล</label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="sp-input"
+                placeholder="name@example.com"
+              />
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">รหัสผ่าน</label>
+              <div className="sp-input-wrap">
+                <input
+                  id="password"
+                  type={showPw ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="sp-input"
+                  placeholder="••••••••"
+                />
+                <button type="button" className="sp-input-toggle" onClick={() => setShowPw(!showPw)}>
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              id="btn-login"
+              type="submit"
+              disabled={isLoading}
+              className="sp-btn-primary sp-btn-full"
+              style={{ marginTop: '0.5rem', padding: '0.875rem' }}
+            >
+              {isLoading ? <span className="sp-spinner" /> : <>เข้าสู่ระบบ <ArrowRight size={16} /></>}
+            </button>
+          </form>
+
+          {/* Footer links */}
+          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+              ยังไม่มีบัญชี?{' '}
+              <Link href="/register" className="sp-link">สมัครสมาชิก</Link>
+            </p>
           </div>
-          
-          <button 
-            type="submit" disabled={isLoading}
-            className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${
-              isLoading 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 shadow-blue-100'
-            }`}
-          >
-            {isLoading ? (
-               <div className="flex items-center justify-center gap-2">
-                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                 กำลังตรวจสอบ...
-               </div>
-            ) : 'เข้าสู่ระบบ'}
-          </button>
-        </form>
-        
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            ยังไม่มีบัญชี?{' '}
-            <Link href="/register" className="text-blue-600 font-black hover:underline underline-offset-4">
-              สมัครสมาชิกที่นี่
+
+          <div className="sp-divider" style={{ marginTop: '2rem' }} />
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Link href="/merchant/login">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบร้านค้า</button>
             </Link>
+            <Link href="/driver/login">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบคนขับ</button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right: Brand Panel ── */}
+      <div className="sp-auth-brand-panel">
+        <span className="sp-logo-dark">
+          Swift<span className="sp-logo-accent">Path</span>
+        </span>
+
+        <div>
+          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>Enterprise Logistics</p>
+          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+            ส่งถึงมือ<br />ทุกที่ทุกเวลา
           </p>
+          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+            ระบบ Logistics อัจฉริยะที่คำนวณราคาตามสภาพอากาศ และติดตามพัสดุแบบ Real-time
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', gap: '2rem' }}>
+            <div>
+              <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>98%</p>
+              <p className="sp-caps" style={{ color: 'var(--n-600)' }}>On-time Rate</p>
+            </div>
+            <div>
+              <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>3 min</p>
+              <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Avg. Pickup</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

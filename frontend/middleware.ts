@@ -35,7 +35,8 @@ export function middleware(request: NextRequest) {
 
   // ฟังก์ชันช่วยสร้าง URL ให้ตรงกับ Host ปัจจุบันแบบ Dynamic
   const getRedirectUrl = (path: string, subdomain: string = '') => {
-    const protocol = 'https'; // บังคับ HTTPS ตลอดเพื่อแก้ปัญหา Redirect Loop จาก --experimental-https
+    // 💡 ใช้ protocol เดียวกับที่ Request ส่งมาโดยตรง เพื่อป้องกันอาการวนลูป HTTPS <-> HTTP
+    const protocol = url.protocol.replace(':', '');
     const baseHost = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000'
     const newHost = subdomain ? `${subdomain}.${baseHost}` : baseHost
     return `${protocol}://${newHost}${path}`
@@ -104,33 +105,34 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // 4. จัดการกรณีเข้าผ่าน localhost:3000 ตรงๆ (Root Domain)
+  // 4. จัดการกรณีเข้าผ่าน localhost:3000 ตรงๆ (Root Domain สำหรับ Landing Page)
   if (!currentHost || currentHost === 'localhost') {
-    // ถ้าเข้าหน้าหลักเฉยๆ ให้เด้งไปหน้าลูกค้า (app.)
-    if (pathname === '/' || pathname === '/register' || pathname === '/login') {
-      return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
+    if (pathname === '/') return NextResponse.next(); // แสดง app/page.tsx (Landing)
+    
+    // ถ้าเข้าหน้า auth หรืออื่นๆ ให้เด้งไป subdomain 'app' เพื่อใช้งาน Customer logic
+    if (isAuthPage || pathname.startsWith('/orders')) {
+      return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url));
     }
-    // ยกเว้นหน้า Verify OTP ให้ผ่านไปได้เพื่อดึง Query Params
-    if (pathname.startsWith('/verify-otp')) {
-      return NextResponse.next()
-    }
+    
+    // Fallback สำหรับกรณีอื่นๆ บน root domain
+    return NextResponse.next();
   }
 
-  // 5. Rewrite เส้นทาง (Internal Routing) 
-  // นี่คือจุดที่ทำให้ Folder โครงสร้างข้างในทำงานร่วมกับ Subdomain ได้
-  
-  if (pathname.startsWith('/verify-otp')) {
-    return NextResponse.next()
+  // 4.1 ป้องกันการเข้าผิด Subdomain (Fix 404 for /driver/register etc.)
+  if (currentHost === 'app' && (pathname.startsWith('/merchant') || pathname.startsWith('/driver'))) {
+     const targetRole = pathname.startsWith('/merchant') ? 'store' : 'fleet';
+     const cleanPath = pathname.replace('/merchant', '').replace('/driver', '');
+     return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url));
   }
 
-  // แมป Subdomain เข้ากับ Folder ภายในโปรเจกต์
+  // 5. Rewrite เส้นทางเข้าสู่ Folders ตาม Subdomain
   if (currentHost === 'store') {
     return NextResponse.rewrite(new URL(`/merchant${pathname}`, request.url))
   }
   if (currentHost === 'fleet') {
     return NextResponse.rewrite(new URL(`/driver${pathname}`, request.url))
   }
-  if (currentHost === 'app' || !currentHost) {
+  if (currentHost === 'app') {
     return NextResponse.rewrite(new URL(`/customer${pathname}`, request.url))
   }
 

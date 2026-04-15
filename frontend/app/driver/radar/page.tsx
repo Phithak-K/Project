@@ -1,178 +1,190 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
-import { FiMapPin, FiPackage, FiDollarSign, FiClock, FiCheckCircle } from 'react-icons/fi';
+import { MapPin, Clock, Shield, Zap, TrendingUp, CheckCircle, CloudRain, LogOut } from 'lucide-react';
 
 export default function DriverRadarPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
+  const [hotspots, setHotspots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [socket, setSocket] = useState<Socket | null>(null);
+  const [accepting, setAccepting] = useState<number | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-  
-  const getAuthToken = () => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
+
+  const getToken = () => {
+    const v = `; ${document.cookie}`;
+    const p = v.split(`; token=`);
+    if (p.length === 2) return p.pop()?.split(';').shift();
     return null;
   };
 
-  useEffect(() => {
-    const token = getAuthToken();
-    if (!token) {
-      router.push('/driver/login');
-      return;
-    }
-
-    // 1. Fetch existing available orders
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch(`${API_URL}/orders/available`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setOrders(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch available orders:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrders();
-
-    // 2. Connect WebSocket for Real-time Radar
-    const newSocket = io(API_URL, {
-      auth: { token: `Bearer ${token}` }
-    });
-
-    newSocket.on('connect', () => {
-      console.log(' radar connected: ', newSocket.id);
-    });
-
-    newSocket.on('new_available_order', (order: any) => {
-      console.log('📡 New Order Radar Event!', order);
-      // Play sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.error("Audio play failed:", e));
-      
-      setOrders(prev => {
-        // Prevent duplicates
-        if (prev.find(o => o.id === order.id)) return prev;
-        return [order, ...prev];
-      });
-    });
-
-    newSocket.on('order_taken', (data: { orderId: number }) => {
-       // Remove from radar if another driver accepts it
-       setOrders(prev => prev.filter(o => o.id !== data.orderId));
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.disconnect();
-    };
+  const fetchOrders = useCallback(async () => {
+    const token = getToken();
+    if (!token) { router.push('/driver/login'); return; }
+    try {
+      const h = { Authorization: `Bearer ${token}` };
+      const [ordRes, hotRes] = await Promise.all([
+        fetch(`${API_URL}/orders/available`, { headers: h }),
+        fetch(`${API_URL}/weather/hotspots`,  { headers: h }),
+      ]);
+      if (ordRes.ok) setOrders(await ordRes.json());
+      if (hotRes.ok) setHotspots(await hotRes.json());
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   }, [API_URL, router]);
 
-  const handleAcceptOrder = async (orderId: number) => {
-    const token = getAuthToken();
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 60_000);
+
+    const sock = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    sock.on('new_available_order', (order: any) => {
+      setOrders(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]);
+    });
+    sock.on('order_taken', (data: { orderId: number }) => {
+      setOrders(prev => prev.filter(o => o.id !== data.orderId));
+    });
+    setSocket(sock);
+    return () => { sock.disconnect(); clearInterval(interval); };
+  }, [API_URL, fetchOrders]);
+
+  const handleAccept = async (orderId: number) => {
+    const token = getToken();
+    setAccepting(orderId);
     try {
       const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) {
-        alert('🎉 ยินดีด้วย! คุณรับออเดอร์นี้สำเร็จ');
-        router.push(`/driver/orders/${orderId}`);
-      } else {
-        const err = await res.json();
-        alert(err.message || 'ไม่สามารถรับงานได้');
-        // Refresh list
+      if (res.ok) router.push(`/driver/orders/${orderId}`);
+      else {
+        const e = await res.json();
+        alert(e.message || 'ไม่สามารถรับงานได้');
         setOrders(prev => prev.filter(o => o.id !== orderId));
       }
-    } catch (err) {
-      alert('Network Error');
-    }
+    } catch { alert('Network Error'); }
+    finally { setAccepting(null); }
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6 pb-24">
-      <div className="max-w-md mx-auto">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              RADAR
-            </h1>
-            <p className="text-slate-400 text-sm flex items-center gap-2 mt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> 
-              กำลังค้นหางานใกล้คุณ...
-            </p>
+    <div className="sp-page-dark">
+      {/* ── Nav ── */}
+      <nav className="sp-nav-dark">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Radar</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <span className="sp-caps" style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'sp-in 1.2s ease-in-out infinite alternate' }} />
+            Live
+          </span>
+          <button onClick={() => { document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;'; window.location.href = '/login'; }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
+            <LogOut size={18} />
+          </button>
+        </div>
+      </nav>
+
+      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.25rem' }}>
+
+        {/* ── Hotspots ── */}
+        {hotspots.length > 0 && (
+          <div className="sp-animate" style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <TrendingUp size={14} style={{ color: 'var(--brand-400)' }} />
+              <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Surge Hotspots ตอนนี้</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.625rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
+              {hotspots.map((s, i) => (
+                <div key={i} className="sp-card-dark" style={{ padding: '0.875rem', minWidth: '155px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.375rem' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--n-200)', fontSize: '0.9rem' }}>{s.city}</span>
+                    <CloudRain size={13} style={{ color: 'oklch(65% 0.12 220)' }} />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <Zap size={11} style={{ color: 'var(--brand-400)' }} />
+                    <span className="sp-caps" style={{ color: 'var(--brand-400)' }}>+20% Surge</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="bg-slate-800 p-3 rounded-2xl border border-slate-700 shadow-xl">
-             <div className="text-emerald-400 text-2xl animate-spin-slow">
-               ⏳
-             </div>
-          </div>
-        </header>
+        )}
+
+        {/* ── Orders ── */}
+        <div className="sp-section-header" style={{ marginBottom: '1rem' }}>
+          <h1 className="sp-font-display sp-text-md" style={{ fontWeight: 900, color: 'var(--n-100)' }}>งานใกล้คุณ</h1>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>{orders.length} งาน</span>
+        </div>
 
         {loading ? (
-          <div className="text-center py-20 text-slate-500 font-medium">กำลังโหลดเรดาร์...</div>
+          <div style={{ textAlign: 'center', padding: '4rem 0' }}>
+            <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
+            <p className="sp-caps" style={{ color: 'var(--n-700)', marginTop: '1rem' }}>กำลังสแกน...</p>
+          </div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-32 opacity-50">
-            <div className="text-6xl mb-4">🌀</div>
-            <p className="text-lg">ยังไม่มีงานเข้ามาในขณะนี้</p>
-            <p className="text-sm">เปิดหน้านี้ทิ้งไว้ ระบบจะแจ้งเตือนทันทีที่มีงาน</p>
+          <div className="sp-card-dark" style={{ textAlign: 'center', padding: '5rem 1.5rem' }}>
+            <p className="sp-font-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--n-800)', lineHeight: 1 }}>ว่าง</p>
+            <p className="sp-caps" style={{ color: 'var(--n-700)', marginTop: '1rem' }}>ระบบจะแจ้งเตือนทันทีที่มีงาน</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
             {orders.map(order => (
-              <div key={order.id} className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-2xl relative overflow-hidden group">
-                {/* Visual pulse for surge */}
-                {order.weatherWarning && (
-                  <div className="absolute top-0 right-0 left-0 h-1 bg-amber-500 animate-pulse"></div>
-                )}
-                
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-100 flex items-center gap-2">
-                      <FiPackage className="text-emerald-400" /> {order.productName}
-                    </h3>
-                    <p className="text-slate-400 text-sm">รหัส: {order.trackingNumber}</p>
-                  </div>
-                  <div className="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1">
-                     <FiDollarSign /> {order.totalPrice?.toLocaleString() || order.price}
-                  </div>
-                </div>
-
-                <div className="space-y-2 mb-6">
-                  <div className="flex items-start gap-3 text-slate-300 text-sm bg-slate-900/50 p-3 rounded-2xl">
-                    <FiMapPin className="mt-0.5 text-rose-400 shrink-0" />
-                    <p className="leading-relaxed"><strong>ผู้รับ:</strong> {order.receiverName} <br/> <span className="opacity-80">{order.address}</span></p>
-                  </div>
-                  {order.weatherWarning && (
-                    <div className="flex items-start gap-3 text-amber-300 text-xs bg-amber-900/20 p-3 rounded-2xl border border-amber-500/20">
-                      <span className="mt-0.5">🌧️</span>
-                      <p>{order.weatherWarning}</p>
+              <div key={order.id} className="sp-card-dark" style={{ padding: 0, overflow: 'hidden' }}>
+                {order.weatherWarning && <div style={{ height: '3px', background: 'var(--brand-500)' }} />}
+                <div style={{ padding: '1.125rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                    <div>
+                      <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-400)' }}>{order.trackingNumber}</p>
+                      <p style={{ fontWeight: 600, color: 'var(--n-100)', marginTop: '0.125rem' }}>{order.productName}</p>
                     </div>
-                  )}
-                </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p className="sp-font-display" style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--n-50)' }}>฿{(order.totalPrice || order.price)?.toLocaleString()}</p>
+                      {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-400)' }}>Surge +20%</span>}
+                    </div>
+                  </div>
 
-                <button 
-                  onClick={() => handleAcceptOrder(order.id)}
-                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <FiCheckCircle size={20} /> รับงานนี้เลย!
-                </button>
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.625rem', flexWrap: 'wrap' }}>
+                    {order.estimatedMinutes && (
+                      <span className="sp-caps" style={{ color: 'var(--n-600)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Clock size={11} /> ETA {order.estimatedMinutes} นาที
+                      </span>
+                    )}
+                    {order.hasInsurance && (
+                      <span className="sp-caps" style={{ color: 'oklch(65% 0.12 270)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Shield size={11} /> ประกัน
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.875rem' }}>
+                    <MapPin size={13} style={{ color: 'var(--n-700)', flexShrink: 0, marginTop: '0.1rem' }} />
+                    <p style={{ color: 'var(--n-500)', fontSize: '0.85rem' }}>{order.receiverName} — {order.address}</p>
+                  </div>
+
+                  <button
+                    onClick={() => handleAccept(order.id)}
+                    disabled={accepting === order.id}
+                    className="sp-btn-brand sp-btn-full"
+                    style={{ padding: '0.75rem' }}
+                  >
+                    {accepting === order.id
+                      ? <span className="sp-spinner" />
+                      : <><CheckCircle size={15} /> รับงานนี้</>
+                    }
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

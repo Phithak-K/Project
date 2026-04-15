@@ -1,22 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
-import { FiMapPin, FiPackage, FiTruck, FiCheckCircle, FiCamera, FiMessageSquare } from 'react-icons/fi';
-import ChatBox from '@/components/ChatBox';
-import OrderMap from '@/components/OrderMap';
+import { 
+  Package, MapPin, Truck, CheckCircle, Camera, MessageSquare, 
+  ArrowLeft, Phone, DollarSign, Shield, Zap, Navigation
+} from 'lucide-react';
 import QRScanner from '@/components/QRScanner';
 
 export default function DriverOrderWorkflowPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [socket, setSocket] = useState<Socket | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  
-  // For Base64 Image
   const [proofImage, setProofImage] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const orderId = params.id;
@@ -28,222 +26,208 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
     return null;
   };
 
-  useEffect(() => {
+  const fetchOrder = useCallback(async () => {
     const token = getAuthToken();
-    if (!token) {
-      router.push('/driver/login');
-      return;
-    }
-
-    const fetchOrder = async () => {
-      try {
-        const res = await fetch(`${API_URL}/orders/${orderId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setOrder(data);
-        } else {
-          alert('ไม่พบออเดอร์');
-          router.push('/driver/radar');
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOrder();
-
-    // WebSocket connect
-    const newSocket = io(API_URL, {
-      auth: { token: `Bearer ${token}` }
-    });
-    
-    newSocket.emit('join_order', { orderId: Number(orderId) });
-
-    newSocket.on('order_status_update', (updated: any) => {
-      setOrder((prev: any) => ({ ...prev, ...updated }));
-    });
-
-    setSocket(newSocket);
-    return () => { newSocket.disconnect(); };
+    if (!token) { router.push('/login'); return; }
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) setOrder(await res.json());
+      else        router.push('/driver/radar');
+    } catch { console.error('Error fetching order'); }
+    finally { setLoading(false); }
   }, [API_URL, orderId, router]);
+
+  useEffect(() => {
+    fetchOrder();
+    const token = getAuthToken();
+    if (!token) return;
+
+    const newSocket = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    newSocket.emit('join_order', { orderId: Number(orderId) });
+    newSocket.on('order_status_update', () => fetchOrder());
+    return () => { newSocket.disconnect(); };
+  }, [API_URL, orderId, fetchOrder]);
 
   const updateStatus = async (endpoint: string, extraBody = {}) => {
     const token = getAuthToken();
+    setUpdating(true);
     try {
       const res = await fetch(`${API_URL}/orders/${orderId}/${endpoint}`, {
         method: 'PATCH',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(extraBody)
       });
       if (!res.ok) {
         const err = await res.json();
         alert(err.message || 'Error updating status');
-      } else {
-        // UI updates via websocket automatically
       }
-    } catch {
-      alert('Network error');
-    }
+    } catch { alert('Network error'); }
+    finally { setUpdating(false); }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofImage(reader.result as string);
-      };
+      reader.onloadend = () => setProofImage(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  if (loading) return <div className="text-white text-center mt-20">กำลังโหลดข้อมูล...</div>;
+  if (loading) return <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}><span className="sp-spinner sp-spinner-lg" /></div>;
   if (!order) return null;
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6 pb-24">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="sp-page-dark">
+      <nav className="sp-nav-dark">
+        <button onClick={() => router.push('/driver/radar')} className="sp-btn-danger" style={{ opacity: 0.6 }}>
+          <ArrowLeft size={18} />
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <p className="sp-caps" style={{ color: 'var(--n-600)', fontSize: '0.6rem' }}>รหัสพัสดุ</p>
+          <span className="sp-logo-dark" style={{ fontSize: '1rem' }}>{order.trackingNumber}</span>
+        </div>
+        <button className="sp-btn-brand" style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }}>
+          <MessageSquare size={18} />
+        </button>
+      </nav>
+
+      <main style={{ maxWidth: '480px', margin: '0 auto', padding: '2rem 1.25rem' }}>
         
-        <header>
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                <FiPackage className="text-emerald-400" /> ออเดอร์ #{order.trackingNumber}
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">สถานะปัจจุบัน: <span className="text-amber-400 font-bold">{order.status}</span></p>
+        {/* Status Hero */}
+        <div className="sp-card-dark sp-animate" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+          <span className="sp-caps" style={{ color: 'oklch(62% 0.2 42)', fontWeight: 900 }}>{order.status}</span>
+          <h1 className="sp-font-display" style={{ fontSize: '1.5rem', color: 'var(--n-50)', marginTop: '0.5rem' }}>
+            {getStatusTitle(order.status)}
+          </h1>
+        </div>
+
+        {/* Info Grid */}
+        <div className="sp-stagger">
+          <div className="sp-card-dark" style={{ marginBottom: '1.25rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem' }}>จุดหมายปลายทาง</h3>
+            <div style={{ display: 'flex', gap: '0.875rem' }}>
+              <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.2rem', flexShrink: 0 }} />
+              <div>
+                <p style={{ fontWeight: 700, color: 'var(--n-100)' }}>{order.receiverName}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', marginTop: '0.125rem' }}>{order.address}</p>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
+                  <button className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)' }}>
+                    <Phone size={14} /> โทรหาผู้รับ
+                  </button>
+                  <button className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)' }}>
+                    <Navigation size={14} /> นำทาง
+                  </button>
+                </div>
+              </div>
             </div>
+          </div>
+
+          <div className="sp-card-dark" style={{ marginBottom: '2.5rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem' }}>รายละเอียดสินค้า</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center' }}>
+                <Package size={20} style={{ color: 'var(--n-700)' }} />
+                <div>
+                  <p style={{ fontWeight: 600, color: 'var(--n-100)' }}>{order.productName}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--n-500)' }}>จำนวน {order.quantity} รายการ</p>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p className="sp-stat-number" style={{ color: 'var(--n-50)', fontSize: '1.25rem' }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
+                <span className="sp-caps" style={{ color: 'var(--success-text)', fontSize: '0.6rem' }}>COD รองรับ</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Area */}
+          <div className="sp-animate-d2">
             
-            <button 
-              onClick={() => setIsChatOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-full shadow-lg transition-transform active:scale-95"
-            >
-              <FiMessageSquare size={20} />
-            </button>
-          </div>
-        </header>
-
-        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-xl space-y-4">
-          <div className="flex items-start gap-4 pb-4 border-b border-slate-700">
-            <div className="bg-slate-900 p-3 rounded-full text-indigo-400">
-              <FiPackage size={20} />
-            </div>
-            <div>
-              <p className="font-medium text-slate-200">พัสดุ: {order.productName}</p>
-              <p className="text-sm text-slate-400">{order.quantity} ชิ้น</p>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-4">
-            <div className="bg-rose-500/20 p-3 rounded-full text-rose-400">
-              <FiMapPin size={20} />
-            </div>
-            <div>
-              <p className="font-medium text-slate-200">ปลายทาง: {order.receiverName}</p>
-              <p className="text-sm text-slate-400">{order.address}</p>
-              <p className="text-sm text-slate-400 mt-1">📞 {order.receiverPhone}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* --- MAP --- */}
-        {order.lat && order.lng && (
-           <OrderMap lat={order.lat} lng={order.lng} label="จุดหมายปลายทาง" />
-        )}
-
-        {/* Action Buttons Based on Status */}
-        <div className="bg-slate-800 p-5 rounded-3xl border border-slate-700 shadow-xl">
-          <h3 className="font-bold text-lg mb-4 text-slate-300">อัปเดตสถานะการจัดส่ง</h3>
-          
-          {order.status === 'ACCEPTED' && (
-             <button 
-               onClick={() => updateStatus('pickup')}
-               className="w-full bg-indigo-500 hover:bg-indigo-400 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20"
-             >
-               ยืนยันการรับพัสดุจากร้านค้า
-             </button>
-          )}
-
-          {order.status === 'PICKED_UP' && (
-             <button 
-               onClick={() => updateStatus('ship')}
-               className="w-full bg-amber-500 hover:bg-amber-400 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2"
-             >
-               <FiTruck /> เริ่มเดินทางไปส่งผู้รับ
-             </button>
-          )}
-
-          {order.status === 'SHIPPING' && (
-            <div className="space-y-4">
-              <p className="text-sm text-slate-400">อัปโหลดรูปภาพหลักฐานการจัดส่ง:</p>
-              <label className="block w-full border-2 border-dashed border-slate-600 rounded-2xl p-6 text-center cursor-pointer hover:border-emerald-500 transition-colors">
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                {proofImage ? (
-                  <img src={proofImage} alt="Proof" className="mx-auto max-h-32 rounded-lg" />
-                ) : (
-                  <div className="text-slate-400 flex flex-col items-center">
-                    <FiCamera size={32} className="mb-2" />
-                    <span>ถ่ายรูปหน้างานที่นี่</span>
-                  </div>
-                )}
-              </label>
-
+            {order.status === 'ACCEPTED' && (
               <button 
-                onClick={() => updateStatus('complete', { proofOfDelivery: proofImage })}
-                disabled={!proofImage}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                onClick={() => updateStatus('pickup')} disabled={updating}
+                className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem' }}
               >
-                <FiCheckCircle size={20} /> ปิดงานจัดส่ง!
+                {updating ? <span className="sp-spinner" /> : 'ยืนยันการรับพัสดุ'}
               </button>
-            </div>
-          )}
+            )}
 
-          {/* New QR Payment Scanner Step */}
-          {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-            <div className="space-y-4 text-center">
-              <p className="text-amber-400 font-bold">ลูกค้ายืนยันและสร้าง QR สำหรับชำระเงินแล้ว</p>
-              <QRScanner 
-                 onScanSuccess={async (decodedText) => {
-                   try {
-                     const data = JSON.parse(decodedText);
-                     if (data.type === 'SwiftPath_Payment' && data.orderId === order.id) {
-                       await updateStatus('pay');
-                       alert('ชำระเงินสำเร็จ! เงินโอนเข้า Wallet ของคุณแล้ว');
-                     } else {
-                       alert('QR Code ไม่ถูกต้อง');
-                     }
-                   } catch {
-                     alert('รูปแบบ QR ไม่รองรับ');
-                   }
-                 }}
-              />
-            </div>
-          )}
+            {order.status === 'PICKED_UP' && (
+              <button 
+                onClick={() => updateStatus('ship')} disabled={updating}
+                className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem' }}
+              >
+                {updating ? <span className="sp-spinner" /> : 'เริ่มการจัดส่ง'}
+              </button>
+            )}
 
-          {/* Completed State */}
-          {order.status === 'DELIVERED' && order.paymentStatus === 'Paid' && (
-             <div className="bg-emerald-500/20 text-emerald-400 p-4 rounded-xl text-center border border-emerald-500/30">
-               <FiCheckCircle className="mx-auto mb-2" size={24} />
-               <p className="font-bold">งานนี้เสร็จสมบูรณ์ และรับเงินเข้ากระเป๋าเรียบร้อย!</p>
-             </div>
-          )}
+            {order.status === 'SHIPPING' && (
+              <div className="sp-card-dark" style={{ border: '1px dashed var(--n-700)' }}>
+                <p className="sp-caps" style={{ textAlign: 'center', color: 'var(--n-600)', marginBottom: '1rem' }}>หลักฐานการส่ง (POD)</p>
+                <label style={{ display: 'block', padding: '2rem', border: '2px dashed var(--n-800)', borderRadius: '1rem', textAlign: 'center', cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  {proofImage ? (
+                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem' }} />
+                  ) : (
+                    <div style={{ color: 'var(--n-600)' }}>
+                      <Camera size={32} style={{ marginBottom: '0.5rem' }} />
+                      <p style={{ fontSize: '0.8rem' }}>ถ่ายรูปพัสดุตอนถึงมือลูกค้า</p>
+                    </div>
+                  )}
+                </label>
+                <button 
+                  onClick={() => updateStatus('complete', { proofOfDelivery: proofImage })}
+                  disabled={!proofImage || updating}
+                  className="sp-btn-brand sp-btn-full" style={{ marginTop: '1.25rem', padding: '1.125rem' }}
+                >
+                  {updating ? <span className="sp-spinner" /> : 'ปิดเสร็จสิ้นงานส่ง'}
+                </button>
+              </div>
+            )}
+
+            {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
+              <div className="sp-card-dark" style={{ textAlign: 'center', background: 'var(--brand-900)', border: '1px solid var(--brand-600)' }}>
+                <Zap size={24} style={{ color: 'var(--brand-500)', marginBottom: '0.75rem' }} />
+                <h3 style={{ fontWeight: 700, color: 'var(--n-50)' }}>รอสแกน QR รับเงิน</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
+                <QRScanner 
+                  onScanSuccess={async (text) => {
+                    try {
+                      const data = JSON.parse(text);
+                      if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
+                        await updateStatus('pay');
+                      }
+                    } catch { alert('QR ไม่ถูกต้อง'); }
+                  }}
+                />
+              </div>
+            )}
+
+            {order.paymentStatus === 'Paid' && (
+              <div className="sp-card-dark" style={{ textAlign: 'center', background: 'oklch(18% 0.014 38 / 0.5)', border: '1px solid var(--success-text)' }}>
+                <CheckCircle size={32} style={{ color: 'var(--success-text)', marginBottom: '0.75rem' }} />
+                <h3 style={{ fontWeight: 900, color: 'var(--n-50)' }}>งานสำเร็จ</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--n-500)' }}>ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
+              </div>
+            )}
+
+          </div>
         </div>
 
-      </div>
-
-      <ChatBox 
-        isOpen={isChatOpen} 
-        onClose={() => setIsChatOpen(false)} 
-        orderId={Number(orderId)} 
-        currentRole="Driver" 
-        receiverRole="Customer" 
-        receiverId={order.customerId} 
-      />
+      </main>
     </div>
   );
+}
+
+function getStatusTitle(status: string) {
+  const map: Record<string, string> = {
+    ACCEPTED: 'ยืนยันตัวตนคนขับแล้ว',
+    PICKED_UP: 'รับพัสดุเข้าระบบแล้ว',
+    SHIPPING: 'กำลังเดินทางสู่จุดหมาย',
+    DELIVERED: 'นำส่งปลายทางเรียบร้อย',
+    CANCELLED: 'ออเดอร์ถูกยกเลิก'
+  };
+  return map[status] || status;
 }

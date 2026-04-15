@@ -18,6 +18,29 @@ export class OrdersController {
     return this.ordersService.createOrder(req.user.userId, createOrderDto);
   }
 
+  // ==== 🆕 New Merchant Features ====
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('stats')
+  getOrderStats(@Req() req: any) {
+    return this.ordersService.getOrderStats(req.user.userId);
+  }
+
+  // ==== Driver Routes ====
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Get('available')
+  findAllAvailable() {
+    return this.ordersService.findAllAvailable();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Get('stats/driver')
+  getDriverStats(@Req() req: any) {
+    return this.ordersService.getDriverStats(req.user.userId);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Get('my-orders')
@@ -37,14 +60,7 @@ export class OrdersController {
     return this.ordersService.getOrderMessages(Number(id), req.user.userId, req.user.role);
   }
 
-  // ==== 🆕 New Merchant Features ====
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Merchant)
-  @Get('stats')
-  getOrderStats(@Req() req: any) {
-    return this.ordersService.getOrderStats(req.user.userId);
-  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
@@ -60,21 +76,7 @@ export class OrdersController {
     return this.ordersService.updatePreparationTime(Number(id), req.user.userId, body.estimatedReadyAt);
   }
 
-  // ==== Driver Routes ====
-  
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Driver)
-  @Get('available')
-  findAllAvailable() {
-    return this.ordersService.findAllAvailable();
-  }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Driver)
-  @Get('stats/driver')
-  getDriverStats(@Req() req: any) {
-    return this.ordersService.getDriverStats(req.user.userId);
-  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)

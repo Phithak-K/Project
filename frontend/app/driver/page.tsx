@@ -1,196 +1,209 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Truck, MapPin, Package, Navigation, LogOut, Clock, CloudRain } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain } from 'lucide-react';
 
 export default function DriverDashboard() {
   const router = useRouter();
-  const [availableOrders, setAvailableOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [hotspots, setHotspots] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accepting, setAccepting] = useState<number | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // 1. Helper: อ่าน Token จาก Cookie
-  const getAuthToken = useCallback(() => {
+  const getAuthToken = () => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; token=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
-  }, []);
-
-  // 2. ฟังก์ชัน Logout สำหรับคนขับ
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    window.location.href = "/login";
   };
 
-  // 3. ฟังก์ชันดึงข้อมูลงานที่ว่างอยู่
-  const fetchAvailableOrders = useCallback(async () => {
-    setIsLoading(true);
-    const token = getAuthToken();
-    if (!token) {
-      alert("ไม่พบเซสชัน กรุณาล็อกอิน");
-      router.push('/driver/login');
-      return;
-    }
+  const handleLogout = () => {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    window.location.href = '/login';
+  };
 
+  const fetchData = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) { router.push('/driver/login'); return; }
     try {
-      const res = await fetch(`${API_URL}/orders/available`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setAvailableOrders(data);
-      } else {
-        console.error("Failed to fetch available orders");
-      }
-    } catch (err) {
-      console.error("Network Error", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [API_URL, getAuthToken, router]);
+      const headers = { Authorization: `Bearer ${token}` };
+      const [ordersRes, statsRes, hotRes] = await Promise.all([
+        fetch(`${API_URL}/orders/available`, { headers }),
+        fetch(`${API_URL}/orders/driver-stats`, { headers }),
+        fetch(`${API_URL}/weather/hotspots`, { headers }),
+      ]);
+      if (ordersRes.ok) setOrders(await ordersRes.json());
+      if (statsRes.ok)  setStats(await statsRes.json());
+      if (hotRes.ok)    setHotspots(await hotRes.json());
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
+  }, [API_URL, router]);
 
-  useEffect(() => {
-    fetchAvailableOrders();
-  }, [fetchAvailableOrders]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  // 4. ฟังก์ชันรับงาน
-  const handleAcceptOrder = async (orderId: number) => {
+  const handleAccept = async (orderId: number) => {
     const token = getAuthToken();
+    setAccepting(orderId);
     try {
       const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
       });
-      
-      if (res.ok) {
-        alert("รับงานสำเร็จ! กรุณาเดินทางไปรับพัสดุ");
-        fetchAvailableOrders(); // โหลดข้อมูลใหม่
-      } else {
-        const err = await res.json();
-        alert(err.message || "เกิดข้อผิดพลาดในการรับงาน");
-      }
-    } catch (error) {
-      alert("Network Error");
-    }
+      if (res.ok) router.push(`/driver/orders/${orderId}`);
+      else { const e = await res.json(); alert(e.message || 'ไม่สามารถรับงานได้'); fetchData(); }
+    } catch { alert('Network Error'); }
+    finally { setAccepting(null); }
   };
 
+  if (isLoading) return (
+    <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
+      <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Top Navigation */}
-      <nav className="bg-white border-b px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="bg-orange-500 p-2 rounded-lg text-white shadow-lg shadow-orange-100">
-            <Truck size={20} />
-          </div>
-          <span className="font-black text-xl text-slate-800 tracking-tight">SwiftPath <span className="text-orange-500">Fleet</span></span>
+    <div className="sp-page-dark">
+      {/* ── Nav ── */}
+      <nav className="sp-nav-dark">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Fleet</span>
         </div>
-        <button 
-          onClick={handleLogout}
-          className="p-2 text-slate-400 hover:text-red-500 transition-colors"
-          title="ออกจากระบบ"
-        >
-          <LogOut size={22} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link href="/driver/radar">
+            <button className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+              <Navigation size={14} /> ดูเรดาร์
+            </button>
+          </Link>
+          <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
+            <LogOut size={18} />
+          </button>
+        </div>
       </nav>
 
-      <main className="p-6 max-w-lg mx-auto">
-        {/* Driver Status Card */}
-        <div className="bg-slate-900 rounded-3xl p-6 text-white mb-8 shadow-xl relative overflow-hidden">
-          <div className="relative z-10">
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">สถานะปัจจุบัน</p>
-            <h2 className="text-2xl font-black mb-4 flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-              พร้อมรับงาน
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white/10 p-3 rounded-2xl">
-                <p className="text-[10px] text-slate-300 uppercase">งานวันนี้</p>
-                <p className="text-xl font-bold">- งาน</p>
-              </div>
-              <div className="bg-white/10 p-3 rounded-2xl">
-                <p className="text-[10px] text-slate-300 uppercase">รายได้สะสม</p>
-                <p className="text-xl font-bold">- บาท</p>
-              </div>
+      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.25rem' }}>
+
+        {/* ── Stats Hero ── */}
+        <div className="sp-card-dark sp-animate" style={{ marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
+          <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.25rem' }}>รายงานวันนี้</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+            <div>
+              <div className="sp-stat-number" style={{ fontSize: '2.5rem', color: 'var(--n-50)' }}>{stats?.completedTrips ?? '—'}</div>
+              <div className="sp-stat-label" style={{ color: 'var(--n-600)' }}>งานสำเร็จ</div>
+            </div>
+            <div>
+              <div className="sp-stat-number" style={{ fontSize: '2.5rem', color: 'var(--n-50)' }}>{stats?.activeOrders ?? '—'}</div>
+              <div className="sp-stat-label" style={{ color: 'var(--n-600)' }}>กำลังส่ง</div>
+            </div>
+            <div>
+              <div className="sp-stat-number" style={{ fontSize: '1.6rem', color: 'var(--n-50)' }}>฿{(stats?.totalIncome ?? 0).toLocaleString()}</div>
+              <div className="sp-stat-label" style={{ color: 'var(--n-600)' }}>รายได้</div>
             </div>
           </div>
-          <Truck className="absolute -right-4 -bottom-4 text-white/5" size={120} />
+          {stats?.weatherBonus > 0 && (
+            <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--n-800)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Zap size={14} style={{ color: 'var(--brand-400)' }} />
+              <span style={{ color: 'var(--brand-400)', fontSize: '0.875rem', fontWeight: 600 }}>
+                Surge Bonus +฿{stats.weatherBonus.toLocaleString()}
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Available Orders List */}
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="font-black text-slate-800 text-lg flex items-center gap-2">
-            <Clock size={20} className="text-orange-500" />
-            งานใหม่ใกล้ตัวคุณ
-          </h3>
-          <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-black">
-            {availableOrders.length} รายการ
-          </span>
-        </div>
-
-        {isLoading ? (
-          <div className="text-center text-slate-500 font-medium mt-10 animate-pulse">กำลังโหลดงาน...</div>
-        ) : availableOrders.length === 0 ? (
-          <div className="text-center text-slate-400 font-medium mt-10">ไม่พบงานที่ว่างในขณะนี้</div>
-        ) : (
-          <div className="space-y-5">
-            {availableOrders.map((order) => (
-              <div key={order.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                
-                {/* Weather Warning Badge */}
-                {order.weatherWarning && (
-                  <div className="mb-4 inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-700 px-3 py-1.5 rounded-full text-xs font-black">
-                    <CloudRain size={14} />
-                    <span>Rainy - Surge Applied</span>
+        {/* ── Surge Hotspots ── */}
+        {hotspots.length > 0 && (
+          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
+              <TrendingUp size={14} style={{ color: 'var(--brand-400)' }} />
+              <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Surge Hotspots</span>
+            </div>
+            <div style={{ display: 'flex', gap: '0.625rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none' }}>
+              {hotspots.map((spot, i) => (
+                <div key={i} className="sp-card-dark" style={{ minWidth: '160px', padding: '0.875rem', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--n-200)', fontSize: '0.9rem' }}>{spot.city}</span>
+                    <CloudRain size={14} style={{ color: 'oklch(65% 0.12 220)' }} />
                   </div>
-                )}
-
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-slate-50 p-3 rounded-2xl text-slate-400">
-                      <Package size={24} />
-                    </div>
-                    <div>
-                      <p className="font-black text-slate-900 text-lg leading-none mb-1">{order.trackingNumber}</p>
-                      <p className="text-slate-400 text-xs font-bold uppercase tracking-tight">{order.productName || 'พัสดุทั่วไป'}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-orange-500 font-black text-xl">฿{order.totalPrice || order.price}</p>
-                    <p className="text-slate-300 text-[10px] font-bold uppercase">รอคนขับรับ</p>
-                  </div>
+                  <span className="sp-caps" style={{ color: 'var(--brand-400)' }}>+20% Surge</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-3">
-                    <MapPin size={16} className="text-slate-300 mt-1" />
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed">
-                      <span className="text-slate-400 block text-[10px] font-bold uppercase">จุดหมายปลายทาง</span>
-                      {order.address}
+        {/* ── Available Orders ── */}
+        <div className="sp-section-header" style={{ marginBottom: '1rem' }}>
+          <h2 className="sp-section-title" style={{ color: 'var(--n-100)' }}>งานใหม่</h2>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>{orders.length} งาน</span>
+        </div>
+
+        {orders.length === 0 ? (
+          <div className="sp-card-dark" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>ไม่มีงานในขณะนี้</p>
+            <p style={{ color: 'var(--n-700)', fontSize: '0.875rem', marginTop: '0.375rem' }}>
+              เปิดเรดาร์เพื่อรับการแจ้งเตือนแบบเรียลไทม์
+            </p>
+          </div>
+        ) : (
+          <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            {orders.map(order => (
+              <div key={order.id} className="sp-card-dark" style={{ padding: 0, overflow: 'hidden' }}>
+                {order.weatherWarning && <div style={{ height: '3px', background: 'var(--brand-500)' }} />}
+                <div style={{ padding: '1.125rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    <div>
+                      <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-400)' }}>{order.trackingNumber}</p>
+                      <p style={{ fontWeight: 600, color: 'var(--n-100)', marginTop: '0.125rem' }}>{order.productName}</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.35rem', color: 'var(--n-50)' }}>
+                        ฿{(order.totalPrice || order.price)?.toLocaleString()}
+                      </p>
+                      {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-400)' }}>Surge +20%</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    {order.estimatedMinutes && (
+                      <span className="sp-caps" style={{ color: 'var(--n-600)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Clock size={11} /> ETA {order.estimatedMinutes} นาที
+                      </span>
+                    )}
+                    {order.hasInsurance && (
+                      <span className="sp-caps" style={{ color: 'oklch(65% 0.12 270)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <Shield size={11} /> ประกัน
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <MapPin size={13} style={{ color: 'var(--n-700)', marginTop: '0.1rem', flexShrink: 0 }} />
+                    <p style={{ color: 'var(--n-500)', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                      {order.receiverName} — {order.address}
                     </p>
                   </div>
-                </div>
 
-                <button 
-                  onClick={() => handleAcceptOrder(order.id)}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl font-black shadow-lg shadow-orange-100 transition-all flex items-center justify-center gap-3 active:scale-95"
-                >
-                  <Navigation size={20} />
-                  กดรับงานนี้
-                </button>
+                  <button
+                    onClick={() => handleAccept(order.id)}
+                    disabled={accepting === order.id}
+                    className="sp-btn-brand sp-btn-full"
+                    style={{ padding: '0.75rem' }}
+                  >
+                    {accepting === order.id
+                      ? <span className="sp-spinner" />
+                      : <><CheckCircle size={15} /> รับงานนี้</>
+                    }
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
-
-        <div className="h-20"></div> {/* Spacer */}
       </main>
     </div>
   );

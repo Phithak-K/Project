@@ -69,7 +69,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // เมื่อมีข้อความส่งมาจากหน้าบ้าน (Event: send_message)
   @SubscribeMessage('send_message')
   async handleMessage(
-    @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string },
+    @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string; imageUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
     // ใช้ senderId จาก JWT Token ที่ตรวจสอบแล้ว (ไม่ใช่จาก client)
@@ -79,7 +79,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // 1. บันทึกลง Database
+    // 1. Verify sender is part of this order [H-01 FIX]
+    const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
+    if (!order) {
+      client.emit('error', { message: 'Order not found' });
+      return;
+    }
+    const isInvolved =
+      (user.role === 'Merchant' && order.merchantId === user.sub) ||
+      (user.role === 'Driver' && order.driverId === user.sub) ||
+      (user.role === 'Customer' && order.customerId === user.sub);
+    if (!isInvolved) {
+      client.emit('error', { message: 'You are not part of this order' });
+      return;
+    }
+
+    // 2. บันทึกลง Database
     const newMessage = await this.prisma.message.create({
       data: {
         orderId: data.orderId,
@@ -88,6 +103,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         receiverId: data.receiverId,
         receiverRole: data.receiverRole,
         content: data.content,
+        imageUrl: data.imageUrl || null,
       },
     });
 

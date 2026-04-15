@@ -31,6 +31,7 @@ export class AuthController {
   }
 
   // 3. เข้าสู่ระบบแบบปกติ
+  @UseGuards(ThrottlerGuard) // [L-03] FIX: Rate limit to prevent brute force
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {

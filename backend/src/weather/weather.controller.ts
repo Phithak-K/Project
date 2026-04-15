@@ -5,6 +5,11 @@ import { WeatherService } from './weather.service';
 export class WeatherController {
   constructor(private readonly weatherService: WeatherService) {}
 
+  @Get('hotspots')
+  async getHotspots() {
+    return this.weatherService.getHotspots();
+  }
+
   @Get(':city')
   async getWeather(@Param('city') city: string) {
     if (!city || city.trim() === '') {

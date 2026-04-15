@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { KeyRound, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 
 function VerifyOtpContent() {
@@ -12,6 +12,8 @@ function VerifyOtpContent() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -21,50 +23,36 @@ function VerifyOtpContent() {
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError('');
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/verify-otp`, {
-        method: 'POST',
-        mode: 'cors',
+        method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
       });
-
       const data = await response.json();
 
       if (response.ok) {
-        alert('✅ ยืนยันตัวตนสำเร็จ! กำลังพาท่านเข้าสู่ระบบ...');
-        
         if (data.access_token && data.user) {
           const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
           const isLocalhost = baseDomain.includes('localhost');
           const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+          document.cookie = `role=${data.user?.role || 'Customer'}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
 
-          if (data.access_token) {
-            document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
-          }
-
-          const decodedRole = data.user?.role || 'Customer';
-          document.cookie = `role=${decodedRole}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
-
-          // นำทางผู้ใช้ไปยัง Dashboard ตาม Role แบบ HTTPS
-          if (data.user.role === 'Merchant') {
-            window.location.href = `https://store.${baseDomain}/`;
-          } else if (data.user.role === 'Driver') {
-            window.location.href = `https://fleet.${baseDomain}/`;
-          } else {
-            window.location.href = `https://app.${baseDomain}/`;
-          }
+          if (data.user.role === 'Merchant')     window.location.href = `https://store.${baseDomain}/`;
+          else if (data.user.role === 'Driver')  window.location.href = `https://fleet.${baseDomain}/`;
+          else                                   window.location.href = `https://app.${baseDomain}/`;
         } else {
           router.push('/login');
         }
       } else {
-        alert(`❌ รหัสไม่ถูกต้อง: ${data.message}`);
+        setError(data.message || 'รหัส OTP ไม่ถูกต้อง');
       }
-    } catch (error) {
-      console.error('Catch Error:', error);
-      alert('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
+    } catch {
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
     }
@@ -73,78 +61,109 @@ function VerifyOtpContent() {
   const handleResend = async () => {
     if (!email) return;
     setIsResending(true);
+    setError('');
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiUrl}/auth/resend-otp`, {
-        method: 'POST',
-        mode: 'cors',
+        method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
       const data = await response.json();
-      if (response.ok) {
-        alert('✅ ' + (data.message || 'ส่งรหัสใหม่เรียบร้อยแล้ว'));
-      } else {
-        alert('❌ ' + data.message);
-      }
-    } catch (error) {
-      alert('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
+      if (response.ok) setSuccess(data.message || 'ส่งรหัสใหม่เรียบร้อยแล้ว');
+      else setError(data.message || 'เกิดข้อผิดพลาด');
+    } catch {
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsResending(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border border-slate-100 text-center">
-        <Link href="/register" className="inline-flex items-center text-slate-400 hover:text-blue-600 mb-6 text-sm font-bold transition-colors">
-          <ArrowLeft size={16} className="mr-1" /> ย้อนกลับไปสมัครใหม่
-        </Link>
+    <div className="sp-auth-wrap">
+      {/* ── Left: Form ── */}
+      <div className="sp-auth-form-panel">
+        <div style={{ maxWidth: '400px', width: '100%' }}>
+          {/* Back */}
+          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+            <Link href="/register" className="sp-link-muted" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem' }}>
+              <ArrowLeft size={15} /> ย้อนกลับ
+            </Link>
+          </div>
 
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 text-white rounded-[2rem] mb-6 shadow-lg shadow-blue-100">
-          <KeyRound size={36} />
-        </div>
-        
-        <h2 className="text-3xl font-black text-slate-800 mb-2 tracking-tight">ยืนยันรหัส OTP</h2>
-        <p className="text-slate-500 mb-8 font-medium text-sm">
-          รหัส 6 หลักส่งไปที่ <br/>
-          <span className="text-blue-600 font-bold">{email || 'อีเมลของคุณ'}</span>
-        </p>
+          {/* Icon + heading */}
+          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+            <div style={{
+              width: '3rem', height: '3rem', borderRadius: '0.625rem',
+              background: 'var(--brand-500)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', marginBottom: '1.25rem'
+            }}>
+              <KeyRound size={22} />
+            </div>
+            <span className="sp-section-eyebrow">ยืนยันตัวตน</span>
+            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>กรอกรหัส OTP</h1>
+            <p style={{ color: 'var(--n-500)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
+              รหัส 6 หลักถูกส่งไปที่<br />
+              <strong style={{ color: 'var(--n-700)' }}>{email || 'อีเมลของคุณ'}</strong>
+            </p>
+          </div>
 
-        <form onSubmit={handleVerify} className="space-y-6">
-          <input 
-            type="text" 
-            maxLength={6}
-            required
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-            className="w-full text-center text-5xl font-black tracking-[0.75rem] py-5 border-2 border-slate-100 rounded-[1.5rem] focus:border-blue-500 focus:ring-8 focus:ring-blue-50 outline-none transition-all"
-            placeholder="000000"
-          />
+          {error   && <div className="sp-alert sp-alert-error sp-animate"   style={{ marginBottom: '1rem' }}>{error}</div>}
+          {success && <div className="sp-alert sp-alert-success sp-animate" style={{ marginBottom: '1rem' }}>{success}</div>}
 
-          <button 
-            type="submit"
-            disabled={isLoading || otp.length < 6}
-            className={`w-full py-4 rounded-2xl font-bold text-white shadow-xl transition-all ${
-              isLoading ? 'bg-slate-400' : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {isLoading ? 'กำลังตรวจสอบ...' : 'ยืนยันรหัสเข้าใช้งาน'}
-          </button>
-        </form>
+          <form onSubmit={handleVerify} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <input
+              id="otp"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              required
+              value={otp}
+              onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+              className="sp-input-otp"
+              placeholder="000000"
+            />
 
-        <div className="mt-8">
-          <p className="text-sm text-slate-500 font-medium">
-            ยังไม่ได้รับรหัส?{' '}
-            <button 
-              onClick={handleResend}
-              disabled={isResending || !email}
-              className="text-blue-600 font-black hover:underline disabled:text-slate-400"
+            <button
+              id="btn-verify"
+              type="submit"
+              disabled={isLoading || otp.length < 6}
+              className="sp-btn-primary sp-btn-full"
+              style={{ padding: '0.875rem' }}
             >
-              {isResending ? 'กำลังส่งใหม่...' : 'ส่งรหัสอีกครั้ง'}
+              {isLoading ? <span className="sp-spinner" /> : 'ยืนยันรหัส'}
             </button>
+          </form>
+
+          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+              ยังไม่ได้รับรหัส?{' '}
+              <button
+                onClick={handleResend}
+                disabled={isResending || !email}
+                className="sp-link"
+                style={{ background: 'none', border: 'none', padding: 0, cursor: isResending ? 'not-allowed' : 'pointer' }}
+              >
+                {isResending ? 'กำลังส่งใหม่...' : 'ส่งรหัสอีกครั้ง'}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right: Brand Panel ── */}
+      <div className="sp-auth-brand-panel">
+        <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+        <div>
+          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>ความปลอดภัย</p>
+          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+            ยืนยันตัวตน<br />เพื่อความปลอดภัย
+          </p>
+          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+            รหัส OTP มีอายุ 10 นาที ถ้าไม่ได้รับให้ตรวจสอบ Spam folder หรือกด "ส่งรหัสอีกครั้ง"
           </p>
         </div>
+        <div />
       </div>
     </div>
   );
@@ -152,7 +171,7 @@ function VerifyOtpContent() {
 
 export default function VerifyOtpPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="sp-page-loading"><span className="sp-spinner sp-spinner-lg" /></div>}>
       <VerifyOtpContent />
     </Suspense>
   );

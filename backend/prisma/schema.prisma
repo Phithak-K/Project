@@ -63,6 +63,9 @@ model Merchant {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
+  lat              Float?    
+  lng              Float?    
+
   orders           Order[]   @relation("MerchantOrders")
 }
 
@@ -98,8 +101,11 @@ model Order {
   
   // --- ระบบราคาและสภาพอากาศ ---
   price            Float         // ราคาต้นทุนสินค้า
-  totalPrice       Float?        // ✅ เพิ่ม: ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
+  totalPrice       Float?        // ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
   weatherWarning   String?
+  estimatedMinutes Int?          // ✅ ETA: ประมาณการเวลาจัดส่ง (นาที)
+  hasInsurance     Boolean       @default(false) // ✅ Insurance toggle
+  insuranceFee     Float         @default(0)     // ค่าธรรมเนียมประกัน
   
   receiverName     String
   receiverPhone    String
@@ -160,6 +166,7 @@ model Message {
   receiverId Int
   
   createdAt  DateTime @default(now())
+  imageUrl   String?  
 }
 
 model Transaction {

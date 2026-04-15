@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min, Length, IsNotEmpty } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, Min, Length, IsNotEmpty } from 'class-validator';
 
 export class CreateOrderDto {
   @IsString()
@@ -28,4 +28,16 @@ export class CreateOrderDto {
   @IsString()
   @IsNotEmpty({ message: 'ต้องระบุที่อยู่จัดส่ง' })
   address: string;
-}
+
+  @IsNumber()
+  @IsOptional()
+  lat?: number;
+
+  @IsNumber()
+  @IsOptional()
+  lng?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  hasInsurance?: boolean;
+}
