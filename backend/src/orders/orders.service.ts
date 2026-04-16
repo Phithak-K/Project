@@ -6,6 +6,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { uploadBase64ToStorage } from '../utils/firebase-storage';
 
 @Injectable()
 export class OrdersService {
@@ -73,23 +74,18 @@ export class OrdersService {
       const merchantLng = merchant?.lng || 100.5018;
 
       // 2. Check Weather for Surge Pricing and ETA Penalty
-      if (data.address) {
-        const addressParts = data.address.trim().split(/\s+/);
-        // Find a word that looks like a city (Thai provinces/cities are usually last or near last)
-        const city = addressParts.find(p => ['Bangkok', 'Chiang', 'Phuket', 'Pattaya', 'Nonthaburi'].some(c => p.includes(c))) || addressParts[addressParts.length - 1];
+      if (data.city) {
+        const city = data.city.trim();
+        const weatherData = await this.weatherService.getWeather(city);
+        if (weatherData && weatherData.weather && weatherData.weather.length > 0) {
+          const mainWeather = weatherData.weather[0].main;
 
-        if (city) {
-          const weatherData = await this.weatherService.getWeather(city);
-          if (weatherData && weatherData.weather && weatherData.weather.length > 0) {
-            const mainWeather = weatherData.weather[0].main;
-
-            if (mainWeather === 'Rain' || mainWeather === 'Thunderstorm' || mainWeather === 'Drizzle') {
-              isRaining = true;
-              // เพิ่มค่าบริการ 20% (Surge +20%)
-              finalTotalPrice = finalTotalPrice * 1.20;
-              weatherWarning = `⚠️ คำเตือน: ตรวจพบฝนใน ${city} (เพิ่มค่าบริการ 20%, เวลาจัดส่งเพิ่มขึ้น)`;
-              weatherLogMessage = `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง (ปรับราคาส่วนต่าง +20% & ETA +15 นาที)`;
-            }
+          if (mainWeather === 'Rain' || mainWeather === 'Thunderstorm' || mainWeather === 'Drizzle') {
+            isRaining = true;
+            // เพิ่มค่าบริการ 20% (Surge +20%)
+            finalTotalPrice = finalTotalPrice * 1.20;
+            weatherWarning = `⚠️ คำเตือน: ตรวจพบฝนใน ${city} (เพิ่มค่าบริการ 20%, เวลาจัดส่งเพิ่มขึ้น)`;
+            weatherLogMessage = `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง (ปรับราคาส่วนต่าง +20% & ETA +15 นาที)`;
           }
         }
       }
@@ -389,16 +385,26 @@ export class OrdersService {
 
   async completeOrder(orderId: number, driverId: number, proofOfDeliveryBase64?: string) {
     if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
+    if (!proofOfDeliveryBase64) throw new BadRequestException('ต้องแนบรูปลิงก์หลักฐานการจัดส่ง (Proof of Delivery URL)');
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
     if (order.driverId !== driverId) throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
     if (order.status !== OrderStatus.SHIPPING) throw new BadRequestException('ต้องเริ่มการจัดส่งก่อน (SHIPPING)');
 
+    let proofUrl: string | null = null;
+    try {
+      if (proofOfDeliveryBase64) {
+        proofUrl = await uploadBase64ToStorage(proofOfDeliveryBase64, `proofs/${order.trackingNumber}`);
+      }
+    } catch(e: any) {
+      throw new BadRequestException('อัปโหลดหลักฐานไม่สำเร็จ: ' + e.message);
+    }
+
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: { 
         status: OrderStatus.DELIVERED,
-        proofOfDelivery: proofOfDeliveryBase64 || null
+        proofOfDelivery: proofUrl
       },
     });
     
@@ -417,9 +423,9 @@ export class OrdersService {
     if (order.driverId !== driverId) throw new ForbiddenException('สิทธิ์ถูกปฏิเสธ');
     if (order.paymentStatus === 'Paid') throw new BadRequestException('ออเดอร์นี้ชำระเงินแล้ว');
 
-    const amountToPay = order.totalPrice || order.price;
+    const amountToPay = Number(order.totalPrice || order.price);
     const driverCut = amountToPay * 0.2; // 20%
-    const merchantCut = order.price; 
+    const merchantCut = Number(order.price); 
 
     // เริ่ม Transaction พร้อม ป้องกัน Race Condition
     await this.prisma.$transaction(async (tx) => {
@@ -436,8 +442,8 @@ export class OrdersService {
       // 1. [H-02] FIX: Check sufficient balance BEFORE decrement
       if (order.customerId) {
         const customer = await tx.customer.findUnique({ where: { id: order.customerId } });
-        if (!customer || customer.balance < amountToPay) {
-          throw new BadRequestException(`ยอดเงินไม่เพียงพอ ต้องการ ฿${amountToPay.toFixed(2)} แต่มีเพียง ฿${(customer?.balance || 0).toFixed(2)}`);
+        if (!customer || Number(customer.balance) < amountToPay) {
+          throw new BadRequestException(`ยอดเงินไม่เพียงพอ ต้องการ ฿${amountToPay.toFixed(2)} แต่มีเพียง ฿${Number(customer?.balance || 0).toFixed(2)}`);
         }
         await tx.customer.update({
           where: { id: order.customerId },
@@ -469,10 +475,11 @@ export class OrdersService {
       });
 
       // 4. หักค่าประกัน (Platform Revenue)
-      if (order.hasInsurance && order.insuranceFee > 0) {
+      const insuranceFeeNum = Number(order.insuranceFee);
+      if (order.hasInsurance && insuranceFeeNum > 0) {
         // ในระบบจริง เราอาจจะโอนให้ SwiftPath Insurance Wallet
         await tx.transaction.create({
-          data: { amount: order.insuranceFee, type: 'DEBIT', note: `ค่าเบี้ยประกันสินค้า #${order.trackingNumber}`, userId: order.customerId || 0, userRole: 'Platform', orderId: order.id }
+          data: { amount: insuranceFeeNum, type: 'DEBIT', note: `ค่าเบี้ยประกันสินค้า #${order.trackingNumber}`, userId: order.customerId || 0, userRole: 'Platform', orderId: order.id }
         });
       }
     });
@@ -541,8 +548,8 @@ export class OrdersService {
       _sum: { totalPrice: true, price: true },
     });
 
-    const totalIncome = todayEarnings._sum.totalPrice || 0;
-    const baseIncome = todayEarnings._sum.price || 0;
+    const totalIncome = Number(todayEarnings._sum.totalPrice) || 0;
+    const baseIncome = Number(todayEarnings._sum.price) || 0;
     const weatherBonus = totalIncome - baseIncome; // ส่วนต่างของ Surge
 
     return {

@@ -35,7 +35,7 @@ model Customer {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
-  balance          Float     @default(0)
+  balance          Decimal   @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -58,7 +58,7 @@ model Merchant {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
-  balance          Float     @default(0)
+  balance          Decimal   @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -84,7 +84,7 @@ model Driver {
   otpCode          String?
   otpExpires       DateTime?
   isActive         Boolean   @default(true)
-  balance          Float     @default(0)
+  balance          Decimal   @default(0)
 
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
@@ -100,12 +100,12 @@ model Order {
   quantity         Int           @default(1)
   
   // --- ระบบราคาและสภาพอากาศ ---
-  price            Float         // ราคาต้นทุนสินค้า
-  totalPrice       Float?        // ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
+  price            Decimal       // ราคาต้นทุนสินค้า
+  totalPrice       Decimal?      // ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
   weatherWarning   String?
   estimatedMinutes Int?          // ✅ ETA: ประมาณการเวลาจัดส่ง (นาที)
   hasInsurance     Boolean       @default(false) // ✅ Insurance toggle
-  insuranceFee     Float         @default(0)     // ค่าธรรมเนียมประกัน
+  insuranceFee     Decimal       @default(0)     // ค่าธรรมเนียมประกัน
   
   receiverName     String
   receiverPhone    String
@@ -171,7 +171,7 @@ model Message {
 
 model Transaction {
   id        Int      @id @default(autoincrement())
-  amount    Float
+  amount    Decimal
   type      String   // "DEBIT", "CREDIT"
   note      String?  // e.g. "Payment for Order #123"
   

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiDollarSign, FiPackage, FiCloudLightning, FiTrendingUp } from 'react-icons/fi';
+import { DollarSign, Package, CloudRain, TrendingUp, Navigation } from 'lucide-react';
 
 export default function DriverDashboardPage() {
   const router = useRouter();
@@ -39,62 +39,75 @@ export default function DriverDashboardPage() {
     fetchStats();
   }, [API_URL, router]);
 
-  if (loading) return <div className="text-center mt-20 text-white">กำลังโหลดข้อมูล...</div>;
+  if (loading) return (
+    <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
+      <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-6 pb-24">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <header>
-          <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">สรุปรายได้ของคุณ (วันนี้)</h1>
-          <p className="text-slate-400 text-sm mt-1">ยินดีด้วย! คุณทำงานได้เยี่ยมมาก</p>
+    <div className="sp-page-dark">
+      <nav className="sp-nav-dark">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Earning Stats</span>
+        </div>
+        <button onClick={() => router.push('/driver/radar')} className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+          <Navigation size={14} /> ดูเรดาร์
+        </button>
+      </nav>
+
+      <main style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.25rem' }}>
+        <header className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-400)' }}>Performance Summary</span>
+          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-50)' }}>
+            สรุปรายได้ของคุณ
+          </h1>
+          <p style={{ color: 'var(--n-600)', fontSize: '0.9rem', marginTop: '0.25rem' }}>ยินดีด้วย! คุณทำงานได้เยี่ยมมากในวันนี้</p>
         </header>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-slate-800 p-5 rounded-3xl shadow-xl border border-slate-700 col-span-2 relative overflow-hidden">
-            <div className="absolute -right-6 -top-6 text-emerald-500/10 text-9xl">
-               <FiDollarSign />
-            </div>
-            <div className="flex items-center gap-3 mb-2 text-emerald-400 font-bold relative z-10">
-              <FiDollarSign className="bg-emerald-500/20 p-1.5 rounded-lg" size={32} />
-              <p>รายได้รวมทั้งหมดวันนี้</p>
-            </div>
-            <h2 className="text-5xl font-black text-white tracking-tight relative z-10">฿{stats?.totalIncome?.toLocaleString() || 0}</h2>
-          </div>
-
-          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 rounded-3xl shadow-xl col-span-2">
-            <div className="flex justify-between items-center">
-              <div>
-                 <div className="text-indigo-100 mb-1 font-bold flex items-center gap-2">
-                   <FiCloudLightning className="text-yellow-400" /> โบนัสค่าสภาพอากาศ (Surge)
-                 </div>
-                 <h2 className="text-3xl font-black text-white">
-                   + ฿{stats?.weatherBonus?.toLocaleString() || 0}
-                 </h2>
+        <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          
+          <div className="sp-card-dark" style={{ borderLeft: '3px solid var(--brand-500)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ background: 'var(--brand-500)', color: 'white', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                <DollarSign size={24} />
               </div>
-              <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
-                 <FiTrendingUp size={28} className="text-white" />
+              <span className="sp-caps" style={{ color: 'var(--n-500)', fontWeight: 700 }}>รายได้รวมทั้งหมดวันนี้</span>
+            </div>
+            <div className="sp-stat-number" style={{ fontSize: '3.5rem', color: 'var(--n-50)' }}>
+              ฿{stats?.totalIncome?.toLocaleString() || 0}
+            </div>
+          </div>
+
+          <div className="sp-card-dark" style={{ borderLeft: '3px solid oklch(65% 0.12 220)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <CloudRain size={16} style={{ color: 'oklch(65% 0.12 220)' }} />
+                 <span className="sp-caps" style={{ color: 'var(--n-500)', fontWeight: 700 }}>โบนัสค่าสภาพอากาศ (Surge)</span>
               </div>
+              <TrendingUp size={18} style={{ color: 'var(--brand-400)' }} />
+            </div>
+            <div className="sp-stat-number" style={{ fontSize: '2.25rem', color: 'var(--brand-400)' }}>
+              + ฿{stats?.weatherBonus?.toLocaleString() || 0}
             </div>
           </div>
 
-          <div className="bg-slate-800 p-5 rounded-3xl shadow-xl border border-slate-700">
-            <div className="text-amber-400 mb-2 font-bold flex items-center gap-2">
-              <FiPackage /> งานในมือ
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="sp-card-dark">
+              <span className="sp-caps" style={{ color: 'var(--n-600)', fontSize: '0.7rem' }}>งานที่กำลังส่ง</span>
+              <div className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-50)', marginTop: '0.5rem' }}>{stats?.activeOrders || 0}</div>
+              <div className="sp-caps" style={{ color: 'var(--n-700)', marginTop: '0.25rem' }}>ออเดอร์</div>
             </div>
-            <h2 className="text-3xl font-black text-slate-100">{stats?.activeOrders || 0}</h2>
-            <p className="text-slate-500 text-xs mt-1">ออเดอร์</p>
-          </div>
-
-          <div className="bg-slate-800 p-5 rounded-3xl shadow-xl border border-slate-700">
-            <div className="text-teal-400 mb-2 font-bold flex items-center gap-2">
-              <FiPackage /> ส่งสำเร็จ
+            <div className="sp-card-dark">
+              <span className="sp-caps" style={{ color: 'var(--n-600)', fontSize: '0.7rem' }}>ส่งสำเร็จแล้ว</span>
+              <div className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-50)', marginTop: '0.5rem' }}>{stats?.completedTrips || 0}</div>
+              <div className="sp-caps" style={{ color: 'var(--n-700)', marginTop: '0.25rem' }}>ออเดอร์</div>
             </div>
-            <h2 className="text-3xl font-black text-slate-100">{stats?.completedTrips || 0}</h2>
-            <p className="text-slate-500 text-xs mt-1">ออเดอร์</p>
           </div>
 
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -20,6 +20,7 @@ export default function CreateOrderPage() {
     receiverName: '',
     receiverPhone: '',
     address: '', 
+    city: '',
     lat: '',
     lng: '',
     hasInsurance: false,
@@ -35,12 +36,11 @@ export default function CreateOrderPage() {
   };
 
   const checkWeatherPreview = async () => {
-    if (!formData.address) return alert('กรุณากรอกที่อยู่เพื่อเช็คสภาพอากาศ');
+    if (!formData.city) return alert('กรุณาระบุเมือง/จังหวัดเพื่อเช็คสภาพอากาศ');
     setWeatherChecking(true);
     
     try {
-      const addressParts = formData.address.trim().split(/\s+/);
-      const city = addressParts[addressParts.length - 1];
+      const city = formData.city.trim();
       const res = await fetch(`${API_URL}/weather/${city}`);
       const data = await res.json();
       
@@ -177,6 +177,15 @@ export default function CreateOrderPage() {
                   className="sp-input" placeholder="08XXXXXXXX"
                 />
               </div>
+            </div>
+
+            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+              <label className="sp-label">เมือง / จังหวัด</label>
+              <input id="receiver-city"
+                type="text" required value={formData.city}
+                onChange={e => setFormData({...formData, city: e.target.value})}
+                className="sp-input" placeholder="เช่น Bangkok, Chiang Mai, Pattaya"
+              />
             </div>
 
             <div className="sp-field" style={{ marginBottom: '1rem' }}>

@@ -18,5 +18,13 @@ export class RegisterDto {
 
   @IsString()
   @IsOptional()
-  role?: string; // อันนี้มี ? อยู่แล้วไม่ต้องแก้ครับ
+  role?: string;
+
+  @IsString()
+  @IsOptional()
+  vehiclePlate?: string;
+
+  @IsString()
+  @IsOptional()
+  vehicleType?: string; // อันนี้มี ? อยู่แล้วไม่ต้องแก้ครับ
 }

@@ -107,7 +107,7 @@ export default function SwiftPathLanding() {
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
           <div>
             <span className="sp-logo" style={{ color: '#fff' }}>Swift<span className="sp-logo-accent">Path</span></span>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>© 2026 SwiftPath Logistics. All rights reserved.</p>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}> 2026 SwiftPath Logistics. All rights reserved.</p>
           </div>
           <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem' }}>
              <Link href="#" style={{ color: 'white', textDecoration: 'none' }}>Privacy Policy</Link>

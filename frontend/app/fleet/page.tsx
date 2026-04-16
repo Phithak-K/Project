@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  FiTruck, FiMapPin, FiBox, FiPhone, 
-  FiCheckCircle, FiNavigation, FiLogOut, FiRefreshCw 
-} from 'react-icons/fi';
+  Truck, MapPin, Package, Phone, 
+  CheckCircle, Navigation, LogOut, RefreshCw, Clock, Shield, ArrowRight
+} from 'lucide-react';
+import Link from 'next/link';
 
 interface Order {
   id: number;
@@ -16,6 +17,7 @@ interface Order {
   totalPrice: number;
   status: string;
   weatherWarning?: string;
+  estimatedMinutes?: number;
 }
 
 export default function DriverDashboard() {
@@ -24,9 +26,8 @@ export default function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
-  // 1. Helper: อ่าน Token จาก Cookie
   const getAuthToken = () => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; token=`);
@@ -34,7 +35,6 @@ export default function DriverDashboard() {
     return null;
   };
 
-  // 2. ดึงข้อมูลงานที่ว่าง (findAllAvailable)
   const fetchJobs = useCallback(async () => {
     setRefreshing(true);
     const token = getAuthToken();
@@ -57,7 +57,6 @@ export default function DriverDashboard() {
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
-  // 3. ฟังก์ชันกดรับงาน (Accept Order)
   const handleAcceptOrder = async (orderId: number) => {
     const token = getAuthToken();
     try {
@@ -68,28 +67,10 @@ export default function DriverDashboard() {
       if (res.ok) {
         const updatedOrder = await res.json();
         setActiveOrder(updatedOrder);
-        alert('รับงานสำเร็จ! เริ่มการจัดส่งได้');
-        fetchJobs(); // รีเฟรชรายการงานที่เหลือ
+        fetchJobs();
       } else {
         const err = await res.json();
         alert(err.message || 'รับงานไม่สำเร็จ');
-      }
-    } catch (err) { alert('Network Error'); }
-  };
-
-  // 4. ฟังก์ชันส่งงานสำเร็จ (Complete Order)
-  const handleCompleteOrder = async (orderId: number) => {
-    if (!confirm('ยืนยันว่าส่งพัสดุถึงมือผู้รับเรียบร้อยแล้ว?')) return;
-    const token = getAuthToken();
-    try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/complete`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        alert('ส่งงานสำเร็จ! ยอดเยี่ยมมาก');
-        setActiveOrder(null);
-        fetchJobs();
       }
     } catch (err) { alert('Network Error'); }
   };
@@ -99,103 +80,116 @@ export default function DriverDashboard() {
     window.location.href = "/login";
   };
 
-  if (loading) return <div className="p-8 text-center font-bold text-slate-400">กำลังค้นหางานในพื้นที่...</div>;
+  if (loading) return (
+    <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
+      <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 pb-20">
-      {/* Header */}
-      <nav className="bg-slate-800 p-6 flex justify-between items-center sticky top-0 z-20 shadow-xl border-b border-slate-700">
-        <div className="flex items-center gap-2">
-          <FiTruck className="text-yellow-400 text-2xl" />
-          <span className="font-black text-xl tracking-tighter">SWIFT<span className="text-yellow-400">FLEET</span></span>
+    <div className="sp-page-dark">
+      <nav className="sp-nav-dark">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Partner Fleet</span>
         </div>
-        <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors">
-          <FiLogOut size={20} />
-        </button>
-      </nav>
-
-      <main className="p-4 max-w-md mx-auto space-y-6">
-        
-        {/* ส่วนที่ 1: งานที่รับไว้แล้ว (Active Job) */}
-        {activeOrder ? (
-          <div className="bg-yellow-400 text-slate-900 rounded-[2rem] p-6 shadow-2xl animate-in fade-in zoom-in">
-            <h2 className="font-black uppercase tracking-widest text-xs mb-4 flex items-center gap-2">
-              <FiNavigation className="animate-bounce" /> กำลังดำเนินการส่ง
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <p className="text-xs font-bold opacity-60 uppercase">รหัสพัสดุ</p>
-                <p className="text-xl font-black">#{activeOrder.trackingNumber}</p>
-              </div>
-              <div className="flex items-start gap-3 bg-white/20 p-4 rounded-2xl">
-                <FiMapPin className="mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-bold">{activeOrder.receiverName}</p>
-                  <p className="text-sm leading-tight opacity-80">{activeOrder.address}</p>
-                  <a href={`tel:${activeOrder.receiverPhone}`} className="mt-2 inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold">
-                    <FiPhone /> โทรหาลูกค้า
-                  </a>
-                </div>
-              </div>
-              <button 
-                onClick={() => handleCompleteOrder(activeOrder.id)}
-                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-lg shadow-lg"
-              >
-                ส่งงานสำเร็จ
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-[2rem] text-center">
-            <p className="text-slate-400 font-bold">คุณยังไม่มีงานที่รับไว้</p>
-          </div>
-        )}
-
-        {/* ส่วนที่ 2: บอร์ดรับงาน (Job Board) */}
-        <div className="flex justify-between items-center px-2">
-          <h3 className="font-black uppercase tracking-widest text-xs text-slate-500">งานที่ว่างอยู่ ({availableOrders.length})</h3>
-          <button onClick={fetchJobs} disabled={refreshing} className="text-yellow-400">
-            <FiRefreshCw className={refreshing ? 'animate-spin' : ''} />
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <Link href="/radar">
+            <button className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+              <Navigation size={14} /> Open Radar
+            </button>
+          </Link>
+          <button onClick={handleLogout} className="sp-btn-ghost" style={{ color: 'var(--n-600)' }}>
+            <LogOut size={16} />
           </button>
         </div>
+      </nav>
 
-        <div className="space-y-4">
-          {availableOrders.map((job) => (
-            <div key={job.id} className="bg-slate-800 border border-slate-700 p-5 rounded-3xl hover:border-yellow-400/50 transition-all group">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-yellow-400 font-black text-lg">฿{job.totalPrice}</p>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{job.productName}</p>
-                </div>
-                <span className="bg-slate-700 text-[10px] font-black px-3 py-1 rounded-full text-slate-300">#{job.trackingNumber}</span>
+      <main style={{ maxWidth: '600px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+        <header className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>Fleet Operations</span>
+          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-50)' }}>
+            งานจัดส่งในพื้นที่
+          </h1>
+          <p style={{ color: 'var(--n-600)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            {refreshing ? 'กำลังอัปเดตงาน...' : 'มีงานใหม่ที่พร้อมให้คุณรับ'}
+          </p>
+        </header>
+
+        <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          <div className="sp-section-header">
+            <h2 className="sp-section-title" style={{ color: 'var(--n-100)' }}>งานว่างทั้งหมด</h2>
+            <button 
+              onClick={fetchJobs} 
+              disabled={refreshing}
+              style={{ background: 'none', border: 'none', color: 'var(--n-600)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}
+              className={refreshing ? 'animate-spin' : ''}
+            >
+              <RefreshCw size={12} /> Refresh
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            {availableOrders.length === 0 ? (
+              <div className="sp-card-dark" style={{ textAlign: 'center', borderStyle: 'dashed', padding: '3rem 1rem' }}>
+                <p className="sp-caps" style={{ color: 'var(--n-700)' }}>ไม่มีงานใหม่ในขณะนี้</p>
+                <p style={{ color: 'var(--n-800)', fontSize: '0.8rem', marginTop: '0.5rem' }}>โปรดลองรีเฟรชหรือเปิดเรดาร์เพื่อหาจุด Surge</p>
               </div>
-              
-              <div className="flex items-center gap-3 text-sm text-slate-400 mb-5">
-                <FiMapPin className="text-slate-500 flex-shrink-0" />
-                <p className="line-clamp-1">{job.address}</p>
-              </div>
+            ) : (
+              availableOrders.map(order => (
+                <div key={order.id} className="sp-card-dark sp-animate" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{ padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                      <div>
+                        <p className="sp-caps" style={{ color: 'var(--brand-500)', fontSize: '0.75rem', fontWeight: 700 }}>{order.trackingNumber}</p>
+                        <h4 style={{ fontWeight: 700, color: 'var(--n-50)', fontSize: '1.1rem', marginTop: '0.125rem' }}>{order.productName}</h4>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p className="sp-font-display" style={{ fontWeight: 900, color: 'var(--n-50)', fontSize: '1.5rem' }}>
+                          ฿{order.totalPrice.toLocaleString()}
+                        </p>
+                        {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-400)', fontSize: '0.7rem' }}>Surge Protection Active</span>}
+                      </div>
+                    </div>
 
-              {job.weatherWarning && (
-                <div className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl mb-5 flex items-center gap-2 text-[10px] text-orange-400 font-bold">
-                  <FiBox /> {job.weatherWarning}
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
+                       <span style={{ fontSize: '0.75rem', color: 'var(--n-600)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Clock size={12} /> ETA {order.estimatedMinutes || 20} นาที
+                       </span>
+                       <span style={{ fontSize: '0.75rem', color: 'var(--n-600)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <Shield size={12} /> High Priority
+                       </span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'start', marginBottom: '1.5rem' }}>
+                       <MapPin size={14} style={{ color: 'var(--n-700)', marginTop: '0.125rem' }} />
+                       <div style={{ flex: 1 }}>
+                          <p style={{ color: 'var(--n-400)', fontSize: '0.875rem', fontWeight: 600 }}>{order.receiverName}</p>
+                          <p style={{ color: 'var(--n-600)', fontSize: '0.8rem', lineHeight: 1.5 }}>{order.address}</p>
+                       </div>
+                    </div>
+
+                    <button 
+                      onClick={() => handleAcceptOrder(order.id)}
+                      className="sp-btn-brand sp-btn-full"
+                      style={{ padding: '0.875rem' }}
+                    >
+                      <Truck size={16} /> รับงานนี้ทันที
+                    </button>
+                  </div>
                 </div>
-              )}
+              ))
+            )}
+          </div>
 
-              <button 
-                onClick={() => handleAcceptOrder(job.id)}
-                className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 py-3 rounded-2xl font-black transition-all transform active:scale-95"
-              >
-                รับงานนี้
-              </button>
-            </div>
-          ))}
+          <div className="sp-divider" style={{ background: 'var(--n-800)' }} />
+          <Link href="/dashboard">
+             <button className="sp-btn-ghost" style={{ width: '100%', justifyContent: 'center', color: 'var(--n-500)' }}>
+                ดูสรุปรายได้ของคุณ <ArrowRight size={14} />
+             </button>
+          </Link>
 
-          {availableOrders.length === 0 && !loading && (
-            <div className="py-20 text-center text-slate-600 font-bold">
-              <FiBox size={40} className="mx-auto mb-2 opacity-20" />
-              ยังไม่มีงานใหม่ในขณะนี้
-            </div>
-          )}
         </div>
       </main>
     </div>

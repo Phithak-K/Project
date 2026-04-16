@@ -1,12 +1,11 @@
-'use client';
-
 import { useState } from 'react';
 import Link from 'next/link';
-import { User } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, User } from 'lucide-react';
 
 export default function CustomerLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [needsVerification, setNeedsVerification] = useState(false);
@@ -29,7 +28,6 @@ export default function CustomerLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        // 🍪 เก็บ Token และ Role ลงใน Cookie
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
         const isLocalhost = baseDomain.includes('localhost');
@@ -41,7 +39,6 @@ export default function CustomerLoginPage() {
         const role = data.user?.role || 'Customer';
         document.cookie = `role=${role}; path=/; ${cookieDomainStr} expires=${expires}; SameSite=None; Secure`;
 
-        // 🚀 Redirect ไปที่หน้า Dashboard ตาม Role
         if (role === 'Driver') {
           window.location.href = `https://fleet.${baseDomain}/`;
         } else if (role === 'Merchant') {
@@ -51,8 +48,6 @@ export default function CustomerLoginPage() {
         }
       } else {
         const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
-
-        // ⚠️ ตรวจจับว่า account ยังไม่ verified → แสดงปุ่มไปยืนยัน OTP
         if (msg.includes('ยังไม่ได้ยืนยัน')) {
           setNeedsVerification(true);
           setErrorMsg('บัญชีนี้ยังไม่ได้ยืนยันตัวตน กรุณาตรวจสอบ OTP ในอีเมลของคุณ');
@@ -62,65 +57,119 @@ export default function CustomerLoginPage() {
       }
     } catch (error) {
       console.error('Catch Error:', error);
-      setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาลองใหม่');
+      setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 py-12 px-4">
-      <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-xl border border-blue-100">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200">
-            <User className="text-white" size={32} />
+    <div className="sp-auth-wrap">
+      <div className="sp-auth-form-panel">
+        <div style={{ maxWidth: '400px', width: '100%' }}>
+          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+            <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">เข้าสู่ระบบ</h2>
-          <p className="text-gray-500 mt-2 font-medium">SwiftPath — สั่งของและติดตามพัสดุ</p>
+
+          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+            <span className="sp-section-eyebrow">Customer Access</span>
+            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>เข้าสู่ระบบ</h1>
+            <p style={{ color: 'var(--n-500)', marginTop: '0.375rem', fontSize: '0.9rem' }}>
+              สั่งของและติดตามพัสดุของคุณ
+            </p>
+          </div>
+
+          {errorMsg && (
+            <div className={`sp-alert sp-alert-error sp-animate`} style={{ marginBottom: '1.25rem' }}>
+              {errorMsg}
+              {needsVerification && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <Link href={`/verify-otp?email=${encodeURIComponent(email)}`} style={{ fontWeight: 900, textDecoration: 'underline' }}>
+                    → ยืนยัน OTP อีกครั้ง
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="sp-field">
+              <label className="sp-label">อีเมลผู้ใช้งาน</label>
+              <input
+                type="email" required value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="sp-input"
+                placeholder="customer@example.com"
+              />
+            </div>
+            <div className="sp-field">
+              <label className="sp-label">รหัสผ่าน</label>
+              <div className="sp-input-wrap">
+                <input
+                  type={showPw ? 'text' : 'password'} required value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="sp-input"
+                  placeholder="••••••••"
+                />
+                <button type="button" className="sp-input-toggle" onClick={() => setShowPw(!showPw)}>
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <button
+              type="submit" disabled={isLoading}
+              className="sp-btn-brand sp-btn-full"
+              style={{ marginTop: '0.5rem', padding: '0.875rem' }}
+            >
+              {isLoading ? <span className="sp-spinner" /> : <>เข้าสู่ระบบ <ArrowRight size={16} /></>}
+            </button>
+          </form>
+
+          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+              ยังไม่มีบัญชี?{' '}
+              <Link href="/register" className="sp-link">สมัครสมาชิก</Link>
+            </p>
+          </div>
+
+          <div className="sp-divider" style={{ marginTop: '2rem' }} />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Link href="/merchant/login">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบร้านค้า</button>
+            </Link>
+            <Link href="/driver/login">
+              <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบคนขับ</button>
+            </Link>
+          </div>
         </div>
+      </div>
 
-        {/* Error Message */}
-        {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-lg">
-            <p className="font-bold">{errorMsg}</p>
-            {needsVerification && (
-              <a
-                href={`/verify-otp?email=${encodeURIComponent(email)}`}
-                className="mt-2 inline-block text-blue-600 font-black underline underline-offset-4 hover:text-blue-700"
-              >
-                → กดที่นี่เพื่อยืนยัน OTP อีกครั้ง
-              </a>
-            )}
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="space-y-5">
+      <div className="sp-auth-brand-panel">
+        <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+        <div>
+          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>Personal Courier</p>
+          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+            ส่งง่าย สบายใจ<br />ถึงไวทุกออเดอร์
+          </p>
+          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+            ระบบคำนวณราคาโปร่งใส และประกันภัยสินค้าทุกรายการเพื่อความปลอดภัยสูงสุด
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '2rem' }}>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">อีเมลผู้ใช้งาน</label>
-            <input
-              type="email" required value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-gray-50/50"
-              placeholder="customer@example.com"
-            />
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>LIVE</p>
+            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Tracking</p>
           </div>
           <div>
-            <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">รหัสผ่าน</label>
-            <input
-              type="password" required value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3.5 border border-gray-200 rounded-2xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all bg-gray-50/50"
-              placeholder="••••••••"
-            />
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>Free</p>
+            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Insurance</p>
           </div>
-          <button
-            type="submit" disabled={isLoading}
-            className={`w-full py-4 rounded-2xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${
-              isLoading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-100'
-            }`}
-          >
-            {isLoading ? (
-              <div className="flex items-center justify-center gap-2">
+        </div>
+      </div>
+    </div>
+  );
+}
+items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 กำลังตรวจสอบ...
               </div>

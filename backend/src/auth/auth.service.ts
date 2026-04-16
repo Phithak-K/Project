@@ -7,6 +7,8 @@ import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
 import * as admin from 'firebase-admin';
+import * as crypto from 'crypto';
+import * as path from 'path';
 
 // สร้าง Google Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -33,7 +35,7 @@ export class AuthService implements OnModuleInit {
     if (admin.apps.length === 0) {
       try {
         admin.initializeApp({
-          credential: admin.credential.cert('./firebase-adminsdk.json'),
+          credential: admin.credential.cert(path.join(__dirname, '..', '..', 'firebase-adminsdk.json')),
         });
         console.log('🔥 Firebase Admin Initialized');
       } catch (error: any) {
@@ -80,7 +82,7 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant');
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
     const hashedPassword = await bcrypt.hash(dto.password, 10);
@@ -96,6 +98,10 @@ export class AuthService implements OnModuleInit {
           otpCode: otp,
           otpExpires: expiry,
           isVerified: false,
+          ...(roleStr === 'Driver' && { 
+             vehiclePlate: dto.vehiclePlate, 
+             vehicleType: dto.vehicleType 
+          })
         },
       });
       user.role = roleStr;
@@ -142,7 +148,7 @@ export class AuthService implements OnModuleInit {
     const { user, model, role } = result;
     if (user.isVerified) throw new BadRequestException('บัญชีนี้ยืนยันตัวตนแล้วเข้าสู่ระบบได้เลย');
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
 

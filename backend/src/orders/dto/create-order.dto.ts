@@ -29,6 +29,10 @@ export class CreateOrderDto {
   @IsNotEmpty({ message: 'ต้องระบุที่อยู่จัดส่ง' })
   address: string;
 
+  @IsString()
+  @IsNotEmpty({ message: 'ต้องระบุเมือง/จังหวัด' })
+  city: string;
+
   @IsNumber()
   @IsOptional()
   lat?: number;
