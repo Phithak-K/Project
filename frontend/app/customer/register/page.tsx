@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
@@ -158,31 +160,6 @@ export default function CustomerRegisterPage() {
             <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Notifications</p>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-d py-4 rounded-2xl transition-all shadow-xl flex items-center justify-center gap-2 ${
-              isLoading 
-              ? 'bg-gray-300 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-100 transform hover:-translate-y-1'
-            }`}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              'สร้างบัญชีผู้ใช้งาน'
-            )}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-gray-500">
-          มีบัญชีอยู่แล้ว?{' '}
-          <Link href="/login" className="text-blue-600 hover:text-blue-700 font-black decoration-2 hover:underline underline-offset-4">
-            เข้าสู่ระบบที่นี่
-          </Link>
-        </p>
-        
       </div>
     </div>
   );

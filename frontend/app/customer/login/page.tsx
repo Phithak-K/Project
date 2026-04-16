@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight, User } from 'lucide-react';
@@ -165,24 +167,6 @@ export default function CustomerLoginPage() {
             <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Insurance</p>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                กำลังตรวจสอบ...
-              </div>
-            ) : 'เข้าสู่ระบบ'}
-          </button>
-        </form>
-
-        <p className="mt-8 text-center text-sm text-gray-600 font-medium">
-          ยังไม่มีบัญชี SwiftPath?{' '}
-          <Link href="/register" className="text-blue-600 font-black hover:underline underline-offset-4">
-            สมัครสมาชิก
-          </Link>
-        </p>
       </div>
     </div>
   );
