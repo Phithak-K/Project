@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { ChatGateway } from '../chat/chat.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -16,6 +17,7 @@ export class OrdersService {
     private mailerService: MailerService,
     @Inject(forwardRef(() => ChatGateway))
     private chatGateway: ChatGateway,
+    private notificationsService: NotificationsService,
   ) {}
 
   private async createTrackingLog(orderId: number, status: string, note: string) {
@@ -28,8 +30,28 @@ export class OrdersService {
           location: 'ระบบ SwiftPath (Automatic)',
         },
       });
+      await this.notifyOrderParties(orderId, status);
     } catch (error) {
       console.error('Failed to create tracking log:', error);
+    }
+  }
+
+  private async notifyOrderParties(orderId: number, status: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId }});
+    if (!order) return;
+
+    if (order.customerId) {
+       const customer = await this.prisma.customer.findUnique({ where: { id: order.customerId } });
+       if (customer?.fcmToken) {
+         await this.notificationsService.sendOrderStatusUpdate(customer.fcmToken, order.trackingNumber, status);
+       }
+    }
+
+    if (order.merchantId) {
+       const merchant = await this.prisma.merchant.findUnique({ where: { id: order.merchantId } });
+       if (merchant?.fcmToken) {
+         await this.notificationsService.sendOrderStatusUpdate(merchant.fcmToken, order.trackingNumber, status);
+       }
     }
   }
 
@@ -84,7 +106,7 @@ export class OrdersService {
             isRaining = true;
             // เพิ่มค่าบริการ 20% (Surge +20%)
             finalTotalPrice = finalTotalPrice * 1.20;
-            weatherWarning = `⚠️ คำเตือน: ตรวจพบฝนใน ${city} (เพิ่มค่าบริการ 20%, เวลาจัดส่งเพิ่มขึ้น)`;
+            weatherWarning = `คำเตือน: ตรวจพบฝนใน ${city} (เพิ่มค่าบริการ 20%, เวลาจัดส่งเพิ่มขึ้น)`;
             weatherLogMessage = `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง (ปรับราคาส่วนต่าง +20% & ETA +15 นาที)`;
           }
         }
@@ -102,37 +124,48 @@ export class OrdersService {
       const insuranceFee = data.hasInsurance ? 50 : 0;
       finalTotalPrice += insuranceFee;
 
-      // 5. Create Order in Database
-      const newOrder = await this.prisma.order.create({
-        data: {
-          merchantId: Number(merchantId),
-          trackingNumber,
-          productName: data.productName,
-          productDetail: data.productDetail || null,
-          quantity: data.quantity,
-          price: Number(data.price),        // ราคาฐาน
-          totalPrice: finalTotalPrice,      // ราคาหลังบวก Surge + Insurance
-          weatherWarning: weatherWarning,
-          estimatedMinutes: estimatedMinutes,
-          hasInsurance: !!data.hasInsurance,
-          insuranceFee: insuranceFee,
-          receiverName: data.receiverName,
-          receiverPhone: data.receiverPhone,
-          address: data.address,
-          lat: data.lat,
-          lng: data.lng,
-          status: OrderStatus.PENDING,
-        },
-      });
+      // 5. Create Order & Logs in Atomic Transaction
+      const newOrder = await this.prisma.$transaction(async (tx) => {
+        const order = await tx.order.create({
+          data: {
+            merchantId: Number(merchantId),
+            trackingNumber,
+            productName: data.productName,
+            productDetail: data.productDetail || null,
+            quantity: data.quantity,
+            price: Number(data.price),
+            totalPrice: finalTotalPrice,
+            weatherWarning: weatherWarning,
+            estimatedMinutes: estimatedMinutes,
+            hasInsurance: !!data.hasInsurance,
+            insuranceFee: insuranceFee,
+            receiverName: data.receiverName,
+            receiverPhone: data.receiverPhone,
+            address: data.address,
+            lat: data.lat,
+            lng: data.lng,
+            status: OrderStatus.PENDING,
+          },
+        });
 
-      // 6. Create Tracking Logs
-      await this.createTrackingLog(newOrder.id, 'PENDING', `ร้านค้าสร้างออเดอร์สำเร็จ (ETA: ${estimatedMinutes} นาที)`);
-      if (weatherLogMessage) {
-        await this.createTrackingLog(newOrder.id, 'PENDING', weatherLogMessage);
-      }
-      if (data.hasInsurance) {
-        await this.createTrackingLog(newOrder.id, 'PENDING', 'มีการเปิดความคุ้มครองประกันภัยสินค้า SwiftPath Insurance');
-      }
+        // 6. Create Tracking Logs inside transaction
+        await tx.trackingLog.create({
+          data: { orderId: order.id, status: 'PENDING', note: `ร้านค้าสร้างออเดอร์สำเร็จ (ETA: ${estimatedMinutes} นาที)`, location: 'ระบบ SwiftPath (Automatic)' }
+        });
+        
+        if (weatherLogMessage) {
+          await tx.trackingLog.create({
+             data: { orderId: order.id, status: 'PENDING', note: weatherLogMessage, location: 'ระบบ SwiftPath (Automatic)' }
+          });
+        }
+        
+        if (data.hasInsurance) {
+          await tx.trackingLog.create({
+             data: { orderId: order.id, status: 'PENDING', note: 'มีการเปิดความคุ้มครองประกันภัยสินค้า SwiftPath Insurance', location: 'ระบบ SwiftPath (Automatic)' }
+          });
+        }
+        return order;
+      });
 
       this.notifyDrivers(newOrder);
 
@@ -140,7 +173,7 @@ export class OrdersService {
       if (this.chatGateway && this.chatGateway.server) {
         this.chatGateway.server.emit('new_available_order', {
           ...newOrder,
-          message: '🚨 มีออเดอร์ความต้องการสูงเข้ามาในพื้นที่!',
+          message: 'มีออเดอร์ความต้องการสูงเข้ามาในพื้นที่!',
         });
       }
 
@@ -162,7 +195,7 @@ export class OrdersService {
       if (driverEmails.length > 0) {
         await this.mailerService.sendMail({
           to: driverEmails,
-          subject: `🚚 มีงานใหม่เข้ามา! รหัสพัสดุ: ${order.trackingNumber}`,
+          subject: `มีงานใหม่เข้ามา! รหัสพัสดุ: ${order.trackingNumber}`,
           html: `<h3>มีออเดอร์ใหม่จาก SwiftPath</h3><p>รหัส: ${order.trackingNumber}</p><p>สินค้า: ${order.productName}</p>`,
         });
       }
@@ -309,6 +342,57 @@ export class OrdersService {
     );
 
     return updatedOrder;
+  }
+
+  // ==== 🆕 Analytics Dashboard Feature ====
+  async getMerchantAnalytics(merchantId: number) {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const orders = await this.prisma.order.findMany({
+      where: { merchantId: Number(merchantId) },
+      select: { status: true, price: true, createdAt: true },
+    });
+
+    // 1. Status Distribution
+    const statusDistribution = {
+      PENDING: 0, ACCEPTED: 0, PICKED_UP: 0, SHIPPING: 0, DELIVERED: 0, CANCELLED: 0
+    };
+    
+    let totalRevenue = 0;
+    
+    // 2. Revenue Trend (Last 7 Days)
+    const revenue7Days = Array(7).fill(0).map((_, i) => {
+       const d = new Date();
+       d.setDate(d.getDate() - (6 - i));
+       return { date: d.toISOString().split('T')[0], revenue: 0 };
+    });
+
+    orders.forEach(o => {
+      // Status
+      statusDistribution[o.status] = (statusDistribution[o.status] || 0) + 1;
+      
+      // Revenue
+      if (o.status === OrderStatus.DELIVERED) {
+         const amount = Number(o.price);
+         totalRevenue += amount;
+
+         const dateStr = o.createdAt.toISOString().split('T')[0];
+         const dayIndex = revenue7Days.findIndex(r => r.date === dateStr);
+         if (dayIndex !== -1) {
+            revenue7Days[dayIndex].revenue += amount;
+         }
+      }
+    });
+
+    return {
+       totalOrders: orders.length,
+       totalRevenue,
+       statusDistribution,
+       revenueChart: revenue7Days,
+       successRate: orders.length ? ((statusDistribution.DELIVERED / orders.length) * 100).toFixed(1) : 0
+    };
   }
 
   async findAllAvailable() {

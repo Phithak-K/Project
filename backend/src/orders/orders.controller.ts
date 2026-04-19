@@ -125,4 +125,12 @@ export class OrdersController {
   rateOrder(@Param('id') id: string, @Body() body: { score: number, comment?: string }, @Req() req: any) {
     return this.ordersService.rateOrder(Number(id), req.user.userId, req.user.role, body.score, body.comment);
   }
+
+  // 🆕 Endpoint สำหรับ Dashboard Analytics สถิติขั้นสูง
+  @UseGuards(RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('analytics')
+  async getAnalytics(@Req() req: any) {
+    return this.ordersService.getMerchantAnalytics(req.user.sub);
+  }
 }

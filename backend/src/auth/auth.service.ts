@@ -9,6 +9,8 @@ import { OAuth2Client } from 'google-auth-library';
 import * as admin from 'firebase-admin';
 import * as crypto from 'crypto';
 import * as path from 'path';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 
 // สร้าง Google Client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -29,6 +31,7 @@ export class AuthService implements OnModuleInit {
     private prisma: PrismaService,
     private mailerService: MailerService,
     private jwtService: JwtService,
+    private httpService: HttpService,
   ) {}
 
   onModuleInit() {
@@ -228,10 +231,16 @@ export class AuthService implements OnModuleInit {
       const { email, name, sub: googleId } = payload;
 
       let user = await this.prisma.customer.findFirst({
-        where: { OR: [{ googleId }, { email: email! }] }
+        where: { googleId }
       });
 
       if (!user) {
+        // Check if email already exists but NOT linked to googleId
+        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: email! } });
+        if (existingEmailUser) {
+          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+        }
+
         user = await this.prisma.customer.create({
           data: {
             email: email!,
@@ -240,17 +249,94 @@ export class AuthService implements OnModuleInit {
             isVerified: true,
           },
         });
-      } else if (!user.googleId) {
-        user = await this.prisma.customer.update({
-          where: { id: user.id },
-          data: { googleId, isVerified: true }
-        });
       }
 
       (user as any).role = 'Customer';
       return this.generateToken(user);
     } catch (error) {
       throw new BadRequestException('การยืนยันตัวตนกับ Google ล้มเหลว');
+    }
+  }
+
+  // 5. เข้าสู่ระบบด้วย Facebook -> บังคับลง Customer โดย Default
+  async facebookLogin(token: string) {
+    try {
+      // ดึงข้อมูลโปรไฟล์จาก Facebook Graph API ด้วย Access Token
+      const fbUrl = `https://graph.facebook.com/me?fields=id,name,email&access_token=${token}`;
+      const response = await firstValueFrom(this.httpService.get(fbUrl));
+      const { id: facebookId, name, email } = response.data;
+
+      if (!facebookId) throw new BadRequestException('Facebook Token ไม่ถูกต้อง');
+
+      // ใช้อีเมลดัมมี่หากไม่ได้รับจาก Facebook
+      const userEmail = email || `${facebookId}@facebook.swiftpath`;
+
+      let user = await this.prisma.customer.findFirst({
+        where: { facebookId }
+      });
+
+      if (!user) {
+        // Check email hijacking
+        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: userEmail } });
+        if (existingEmailUser) {
+          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+        }
+
+        user = await this.prisma.customer.create({
+          data: {
+            email: userEmail,
+            name: name || 'Facebook User',
+            facebookId,
+            isVerified: true,
+          },
+        });
+      }
+
+      (user as any).role = 'Customer';
+      return this.generateToken(user);
+    } catch (error) {
+      throw new BadRequestException('การยืนยันตัวตนกับ Facebook ล้มเหลว');
+    }
+  }
+
+  // 6. เข้าสู่ระบบด้วย LINE -> บังคับลง Customer โดย Default
+  async lineLogin(token: string) {
+    try {
+      // ดึงข้อมูลโปรไฟล์จาก LINE API ด้วย Access Token
+      const lineUrl = `https://api.line.me/v2/profile`;
+      const response = await firstValueFrom(this.httpService.get(lineUrl, {
+        headers: { Authorization: `Bearer ${token}` }
+      }));
+      const { userId: lineId, displayName, pictureUrl } = response.data;
+
+      if (!lineId) throw new BadRequestException('LINE Token ไม่ถูกต้อง');
+
+      const userEmail = `${lineId}@line.swiftpath`;
+
+      let user = await this.prisma.customer.findFirst({
+        where: { lineId }
+      });
+
+      if (!user) {
+        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: userEmail } });
+        if (existingEmailUser) {
+          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+        }
+
+        user = await this.prisma.customer.create({
+          data: {
+            email: userEmail,
+            name: displayName || 'LINE User',
+            lineId,
+            isVerified: true,
+          },
+        });
+      }
+
+      (user as any).role = 'Customer';
+      return this.generateToken(user);
+    } catch (error) {
+      throw new BadRequestException('การยืนยันตัวตนกับ LINE ล้มเหลว');
     }
   }
 
@@ -278,6 +364,22 @@ export class AuthService implements OnModuleInit {
       return this.generateToken(user);
     } catch (error) {
       throw new BadRequestException('การยืนยัน OTP โทรศัพท์ล้มเหลว');
+    }
+  }
+
+  // 7. เซฟ FCM Token
+  async updateFcmToken(userId: number, role: string, fcmToken: string) {
+    if (!fcmToken) return { success: false };
+    const model = this.getModel(role);
+    try {
+      await (model as any).update({
+        where: { id: userId },
+        data: { fcmToken }
+      });
+      return { success: true };
+    } catch (error) {
+      console.error(`Failed to update FCM token for ${role} ${userId}`, error);
+      return { success: false };
     }
   }
 

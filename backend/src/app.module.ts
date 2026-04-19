@@ -10,6 +10,8 @@ import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ThrottlerModule } from '@nestjs/throttler'; // ✅ ป้องกัน Brute Force
+import { StripeModule } from './stripe/stripe.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -40,6 +42,8 @@ import { ThrottlerModule } from '@nestjs/throttler'; // ✅ ป้องกั�
     WeatherModule,
     ChatModule,
     UsersModule,
+    StripeModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -3,7 +3,7 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   // 1. ตั้งค่า Global Validation Pipe
   // ช่วยตรวจสอบ Data Transfer Object (DTO) ให้ถูกต้องก่อนเข้า Controller

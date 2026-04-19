@@ -168,4 +168,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(`order_${data.orderId}`);
     return { event: 'joined', room: `order_${data.orderId}` };
   }
+
+  // --- 🆕 Tracking Gateway (Real-time GPS Update) ---
+  @SubscribeMessage('update_location')
+  async handleUpdateLocation(
+    @MessageBody() data: { orderId: number; lat: number; lng: number; heading?: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const user = (client as any).user;
+    if (!user || user.role !== 'Driver') {
+      client.emit('error', { message: 'Unauthorized: Only drivers can update location' });
+      return;
+    }
+
+    // [CRITICAL SECURITY FIX] ตรวจสอบสิทธิ์ความเป็นเจ้าของงานก่อนจะรับพิกัด
+    const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
+    if (!order || order.driverId !== user.sub) {
+      this.logger.warn(`Driver ${user.sub} พยายามจำลองพิกัดในออเดอร์ ${data.orderId} ที่ไม่ได้เป็นเจ้าของ`);
+      client.emit('error', { message: 'Forbidden: คุณไม่ใช่คนขับที่รับผิดชอบออเดอร์นี้' });
+      return;
+    }
+
+    const room = `order_${data.orderId}`;
+    // Broadcast ตำแหน่งแบบสดๆ ให้ลูกค้าและร้านค้าในห้อง (ไม่เซฟลง Database ทุกรอบเพื่อประหยัดทรัพยากร)
+    this.server.to(room).emit('location_updated', {
+      lat: data.lat,
+      lng: data.lng,
+      heading: data.heading,
+      timestamp: new Date().toISOString(),
+      driverId: user.sub
+    });
+  }
 }

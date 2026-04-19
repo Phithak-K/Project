@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Onest } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import FCMProvider from '../components/FCMProvider';
 
 // Editorial display font — dramatic contrast, logistics gravitas
 const fraunces = Fraunces({
@@ -37,7 +38,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-body">
         <GoogleOAuthProvider clientId={googleClientId}>
-          {children}
+          <FCMProvider>
+            {children}
+          </FCMProvider>
         </GoogleOAuthProvider>
       </body>
     </html>

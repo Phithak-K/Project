@@ -29,7 +29,10 @@ model Customer {
   name             String?
   password         String?
   googleId         String?  @unique
+  facebookId       String?  @unique
+  lineId           String?  @unique
   phone            String?  @unique
+  fcmToken         String?
   
   isVerified       Boolean   @default(false)
   otpCode          String?
@@ -49,7 +52,10 @@ model Merchant {
   name             String?
   password         String?
   googleId         String?  @unique
+  facebookId       String?  @unique
+  lineId           String?  @unique
   phone            String?  @unique
+  fcmToken         String?
   
   storeName        String?  
   storeAddress     String?  
@@ -75,7 +81,10 @@ model Driver {
   name             String?
   password         String?
   googleId         String?  @unique
+  facebookId       String?  @unique
+  lineId           String?  @unique
   phone            String?  @unique
+  fcmToken         String?
   
   vehiclePlate     String?  
   vehicleType      String?  
@@ -174,6 +183,7 @@ model Transaction {
   amount    Decimal
   type      String   // "DEBIT", "CREDIT"
   note      String?  // e.g. "Payment for Order #123"
+  referenceId String? @unique // Stripe payment intent ID
   
   userId    Int
   userRole  String   // "Customer", "Merchant", "Driver"
