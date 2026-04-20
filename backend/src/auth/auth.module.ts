@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'; // นำเข้
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './guards/jwt.strategy';
+import { HttpModule } from '@nestjs/axios';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { JwtStrategy } from './guards/jwt.strategy';
         signOptions: { expiresIn: '1d' },
       }),
     }),
+    HttpModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

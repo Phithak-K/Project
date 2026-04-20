@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, Headers, type RawBodyRequest } from '@nestjs/common';
+import { Controller, Post, Body, Req, Headers, BadRequestException, type RawBodyRequest } from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { Request } from 'express';
 
@@ -13,8 +13,9 @@ export class StripeController {
 
   @Post('webhook')
   async handleWebhook(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') sig: string) {
-    // Requires raw body for Stripe signature validation. Ensure main.ts allows raw body.
-    const rawBody = req.rawBody || req.body;
-    return this.stripeService.handleWebhook(sig, rawBody);
+    if (!req.rawBody) {
+      throw new BadRequestException('Webhook requires raw body buffer for signature validation');
+    }
+    return this.stripeService.handleWebhook(sig, req.rawBody);
   }
 }

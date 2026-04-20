@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RolesGuard } from './guards/roles.guard';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -70,7 +71,7 @@ export class AuthController {
   }
 
   // 6. บันทึก FCM Token ของอุปกรณ์
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('fcm-token')
   @HttpCode(HttpStatus.OK)
   async updateFcmToken(@Req() req: any, @Body() body: { fcmToken: string }) {

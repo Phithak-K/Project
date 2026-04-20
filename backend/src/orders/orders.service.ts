@@ -407,26 +407,33 @@ export class OrdersService {
 
   async acceptOrder(orderId: number, driverId: number) {
     if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException(`ออเดอร์ถูกรับไปแล้ว (สถานะ: ${order.status})`);
-    }
-    if (order.driverId !== null) throw new BadRequestException('ออเดอร์นี้มีคนขับรับไปแล้ว');
 
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { driverId, status: OrderStatus.ACCEPTED },
-    });
-    
-    await this.createTrackingLog(orderId, 'ACCEPTED', 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า');
-    
-    if (this.chatGateway?.server) {
-      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
-      this.chatGateway.server.emit('order_taken', { orderId }); // ลบออกจาก Radar
+    try {
+      // 1. Atomic Update: ฐานข้อมูลจะล็อคและอัปเดตบรรทัดนี้ได้ก็ต่อเมื่อยัง PENDING และ driverId เป็น null เท่านั้น
+      const updatedOrder = await this.prisma.order.update({
+        where: { 
+          id: orderId,
+          driverId: null,
+          status: OrderStatus.PENDING
+        },
+        data: { driverId, status: OrderStatus.ACCEPTED },
+      });
+      
+      await this.createTrackingLog(orderId, 'ACCEPTED', 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า');
+      
+      if (this.chatGateway?.server) {
+        this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+        this.chatGateway.server.emit('order_taken', { orderId }); // ลบออกจาก Radar
+      }
+      
+      return updatedOrder;
+    } catch (error: any) {
+      // P2025: Record to update not found (แปลว่าเงื่อนไข where 3 ข้อข้างบนไม่เป็นจริง)
+      if (error.code === 'P2025') {
+        throw new BadRequestException('ออเดอร์นี้ถูกรับไปแล้ว หรือออเดอร์ถูกยกเลิก');
+      }
+      throw error;
     }
-    
-    return updatedOrder;
   }
 
   async pickupOrder(orderId: number, driverId: number) {
@@ -523,16 +530,19 @@ export class OrdersService {
         throw new BadRequestException('ออเดอร์นี้ชำระเงินไปแล้ว หรืออยู่ระหว่างทำรายการ');
       }
 
-      // 1. [H-02] FIX: Check sufficient balance BEFORE decrement
+      // 1. [H-02] FIX: Native Atomic Update with condition to prevent negative balance
       if (order.customerId) {
-        const customer = await tx.customer.findUnique({ where: { id: order.customerId } });
-        if (!customer || Number(customer.balance) < amountToPay) {
-          throw new BadRequestException(`ยอดเงินไม่เพียงพอ ต้องการ ฿${amountToPay.toFixed(2)} แต่มีเพียง ฿${Number(customer?.balance || 0).toFixed(2)}`);
-        }
-        await tx.customer.update({
-          where: { id: order.customerId },
+        const updateResult = await tx.customer.updateMany({
+          where: { 
+            id: order.customerId,
+            balance: { gte: amountToPay } // Guard: Balance must be >= amountToPay
+          },
           data: { balance: { decrement: amountToPay } }
         });
+
+        if (updateResult.count === 0) {
+          throw new BadRequestException(`ยอดเงินไม่เพียงพอ (ต้องการ ฿${amountToPay.toFixed(2)}) หรือไม่พบบัญชีลูกค้า`);
+        }
         await tx.transaction.create({
           data: { amount: amountToPay, type: 'DEBIT', note: `ชำระค่าออเดอร์ #${order.trackingNumber}`, userId: order.customerId!, userRole: 'Customer', orderId: order.id }
         });

@@ -127,7 +127,7 @@ export class OrdersController {
   }
 
   // 🆕 Endpoint สำหรับ Dashboard Analytics สถิติขั้นสูง
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Get('analytics')
   async getAnalytics(@Req() req: any) {

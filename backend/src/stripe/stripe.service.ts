@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -36,12 +36,12 @@ export class StripeService {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     let event: any;
 
+    if (!webhookSecret) {
+      throw new InternalServerErrorException('Missing STRIPE_WEBHOOK_SECRET configuration');
+    }
+
     try {
-      if (!webhookSecret) {
-        event = JSON.parse(body.toString()); // Fallback for testing without signature
-      } else {
-        event = this.stripe.webhooks.constructEvent(body, sig, webhookSecret);
-      }
+      event = this.stripe.webhooks.constructEvent(body, sig, webhookSecret);
     } catch (err: any) {
       throw new BadRequestException(`Webhook Error: ${err.message}`);
     }
