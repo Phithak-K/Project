@@ -125,7 +125,14 @@ export function middleware(request: NextRequest) {
      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url));
   }
 
-  // 5. Rewrite เส้นทางเข้าสู่ Folders ตาม Subdomain
+  // 5. Shared pages ที่มีอยู่เฉพาะที่ root level (ใช้ร่วมกันทุก subdomain)
+  // ถ้าไม่ข้าม path พวกนี้ Middleware จะ Rewrite ไปหา /customer/verify-otp ที่ไม่มีอยู่จริง
+  const sharedRootPaths = ['/verify-otp'];
+  if (sharedRootPaths.some(p => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  // 6. Rewrite เส้นทางเข้าสู่ Folders ตาม Subdomain
   if (currentHost === 'store') {
     return NextResponse.rewrite(new URL(`/merchant${pathname}`, request.url))
   }

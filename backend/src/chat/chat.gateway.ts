@@ -74,10 +74,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string; imageUrl?: string; audioUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // ใช้ senderId จาก JWT Token ที่ตรวจสอบแล้ว (ไม่ใช่จาก client)
+    // ใช้ senderId จาก JWT Token ที่ตรวจสอบแล้ว
     const user = (client as any).user;
     if (!user) {
       client.emit('error', { message: 'Unauthorized' });
+      return;
+    }
+    
+    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event (Persistent Identity)
+    if (user.exp && Date.now() >= user.exp * 1000) {
+      client.emit('error', { message: 'Session Expired' });
+      client.disconnect();
       return;
     }
 
@@ -148,6 +155,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
+    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event
+    if (user.exp && Date.now() >= user.exp * 1000) {
+      client.emit('error', { message: 'Session Expired' });
+      client.disconnect();
+      return;
+    }
+
     // [CRITICAL SECURITY FIX] ตรวจสอบสิทธิ์การเข้าห้อง
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
     if (!order) {
@@ -178,6 +192,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = (client as any).user;
     if (!user || user.role !== 'Driver') {
       client.emit('error', { message: 'Unauthorized: Only drivers can update location' });
+      return;
+    }
+
+    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event
+    if (user.exp && Date.now() >= user.exp * 1000) {
+      client.emit('error', { message: 'Session Expired' });
+      client.disconnect();
+      return;
+    }
+
+    // [APP SEC] ตรวจสอบกรอบค่าละติจูดและลองจิจูด เพื่อป้องกัน GPS Spoofing
+    if (data.lat < -90 || data.lat > 90 || data.lng < -180 || data.lng > 180) {
+      this.logger.warn(`Potential GPS Spoofing Detected: ${user.sub} ส่งค่า lat: ${data.lat}, lng: ${data.lng}`);
+      client.emit('error', { message: 'Invalid GPS coordinates' });
       return;
     }
 

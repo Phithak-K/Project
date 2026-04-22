@@ -5,7 +5,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ChatGateway } from '../chat/chat.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { uploadBase64ToStorage } from '../utils/firebase-storage';
 
@@ -514,9 +514,11 @@ export class OrdersService {
     if (order.driverId !== driverId) throw new ForbiddenException('สิทธิ์ถูกปฏิเสธ');
     if (order.paymentStatus === 'Paid') throw new BadRequestException('ออเดอร์นี้ชำระเงินแล้ว');
 
-    const amountToPay = Number(order.totalPrice || order.price);
-    const driverCut = amountToPay * 0.2; // 20%
-    const merchantCut = Number(order.price); 
+    // [DATA INTEGRITY] ใช้ Prisma.Decimal ป้องกัน Precision Loss
+    const amountToPayDecimal = new Prisma.Decimal(order.totalPrice || order.price || 0);
+    const amountToPay = amountToPayDecimal.toNumber();
+    const driverCut = amountToPayDecimal.mul(0.2).toNumber(); 
+    const merchantCut = new Prisma.Decimal(order.price || 0).toNumber(); 
 
     // เริ่ม Transaction พร้อม ป้องกัน Race Condition
     await this.prisma.$transaction(async (tx) => {
