@@ -25,6 +25,11 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#039;');
 }
 
+// [M-01] FIX: Hash OTP ก่อนบันทึกลงฐานข้อมูล ป้องกัน OTP รั่วเมื่อ DB ถูก Breach
+function hashOtp(otp: string): string {
+  return crypto.createHash('sha256').update(otp).digest('hex');
+}
+
 @Injectable()
 export class AuthService implements OnModuleInit {
   constructor(
@@ -98,7 +103,7 @@ export class AuthService implements OnModuleInit {
           password: hashedPassword,
           name: dto.name,
           phone: dto.phone,
-          otpCode: otp,
+          otpCode: hashOtp(otp), // [M-01] เซฟแบบ Hash
           otpExpires: expiry,
           isVerified: false,
           ...(roleStr === 'Driver' && { 
@@ -157,7 +162,7 @@ export class AuthService implements OnModuleInit {
 
     await (model as any).update({
       where: { email },
-      data: { otpCode: otp, otpExpires: expiry },
+      data: { otpCode: hashOtp(otp), otpExpires: expiry }, // [M-01] เซฟแบบ Hash
     });
 
     try {
@@ -186,7 +191,8 @@ export class AuthService implements OnModuleInit {
     
     const { user, model, role } = result;
 
-    if (user.otpCode !== otp) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    // [M-01] FIX: เปรียบเทียบ Hash แทนการเปรียบเทียบ Plaintext
+    if (user.otpCode !== hashOtp(otp)) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
     if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
 
     const updatedUser = await (model as any).update({
@@ -268,8 +274,8 @@ export class AuthService implements OnModuleInit {
 
       if (!facebookId) throw new BadRequestException('Facebook Token ไม่ถูกต้อง');
 
-      // ใช้อีเมลดัมมี่หากไม่ได้รับจาก Facebook
-      const userEmail = email || `${facebookId}@facebook.swiftpath`;
+      // [H-05] FIX: ใช้ UUID ที่คาดเดาไม่ได้ แทนการใช้ facebookId ที่ทุกคนรู้
+      const userEmail = email || `fb-${crypto.randomUUID()}@social.swiftpath.internal`;
 
       let user = await this.prisma.customer.findFirst({
         where: { facebookId }
@@ -311,7 +317,8 @@ export class AuthService implements OnModuleInit {
 
       if (!lineId) throw new BadRequestException('LINE Token ไม่ถูกต้อง');
 
-      const userEmail = `${lineId}@line.swiftpath`;
+      // [H-05] FIX: ใช้ UUID ที่คาดเดาไม่ได้ แทนการใช้ lineId ที่อาจรั่วไหล
+      const userEmail = `line-${crypto.randomUUID()}@social.swiftpath.internal`;
 
       let user = await this.prisma.customer.findFirst({
         where: { lineId }

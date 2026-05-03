@@ -23,8 +23,11 @@ export default function DriverDashboard() {
   };
 
   const handleLogout = () => {
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-    document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
+    document.cookie = `token=; path=/; expires=${past}`;
+    document.cookie = `role=; path=/; expires=${past}`;
+    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
+    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
     window.location.href = '/login';
   };
 

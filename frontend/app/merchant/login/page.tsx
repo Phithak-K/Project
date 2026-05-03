@@ -28,10 +28,12 @@ export default function MerchantLoginPage() {
       if (response.ok) {
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
         const isLocalhost = baseDomain.includes('localhost');
-        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
-        document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
-        document.cookie = `role=${data.user.role}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
-        window.location.href = `https://store.${baseDomain}/`;
+        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
+        const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
+        document.cookie = `token=${data.access_token}; ${cookieOptions}`;
+        document.cookie = `role=${data.user.role}; ${cookieOptions}`;
+        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
+        window.location.href = `${proto}://store.${baseDomain}/`;
       } else {
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
@@ -88,12 +90,12 @@ export default function MerchantLoginPage() {
 
           <div className="sp-divider" style={{ marginTop: '2rem' }} />
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link href="/login">
+            <a href={`//app.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบลูกค้า</button>
-            </Link>
-            <Link href="/driver/login">
+            </a>
+            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบคนขับ</button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
   const getAuthToken = () => {

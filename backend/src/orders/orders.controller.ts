@@ -15,7 +15,7 @@ export class OrdersController {
   @Roles(Role.Merchant)  // ✅ SEC-05: เฉพาะ Merchant เท่านั้นที่สร้าง Order ได้
   @Post()
   create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.createOrder(req.user.userId, createOrderDto);
+    return this.ordersService.createOrder(req.user.sub, createOrderDto);
   }
 
   // ==== 🆕 New Merchant Features ====
@@ -23,7 +23,7 @@ export class OrdersController {
   @Roles(Role.Merchant)
   @Get('stats')
   getOrderStats(@Req() req: any) {
-    return this.ordersService.getOrderStats(req.user.userId);
+    return this.ordersService.getOrderStats(req.user.sub);
   }
 
   // ==== Driver Routes ====
@@ -38,26 +38,26 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Get('stats/driver')
   getDriverStats(@Req() req: any) {
-    return this.ordersService.getDriverStats(req.user.userId);
+    return this.ordersService.getDriverStats(req.user.sub);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Get('my-orders')
   getMyOrders(@Req() req: any) {
-    return this.ordersService.getMyOrders(req.user.userId);
+    return this.ordersService.getMyOrders(req.user.sub);
   }
 
   @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
   @Get(':id')
   getOrderById(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.getOrderById(Number(id), req.user.userId, req.user.role);
+    return this.ordersService.getOrderById(Number(id), req.user.sub, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard) 
   @Get(':id/messages')
   getOrderMessages(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.getOrderMessages(Number(id), req.user.userId, req.user.role);
+    return this.ordersService.getOrderMessages(Number(id), req.user.sub, req.user.role);
   }
 
 
@@ -66,14 +66,14 @@ export class OrdersController {
   @Roles(Role.Merchant)
   @Patch(':id/cancel')
   cancelOrder(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.cancelOrderByMerchant(Number(id), req.user.userId);
+    return this.ordersService.cancelOrderByMerchant(Number(id), req.user.sub);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Patch(':id/preparation-time')
   updatePreparationTime(@Param('id') id: string, @Body() body: { estimatedReadyAt: string }, @Req() req: any) {
-    return this.ordersService.updatePreparationTime(Number(id), req.user.userId, body.estimatedReadyAt);
+    return this.ordersService.updatePreparationTime(Number(id), req.user.sub, body.estimatedReadyAt);
   }
 
 
@@ -82,7 +82,7 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Patch(':id/accept')
   acceptOrder(@Param('id') id: string, @Req() req: any) {
-    const driverId = req.user.userId;
+    const driverId = req.user.sub;
     return this.ordersService.acceptOrder(Number(id), driverId);
   }
 
@@ -90,7 +90,7 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Patch(':id/pickup')
   pickupOrder(@Param('id') id: string, @Req() req: any) {
-    const driverId = req.user.userId;
+    const driverId = req.user.sub;
     return this.ordersService.pickupOrder(Number(id), driverId);
   }
 
@@ -98,7 +98,7 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Patch(':id/ship')
   startShippingOrder(@Param('id') id: string, @Req() req: any) {
-    const driverId = req.user.userId;
+    const driverId = req.user.sub;
     return this.ordersService.startShippingOrder(Number(id), driverId);
   }
 
@@ -106,7 +106,7 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Patch(':id/complete')
   completeOrder(@Param('id') id: string, @Body() body: { proofOfDelivery?: string }, @Req() req: any) {
-    const driverId = req.user.userId;
+    const driverId = req.user.sub;
     return this.ordersService.completeOrder(Number(id), driverId, body.proofOfDelivery);
   }
 
@@ -115,7 +115,7 @@ export class OrdersController {
   @Roles(Role.Driver)
   @Patch(':id/pay')
   payOrder(@Param('id') id: string, @Req() req: any) {
-    const driverId = req.user.userId;
+    const driverId = req.user.sub;
     return this.ordersService.payOrder(Number(id), driverId);
   }
 
@@ -123,7 +123,7 @@ export class OrdersController {
   @Roles(Role.Customer, Role.Merchant)
   @Post(':id/rate')
   rateOrder(@Param('id') id: string, @Body() body: { score: number, comment?: string }, @Req() req: any) {
-    return this.ordersService.rateOrder(Number(id), req.user.userId, req.user.role, body.score, body.comment);
+    return this.ordersService.rateOrder(Number(id), req.user.sub, req.user.role, body.score, body.comment);
   }
 
   // 🆕 Endpoint สำหรับ Dashboard Analytics สถิติขั้นสูง

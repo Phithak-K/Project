@@ -282,16 +282,16 @@ export class OrdersService {
       where: {
         merchantId: Number(merchantId),
         status: OrderStatus.DELIVERED,
-        updatedAt: { gte: startOfDay },
+        createdAt: { gte: startOfDay }, // [M-04] FIX: ใช้ createdAt เพื่อกันออเดอร์เก่าที่ update วันนี้
       },
-      _sum: { price: true },
+      _sum: { totalPrice: true },
     });
 
     return {
       pendingOrders: pendingCount,
       shippingOrders: activeDeliveringCount,
       deliveredOrders: deliveredOrders.length,
-      todaySales: todaySales._sum.price || 0,
+      todaySales: todaySales._sum.totalPrice || 0, // [M-02] FIX: ใช้ totalPrice
     };
   }
 
@@ -375,7 +375,8 @@ export class OrdersService {
       
       // Revenue
       if (o.status === OrderStatus.DELIVERED) {
-         const amount = Number(o.price);
+      // [M-02] FIX: ใช้ totalPrice (รวม Surge + ประกัน) แทน price (ราคาต้นทุน)
+         const amount = Number(o.totalPrice || o.price);
          totalRevenue += amount;
 
          const dateStr = o.createdAt.toISOString().split('T')[0];

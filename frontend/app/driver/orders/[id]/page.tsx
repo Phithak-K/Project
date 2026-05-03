@@ -16,7 +16,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
   const getAuthToken = () => {

@@ -11,6 +11,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // 1. สมัครสมาชิกแบบปกติ (Email/Password)
+  // [H-03] FIX: เพิ่ม Rate Limit ป้องกัน spam สมัครบัญชี
+  @UseGuards(ThrottlerGuard)
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);

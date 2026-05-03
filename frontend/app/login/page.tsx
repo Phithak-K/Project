@@ -31,19 +31,21 @@ export default function LoginPage() {
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
         const isLocalhost = baseDomain.includes('localhost');
-        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
+        const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
 
         if (data.access_token) {
-          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
         }
         const userRole = data.user?.role || 'Customer';
-        document.cookie = `role=${userRole}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+        document.cookie = `role=${userRole}; ${cookieOptions}`;
 
         let targetSubdomain = 'app';
         if (userRole === 'Merchant') targetSubdomain = 'store';
         if (userRole === 'Driver')   targetSubdomain = 'fleet';
 
-        window.location.href = `https://${targetSubdomain}.${baseDomain}/`;
+        const proto = isLocalhost ? 'http' : 'https';
+        window.location.href = `${proto}://${targetSubdomain}.${baseDomain}/`;
       } else {
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
@@ -139,12 +141,12 @@ export default function LoginPage() {
           <div className="sp-divider" style={{ marginTop: '2rem' }} />
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link href="/merchant/login">
+            <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบร้านค้า</button>
-            </Link>
-            <Link href="/driver/login">
+            </a>
+            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบคนขับ</button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>

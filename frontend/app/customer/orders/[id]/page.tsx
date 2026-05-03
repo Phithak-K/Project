@@ -19,7 +19,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
   const [ratingComment, setRatingComment] = useState('');
   const [hasRated, setHasRated] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
   const getAuthToken = () => {

@@ -13,7 +13,7 @@ export default function DriverRadarPage() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [accepting, setAccepting] = useState<number | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
   const getToken = () => {
     const v = `; ${document.cookie}`;

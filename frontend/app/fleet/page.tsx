@@ -26,7 +26,7 @@ export default function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
   const getAuthToken = () => {
     const value = `; ${document.cookie}`;
@@ -76,8 +76,12 @@ export default function DriverDashboard() {
   };
 
   const handleLogout = () => {
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-    window.location.href = "/login";
+    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
+    document.cookie = `token=; path=/; expires=${past}`;
+    document.cookie = `role=; path=/; expires=${past}`;
+    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
+    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+    window.location.href = '/login';
   };
 
   if (loading) return (

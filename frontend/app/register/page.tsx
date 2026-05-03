@@ -40,7 +40,8 @@ export default function RegisterPage() {
 
       if (response.ok) {
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        window.location.href = `https://app.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
+        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
+        window.location.href = `${proto}://app.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
       } else {
         setError(Array.isArray(data.message) ? data.message.join(', ') : data.message || 'ข้อมูลไม่ถูกต้อง');
       }
@@ -83,7 +84,9 @@ export default function RegisterPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div className="sp-field">
                 <label className="sp-label">เบอร์โทรศัพท์</label>
-                <input id="phone" type="tel" required value={form.phone} onChange={set('phone')} className="sp-input" placeholder="0812345678" />
+                <input id="phone" type="tel" required value={form.phone} onChange={set('phone')}
+                className="sp-input" placeholder="0812345678"
+                pattern="[0-9]{9,10}" title="กรุณากรอกเบอร์โทรศัพท์ 9-10 หลัก (ตัวเลขเท่านั้น)" />
               </div>
               <div className="sp-field">
                 <label className="sp-label">อีเมล</label>
@@ -123,12 +126,12 @@ export default function RegisterPage() {
           <div>
             <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.75rem' }}>สมัครในฐานะอื่น</p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <Link href="/merchant/register">
+              <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`}>
                 <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เปิดร้านค้า</button>
-              </Link>
-              <Link href="/driver/register">
+              </a>
+              <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`}>
                 <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>สมัครคนขับ</button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>

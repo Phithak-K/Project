@@ -35,7 +35,8 @@ export default function DriverRegisterPage() {
       const data = await response.json();
       if (response.ok) {
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        window.location.href = `https://fleet.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
+        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
+        window.location.href = `${proto}://fleet.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
       } else {
         setError(Array.isArray(data.message) ? data.message.join(', ') : data.message || 'ข้อมูลไม่ถูกต้อง');
       }
@@ -126,7 +127,7 @@ export default function DriverRegisterPage() {
           <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
               เป็นคนขับอยู่แล้ว?{' '}
-              <Link href="/driver/login" className="sp-link">เข้าสู่ระบบ</Link>
+              <Link href="/login" className="sp-link">เข้าสู่ระบบ</Link>
             </p>
           </div>
         </div>

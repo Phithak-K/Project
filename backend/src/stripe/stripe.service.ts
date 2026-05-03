@@ -110,7 +110,9 @@ export class StripeService {
       });
       console.log(`Successfully topped up ${amount} THB for ${userRole} ${userId}`);
     } catch (error) {
+      // [L-05] FIX: Throw error เพื่อให้ Stripe รู้ว่าต้อง Retry (ไม่กลืน Error เงียบๆ)
       console.error(`Failed to process top-up for ${userRole} ${userId}`, error);
+      throw new Error(`Webhook processing failed for PaymentIntent ${paymentIntent.id}`);
     }
   }
 }

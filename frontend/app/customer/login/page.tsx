@@ -35,20 +35,22 @@ export default function CustomerLoginPage() {
         const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
         const isLocalhost = baseDomain.includes('localhost');
-        const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
+        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
+        const cookieOptions = `path=/; ${domainStr}expires=${expires}; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
 
         if (data.access_token) {
-          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} expires=${expires}; SameSite=None; Secure`;
+          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
         }
         const role = data.user?.role || 'Customer';
-        document.cookie = `role=${role}; path=/; ${cookieDomainStr} expires=${expires}; SameSite=None; Secure`;
+        document.cookie = `role=${role}; ${cookieOptions}`;
 
+        const proto = isLocalhost ? 'http' : 'https';
         if (role === 'Driver') {
-          window.location.href = `https://fleet.${baseDomain}/`;
+          window.location.href = `${proto}://fleet.${baseDomain}/`;
         } else if (role === 'Merchant') {
-          window.location.href = `https://store.${baseDomain}/`;
+          window.location.href = `${proto}://store.${baseDomain}/`;
         } else {
-          window.location.href = `https://app.${baseDomain}/`;
+          window.location.href = `${proto}://app.${baseDomain}/`;
         }
       } else {
         const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
@@ -77,9 +79,15 @@ export default function CustomerLoginPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        document.cookie = `token=${data.access_token}; path=/; max-age=86400;`;
-        document.cookie = `role=${data.user?.role || 'Customer'}; path=/; max-age=86400;`;
-        window.location.href = `https://app.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/`;
+        const baseDomainG = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhostG = baseDomainG.includes('localhost');
+        const domainStrG = isLocalhostG ? '' : `domain=.${baseDomainG.split(':')[0]}; `;
+        const protoG = isLocalhostG ? 'http' : 'https';
+        const cookieOptionsG = `path=/; ${domainStrG}max-age=86400; SameSite=Lax${isLocalhostG ? '' : '; Secure'}`;
+        
+        document.cookie = `token=${data.access_token}; ${cookieOptionsG}`;
+        document.cookie = `role=${data.user?.role || 'Customer'}; ${cookieOptionsG}`;
+        window.location.href = `${protoG}://app.${baseDomainG}/`;
       } else {
         setErrorMsg(data.message || 'Google Login Failed');
       }
@@ -191,18 +199,18 @@ export default function CustomerLoginPage() {
           <div className="sp-animate-d3">
             <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
               ยังไม่มีบัญชี?{' '}
-              <Link href="/customer/register" className="sp-link">สมัครสมาชิก</Link>
+              <Link href="/register" className="sp-link">สมัครสมาชิก</Link>
             </p>
           </div>
 
           <div className="sp-divider" style={{ marginTop: '2rem' }} />
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link href="/merchant/login">
+            <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบร้านค้า</button>
-            </Link>
-            <Link href="/driver/login">
+            </a>
+            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เข้าสู่ระบบคนขับ</button>
-            </Link>
+            </a>
           </div>
         </div>
       </div>

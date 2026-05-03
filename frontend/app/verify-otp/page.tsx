@@ -38,13 +38,15 @@ function VerifyOtpContent() {
         if (data.access_token && data.user) {
           const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
           const isLocalhost = baseDomain.includes('localhost');
-          const cookieDomainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]};`;
-          document.cookie = `token=${data.access_token}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
-          document.cookie = `role=${data.user?.role || 'Customer'}; path=/; ${cookieDomainStr} max-age=86400; SameSite=None; Secure`;
+          const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
+          const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
+          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
+          document.cookie = `role=${data.user?.role || 'Customer'}; ${cookieOptions}`;
 
-          if (data.user.role === 'Merchant')     window.location.href = `https://store.${baseDomain}/`;
-          else if (data.user.role === 'Driver')  window.location.href = `https://fleet.${baseDomain}/`;
-          else                                   window.location.href = `https://app.${baseDomain}/`;
+          const proto = isLocalhost ? 'http' : 'https';
+          if (data.user.role === 'Merchant')     window.location.href = `${proto}://store.${baseDomain}/`;
+          else if (data.user.role === 'Driver')  window.location.href = `${proto}://fleet.${baseDomain}/`;
+          else                                   window.location.href = `${proto}://app.${baseDomain}/`;
         } else {
           router.push('/login');
         }

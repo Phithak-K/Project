@@ -35,8 +35,12 @@ export default function CustomerDashboard() {
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleLogout = () => {
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
-    document.cookie = 'role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+    // [H-02] FIX: ลบ Cookie พร้อมระบุ domain เพื่อให้แน่ใจว่าลบ Token ข้ามทุก Subdomain
+    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
+    document.cookie = `token=; path=/; expires=${past}`;
+    document.cookie = `role=; path=/; expires=${past}`;
+    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
+    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
     window.location.href = '/login';
   };
 
@@ -128,12 +132,12 @@ export default function CustomerDashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
           <p className="sp-caps" style={{ color: 'var(--n-400)' }}>ต้องการใช้งานในฐานะอื่น?</p>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Link href="/merchant/register">
+            <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>เปิดร้านค้า</button>
-            </Link>
-            <Link href="/driver/register">
+            </a>
+            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`}>
               <button className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>สมัครเป็นคนขับ</button>
-            </Link>
+            </a>
           </div>
         </div>
       </main>

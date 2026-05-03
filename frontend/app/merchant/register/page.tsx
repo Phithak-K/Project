@@ -31,7 +31,8 @@ export default function MerchantRegisterPage() {
       const data = await response.json();
       if (response.ok) {
         const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        window.location.href = `https://store.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
+        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
+        window.location.href = `${proto}://store.${baseDomain}/verify-otp?email=${encodeURIComponent(form.email)}`;
       } else {
         setError(Array.isArray(data.message) ? data.message.join(', ') : data.message || 'ข้อมูลไม่ถูกต้อง');
       }
