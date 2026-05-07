@@ -24,10 +24,21 @@
 3.  **Global API Fallback:** ตั้งค่า API Port เป็น 8000 เป็นค่าเริ่มต้นทั่วทั้งโปรเจกต์
 4.  **Secure Logout:** ระบบล้าง Cookie ทั้งหมด (รวมถึง Domain-level cookie) เมื่อผู้ใช้กดออกจากระบบ
 
+## 🚀 อัปเดตล่าสุด (Phase 2)
+
+ยกระดับหน้าจอผู้ใช้ให้ทันสมัย ปลอดภัย และสะท้อนมาตรฐานความคลีนระดับ Impeccable Style (ส้ม-ขาว) โดยไร้การใช้สัญลักษณ์ Emoji ในหน้า UI ของแอป:
+1.  **Stripe Embedded Payment Elements:** หน้าชำระเงิน `/customer/wallet` ถูกปรับปรุงใหม่ทั้งหมดโดยการฝังตัวรับข้อมูลบัตรเครดิตของ Stripe ลงในเว็บตรง (Embedded Sheet) สบายตากว่าและรักษาความปลอดภัยได้ดีกว่า
+2.  **Leaflet.js Dark Map & Pulse Markers:** ยกระดับแผนที่บน `/driver/radar` ให้เป็นแผนที่จริงสไตล์ดาร์ก พร้อมมีจุด Hotspot คอยกระพริบเตือนพื้นที่ฝนตก/พายุเพื่อคำนวณ Surge +20% แบบเรียลไทม์
+3.  **Admin Dashboard Center:** หน้าควบคุม `/admin` และหน้าล็อกอิน `/admin/login` แสดงกราฟสถิติความเคลื่อนไหวด้วย Recharts และตารางคัดกรองบัญชีผู้ใช้
+4.  **Security Hardening (จากผลการ Audit ความปลอดภัย):**
+    - *Anti-XSS Popup:* มีฟังก์ชันแปลงอักขระพิเศษ (Escape HTML) ในแผนที่เรดาร์เพื่อปกป้องคนขับจากการโจมตี XSS ในป๊อปอัป
+    - *Middleware Admin Protection:* คัดกรองพาธ `/admin` อย่างเข้มงวด โดยจะอนุญาตให้เข้าดูแดชบอร์ดเฉพาะผู้ใช้ที่มีสถานะ `Admin` ผ่าน Token เท่านั้น
+    - *Double-Submit Block:* ใช้ `useRef` และกลไกสกัดกั้นการกดเติมเงินรัวๆ ในหน้า Wallet เพื่อลดการยิง API แบบไม่ตั้งใจ
+
 ## 🚀 การรันระบบ (Development)
 
 ```bash
-# ติดตั้ง dependencies
+# ติดตั้ง dependencies (และ Stripe UI libraries ล่าสุด)
 npm install
 
 # รันระบบในโหมดพัฒนา

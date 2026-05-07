@@ -25,6 +25,14 @@ Backend ถูกแบ่งออกเป็น Modules เพื่อคว
 5.  **Stripe Integrity:** ตรวจสอบสิทธิ์เจ้าของบัญชีก่อนสร้าง Payment Intent และระบบ Webhook ที่รองรับการ Retry เมื่อเกิดข้อผิดพลาด
 6.  **Input Validation:** ใช้ `class-validator` และ `ValidationPipe` เพื่อตรวจสอบความถูกต้องของข้อมูลที่ส่งเข้ามา
 
+## 🚀 อัปเดตล่าสุด (Phase 2)
+
+เราได้เสริมฟีเจอร์ระดับองค์กรและปิดจุดอ่อนด้านความปลอดภัยระดับหลังบ้าน:
+1.  **Admin Stats API (`GET /orders/admin/stats`):** เพิ่ม Endpoint ดึงข้อมูลสถิติรวมของระบบ รวมถึงรายได้ย้อนหลัง 7 วันเพื่อใช้วิเคราะห์กระแสเงินสด
+2.  **Admin Database Seeding:** เพิ่มระบบ Seed บัญชีผู้ดูแลระบบผ่าน `prisma/seed-admin.ts`
+3.  **Unified User Profiles (`GET /users/me`):** API คืนโปรไฟล์และยอดเงินคงเหลือล่าสุดของผู้ใช้ที่ผ่านการยืนยันตัวตน JWT อย่างปลอดภัย
+4.  **Stripe Webhook Idempotency:** ป้องกันปัญหาการเติมเงินซ้ำซ้อนระดับ Webhook โดยสร้างกลไกตรวจสอบ `referenceId` ของ PaymentIntent และปรับปรุงระบบการโยน Error ให้ระบบจ่ายเงินภายนอกรู้เพื่อรับประกันความถูกต้องสูงสุดในการเพิ่มเงิน
+
 ## 🚀 การรันระบบ (Development)
 
 ```bash
@@ -33,6 +41,9 @@ npm install
 
 # รัน Prisma Generate (หากมีการแก้ไข schema)
 npx prisma generate
+
+# รัน Seeder สร้างบัญชีผู้ดูแลระบบ (Admin)
+npx ts-node prisma/seed-admin.ts
 
 # เริ่มต้นระบบในโหมดพัฒนา
 npm run start:dev
