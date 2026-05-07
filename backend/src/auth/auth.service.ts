@@ -209,9 +209,23 @@ export class AuthService implements OnModuleInit {
 
   // 3. เข้าสู่ระบบแบบเฉพาะเจาะจงตาราง (Strict Isolation)
   async login(loginDto: LoginDto) {
-    const roleStr = loginDto.role || 'Customer'; // บังคับให้เป็น Customer ถ้าระบุไม่ชัดเจน
-    const model = this.getModel(roleStr);
+    const roleStr = loginDto.role || 'Customer';
 
+    // Admin Login: ค้นหาใน Customer table แต่ override JWT role เป็น 'Admin'
+    if (roleStr === 'Admin') {
+      const adminEmails = (process.env.ADMIN_EMAILS || 'admin@swiftpath.com').split(',').map(e => e.trim());
+      if (!adminEmails.includes(loginDto.email)) {
+        throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
+      }
+      const admin = await this.prisma.customer.findUnique({ where: { email: loginDto.email } });
+      if (!admin || !admin.password) throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
+      const valid = await bcrypt.compare(loginDto.password, admin.password);
+      if (!valid) throw new BadRequestException('รหัสผ่านไม่ถูกต้อง');
+      (admin as any).role = 'Admin';
+      return this.generateToken(admin);
+    }
+
+    const model = this.getModel(roleStr);
     const user = await (model as any).findUnique({ where: { email: loginDto.email } });
     if (!user) throw new BadRequestException(`ไม่พบบัญชีนี้ในระบบ ${roleStr} (คุณอาจสมัครไว้ในระบบอื่น)`);
     if (!user.password) throw new BadRequestException('บัญชีนี้สมัครใช้งานผ่านช่องทางอื่น โปรดเข้าสู่ระบบด้วย Google หรือ Phone');

@@ -67,7 +67,8 @@ export class UsersService {
   async findAll(role: string) {
     const delegate = this.getDelegate(role);
     return delegate.findMany({
-      select: { id: true, email: true, name: true, phone: true, balance: true }
+      select: { id: true, email: true, name: true, phone: true, balance: true, isVerified: true },
+      orderBy: { id: 'desc' },
     });
   }
 
@@ -75,7 +76,7 @@ export class UsersService {
     const delegate = this.getDelegate(role);
     const user = await delegate.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, phone: true, balance: true }
+      select: { id: true, email: true, name: true, phone: true, balance: true, isVerified: true }
     });
     if (!user) throw new NotFoundException(`User with ID ${id} not found in ${role}`);
     return user;

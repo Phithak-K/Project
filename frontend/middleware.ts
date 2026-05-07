@@ -33,6 +33,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // ป้องกัน Admin Dashboard Bypass (CRITICAL SEC-FIX)
+  if (pathname === '/admin/login') {
+    return NextResponse.next()
+  }
+  if (pathname.startsWith('/admin')) {
+    if (!token || userRole !== 'Admin') {
+      const loginUrl = getRedirectUrl('/admin/login', '');
+      return NextResponse.redirect(new URL(loginUrl, request.url));
+    }
+    return NextResponse.next();
+  }
+
   // ฟังก์ชันช่วยสร้าง URL ให้ตรงกับ Host ปัจจุบันแบบ Dynamic
   const getRedirectUrl = (path: string, subdomain: string = '') => {
     // 💡 ใช้ protocol เดียวกับที่ Request ส่งมาโดยตรง เพื่อป้องกันอาการวนลูป HTTPS <-> HTTP

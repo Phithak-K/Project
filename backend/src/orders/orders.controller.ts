@@ -133,4 +133,12 @@ export class OrdersController {
   async getAnalytics(@Req() req: any) {
     return this.ordersService.getMerchantAnalytics(req.user.sub);
   }
+
+  // Admin: สถิติภาพรวมทั้งระบบ
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @Get('admin/stats')
+  async getAdminStats() {
+    return this.ordersService.getAdminStats();
+  }
 }

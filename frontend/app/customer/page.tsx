@@ -62,9 +62,16 @@ export default function CustomerDashboard() {
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span>
           <span className="sp-caps" style={{ color: 'var(--n-400)', marginLeft: '0.5rem' }}>App</span>
         </span>
-        <button id="btn-logout" onClick={handleLogout} className="sp-btn-danger">
-          <LogOut size={16} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <Link href="/wallet">
+            <button id="btn-wallet" className="sp-btn-ghost" style={{ fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}>
+              Wallet
+            </button>
+          </Link>
+          <button id="btn-logout" onClick={handleLogout} className="sp-btn-danger">
+            <LogOut size={16} />
+          </button>
+        </div>
       </nav>
 
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>

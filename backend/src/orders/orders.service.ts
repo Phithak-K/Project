@@ -352,7 +352,7 @@ export class OrdersService {
 
     const orders = await this.prisma.order.findMany({
       where: { merchantId: Number(merchantId) },
-      select: { status: true, price: true, createdAt: true },
+      select: { status: true, price: true, totalPrice: true, createdAt: true },
     });
 
     // 1. Status Distribution
@@ -654,6 +654,64 @@ export class OrdersService {
       completedTrips: deliveredOrdersCount,
       totalIncome: totalIncome,
       weatherBonus: weatherBonus, // โชว์โบนัสให้คนขับเห็นชัดๆ
+    };
+  }
+
+  // Admin: สถิติภาพรวมทั้งระบบ
+  async getAdminStats() {
+    const [
+      totalOrders,
+      deliveredOrders,
+      pendingOrders,
+      cancelledOrders,
+      totalCustomers,
+      totalMerchants,
+      totalDrivers,
+      revenueResult,
+    ] = await Promise.all([
+      this.prisma.order.count(),
+      this.prisma.order.count({ where: { status: OrderStatus.DELIVERED } }),
+      this.prisma.order.count({ where: { status: OrderStatus.PENDING } }),
+      this.prisma.order.count({ where: { status: OrderStatus.CANCELLED } }),
+      this.prisma.customer.count({ where: { isVerified: true } }),
+      this.prisma.merchant.count({ where: { isVerified: true } }),
+      this.prisma.driver.count({ where: { isVerified: true } }),
+      this.prisma.order.aggregate({
+        where: { status: OrderStatus.DELIVERED },
+        _sum: { totalPrice: true },
+      }),
+    ]);
+
+    const days: { date: string; revenue: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push({ date: d.toISOString().split('T')[0], revenue: 0 });
+    }
+    const recentOrders = await this.prisma.order.findMany({
+      where: { status: OrderStatus.DELIVERED, createdAt: { gte: new Date(days[0].date) } },
+      select: { totalPrice: true, price: true, createdAt: true },
+    });
+    recentOrders.forEach((o: any) => {
+      const dateStr = o.createdAt.toISOString().split('T')[0];
+      const idx = days.findIndex((d: any) => d.date === dateStr);
+      if (idx !== -1) days[idx].revenue += Number(o.totalPrice || o.price);
+    });
+
+    return {
+      totalOrders,
+      deliveredOrders,
+      pendingOrders,
+      cancelledOrders,
+      totalRevenue: Number(revenueResult._sum.totalPrice) || 0,
+      successRate: totalOrders ? ((deliveredOrders / totalOrders) * 100).toFixed(1) : '0',
+      activeUsers: {
+        customers: totalCustomers,
+        merchants: totalMerchants,
+        drivers: totalDrivers,
+        total: totalCustomers + totalMerchants + totalDrivers,
+      },
+      revenueChart: days,
     };
   }
 }

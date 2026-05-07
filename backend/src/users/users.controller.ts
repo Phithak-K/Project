@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req, BadRequestException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -13,6 +13,13 @@ import { Role } from '../auth/roles.enum';
 @Roles(Role.Admin) // ล็อคให้เฉพาะแอดมินเท่านั้น!
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  // GET /users/me — คืนข้อมูล Profile + Balance ของผู้ใช้ที่ Login อยู่
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@Req() req: any) {
+    return this.usersService.findOne(req.user.sub, req.user.role);
+  }
 
   @Post()
   create(@Body() createUserDto: CreateUserDto, @Body('role') role: string) {
