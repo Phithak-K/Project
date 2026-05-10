@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search } from 'lucide-react';
 
 export default function TrackingDetailPage() {
   const params = useParams();

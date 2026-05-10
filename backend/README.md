@@ -8,7 +8,7 @@ Backend ถูกแบ่งออกเป็น Modules เพื่อคว
 
 - **Auth Module:** ระบบยืนยันตัวตน (JWT), การลงทะเบียน, OTP (Hashed), และ Social Login (Google, Facebook, LINE)
 - **Users Module:** จัดการข้อมูลผู้ใช้และลำดับสิทธิ์ (RBAC)
-- **Orders Module:** หัวใจหลักของระบบ จัดการวงจรชีวิตของออเดอร์, การคำนวณราคา (Surge Pricing), และระบบ Analytics
+- **Orders Module:** หัวใจหลักของระบบ จัดการวงจรชีวิตของออเดอร์, การคำนวณราคา (Surge Pricing), ระบบจัดส่งสาธารณะ และระบบ Analytics
 - **Stripe Module:** เชื่อมต่อระบบชำระเงินและจัดการ Wallet
 - **Weather Module:** ดึงข้อมูลสภาพอากาศเพื่อใช้ในการคำนวณราคาและแสดง Hotspots
 - **Chat Module:** ระบบสื่อสารเรียลไทม์ผ่าน WebSocket (Socket.io)
@@ -25,13 +25,14 @@ Backend ถูกแบ่งออกเป็น Modules เพื่อคว
 5.  **Stripe Integrity:** ตรวจสอบสิทธิ์เจ้าของบัญชีก่อนสร้าง Payment Intent และระบบ Webhook ที่รองรับการ Retry เมื่อเกิดข้อผิดพลาด
 6.  **Input Validation:** ใช้ `class-validator` และ `ValidationPipe` เพื่อตรวจสอบความถูกต้องของข้อมูลที่ส่งเข้ามา
 
-## 🚀 อัปเดตล่าสุด (Phase 2)
+## 🚀 อัปเดตล่าสุด (Phase 2 & Phase 3)
 
 เราได้เสริมฟีเจอร์ระดับองค์กรและปิดจุดอ่อนด้านความปลอดภัยระดับหลังบ้าน:
 1.  **Admin Stats API (`GET /orders/admin/stats`):** เพิ่ม Endpoint ดึงข้อมูลสถิติรวมของระบบ รวมถึงรายได้ย้อนหลัง 7 วันเพื่อใช้วิเคราะห์กระแสเงินสด
 2.  **Admin Database Seeding:** เพิ่มระบบ Seed บัญชีผู้ดูแลระบบผ่าน `prisma/seed-admin.ts`
 3.  **Unified User Profiles (`GET /users/me`):** API คืนโปรไฟล์และยอดเงินคงเหลือล่าสุดของผู้ใช้ที่ผ่านการยืนยันตัวตน JWT อย่างปลอดภัย
 4.  **Stripe Webhook Idempotency:** ป้องกันปัญหาการเติมเงินซ้ำซ้อนระดับ Webhook โดยสร้างกลไกตรวจสอบ `referenceId` ของ PaymentIntent และปรับปรุงระบบการโยน Error ให้ระบบจ่ายเงินภายนอกรู้เพื่อรับประกันความถูกต้องสูงสุดในการเพิ่มเงิน
+5.  **Public Tracking API (`GET /orders/track/:trackingNumber`):** เพิ่ม Endpoint สำหรับดึงสถานะการจัดส่งพัสดุและพิกัดการเดินทางแบบสาธารณะ โดยไม่มีการตรวจสอบสิทธิ์ JWT และควบคุมความปลอดภัยด้วยกลไก **Select Field Filter** คัดกรองข้อมูลละเอียดอ่อนส่วนบุคคล (PII) ออกจากผลลัพธ์ทั้งหมดอย่างเด็ดขาด
 
 ## 🚀 การรันระบบ (Development)
 
