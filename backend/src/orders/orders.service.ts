@@ -240,6 +240,42 @@ export class OrdersService {
     return order;
   }
 
+  async getPublicOrderTracking(trackingNumber: string) {
+    if (!trackingNumber) throw new BadRequestException('Tracking number is required');
+    const order = await this.prisma.order.findUnique({
+      where: { trackingNumber },
+      select: {
+        id: true,
+        trackingNumber: true,
+        productName: true,
+        status: true,
+        weatherWarning: true,
+        estimatedMinutes: true,
+        estimatedReadyAt: true,
+        lat: true,
+        lng: true,
+        driver: { select: { name: true, vehiclePlate: true, vehicleType: true } },
+        trackingLogs: {
+          where: { isPublic: true },
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            status: true,
+            note: true,
+            location: true,
+            lat: true,
+            lng: true,
+            createdAt: true,
+          }
+        }
+      }
+    });
+
+    if (!order) throw new BadRequestException('ไม่พบข้อมูลพัสดุสำหรับรหัสนี้');
+
+    return order;
+  }
+
   async getOrderMessages(orderId: number, userId: number, role: string) {
     if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });

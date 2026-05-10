@@ -44,8 +44,15 @@ export default function LoginPage() {
         if (userRole === 'Merchant') targetSubdomain = 'store';
         if (userRole === 'Driver')   targetSubdomain = 'fleet';
 
-        const proto = isLocalhost ? 'http' : 'https';
-        window.location.href = `${proto}://${targetSubdomain}.${baseDomain}/`;
+        const params = new URLSearchParams(window.location.search);
+        const callbackUrl = params.get('callbackUrl');
+
+        if (callbackUrl) {
+          window.location.href = decodeURIComponent(callbackUrl);
+        } else {
+          const proto = isLocalhost ? 'http' : 'https';
+          window.location.href = `${proto}://${targetSubdomain}.${baseDomain}/`;
+        }
       } else {
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }

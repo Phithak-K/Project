@@ -68,13 +68,17 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/verify-otp')
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/verify-otp') || pathname.startsWith('/track')
+
+  const isPublicAppPage = currentHost === 'app' && pathname === '/'
 
   // STRICT NULL CHECK: ถ้าไม่มีรหัส Token, ไปผุดที่ Login ของตัวเองเท่านั้น
   if (!token) {
-    if (!isAuthPage) {
-      const loginUrl = getRedirectUrl('/login', currentHost || 'app')
-      return NextResponse.redirect(new URL(loginUrl, request.url))
+    if (!isAuthPage && !isPublicAppPage) {
+      const loginBaseUrl = getRedirectUrl('/login', currentHost || 'app')
+      const callbackUrl = encodeURIComponent(request.url)
+      const loginUrlWithCallback = `${loginBaseUrl}?callbackUrl=${callbackUrl}`
+      return NextResponse.redirect(new URL(loginUrlWithCallback, request.url))
     }
   }
 
@@ -139,7 +143,7 @@ export function middleware(request: NextRequest) {
 
   // 5. Shared pages ที่มีอยู่เฉพาะที่ root level (ใช้ร่วมกันทุก subdomain)
   // ถ้าไม่ข้าม path พวกนี้ Middleware จะ Rewrite ไปหา /customer/verify-otp ที่ไม่มีอยู่จริง
-  const sharedRootPaths = ['/verify-otp'];
+  const sharedRootPaths = ['/verify-otp', '/track'];
   if (sharedRootPaths.some(p => pathname.startsWith(p))) {
     return NextResponse.next();
   }

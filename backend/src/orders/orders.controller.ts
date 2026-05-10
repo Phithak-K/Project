@@ -48,6 +48,11 @@ export class OrdersController {
     return this.ordersService.getMyOrders(req.user.sub);
   }
 
+  @Get('track/:trackingNumber')
+  getPublicOrderTracking(@Param('trackingNumber') trackingNumber: string) {
+    return this.ordersService.getPublicOrderTracking(trackingNumber);
+  }
+
   @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
   @Get(':id')
   getOrderById(@Param('id') id: string, @Req() req: any) {
