@@ -1,40 +1,46 @@
 # SwiftPath Backend (NestJS)
 
-ระบบหลังบ้านของ SwiftPath พัฒนาด้วย NestJS โดยมุ่งเน้นสถาปัตยกรรมที่รองรับการขยายตัว (Scalable Architecture) และความปลอดภัยระดับสูงสุด
+ระบบหลังบ้านของ SwiftPath พัฒนาด้วย NestJS โดยมุ่งเน้นสถาปัตยกรรมที่รองรับการขยายตัว (Scalable Architecture) ความถูกต้องของข้อมูลทางการเงิน และความปลอดภัยระดับสูงสุด (Hardened Security)
+
+---
 
 ## 🏗️ โครงสร้างระบบ (Architecture)
 
-Backend ถูกแบ่งออกเป็น Modules เพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษา:
+Backend ถูกแบ่งออกเป็น Modules เพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษาตามหลัก Modular Design:
 
-- **Auth Module:** ระบบยืนยันตัวตน (JWT), การลงทะเบียน, OTP (Hashed), และ Social Login (Google, Facebook, LINE)
-- **Users Module:** จัดการข้อมูลผู้ใช้และลำดับสิทธิ์ (RBAC)
-- **Orders Module:** หัวใจหลักของระบบ จัดการวงจรชีวิตของออเดอร์, การคำนวณราคา (Surge Pricing), ระบบจัดส่งสาธารณะ และระบบ Analytics
-- **Stripe Module:** เชื่อมต่อระบบชำระเงินและจัดการ Wallet
-- **Weather Module:** ดึงข้อมูลสภาพอากาศเพื่อใช้ในการคำนวณราคาและแสดง Hotspots
-- **Chat Module:** ระบบสื่อสารเรียลไทม์ผ่าน WebSocket (Socket.io)
-- **Prisma Module:** จัดการการเชื่อมต่อฐานข้อมูล PostgreSQL
+-   **Auth Module:** ระบบยืนยันตัวตน (JWT), การลงทะเบียนแบบ Multi-step, OTP (Hashed), และ Social Login (Google, Facebook, LINE)
+-   **Users Module:** จัดการข้อมูลผู้ใช้และระบบ Role-Based Access Control (RBAC)
+-   **Orders Module:** หัวใจหลักในการจัดการวงจรชีวิตออเดอร์, การคำนวณราคา Surge Pricing ตามสภาพอากาศ, และระบบ Analytics ขั้นสูง
+-   **Stripe Module:** เชื่อมต่อระบบชำระเงิน Stripe API พร้อมระบบ Idempotency Webhook
+-   **Weather Module:** บูรณาการ OpenWeather API เพื่อข้อมูลเรียลไทม์ในการตัดสินใจด้านราคาและโลจิสติกส์
+-   **Chat Module:** ระบบสื่อสารเรียลไทม์ (WebSocket) พร้อมการตรวจสอบ Signature Verification ในทุกๆ Event
+-   **Prisma Module:** Layer จัดการฐานข้อมูล PostgreSQL ผ่าน Prisma ORM
 
-## 🔒 ฟีเจอร์ด้านความปลอดภัย (Security Features)
+---
 
-เราได้ดำเนินการ Hardening ระบบเพื่อป้องกันการโจมตีในรูปแบบต่างๆ:
+## 🔒 ฟีเจอร์ด้านความปลอดภัยและการรักษาความสมบูรณ์ของข้อมูล (Security & Data Integrity)
 
-1.  **OTP Hashing (SHA-256):** รหัส OTP จะถูก Hash ก่อนบันทึกลงฐานข้อมูล เพื่อป้องกันการรั่วไหลหากฐานข้อมูลถูกโจมตี
-2.  **Rate Limiting (Throttler):** ป้องกันการโจมตีแบบ Brute-force บน Endpoint ที่สำคัญ เช่น การลงทะเบียนและการยืนยัน OTP
-3.  **Strict RBAC:** การควบคุมสิทธิ์เข้าถึงตามบทบาท (Customer, Merchant, Driver, Admin) อย่างเข้มงวด
-4.  **Zero-Trust WebSocket:** ตรวจสอบ JWT ทุกครั้งที่มี Event เกิดขึ้น และจำกัด CORS เฉพาะโดเมนที่อนุญาตเท่านั้น
-5.  **Stripe Integrity:** ตรวจสอบสิทธิ์เจ้าของบัญชีก่อนสร้าง Payment Intent และระบบ Webhook ที่รองรับการ Retry เมื่อเกิดข้อผิดพลาด
-6.  **Input Validation:** ใช้ `class-validator` และ `ValidationPipe` เพื่อตรวจสอบความถูกต้องของข้อมูลที่ส่งเข้ามา
+เราได้ดำเนินการ Hardening ระบบเพื่อป้องกันการโจมตีและความผิดพลาดเชิงตรรกะธุรกิจ (Business Logic Flaws):
 
-## 🚀 อัปเดตล่าสุด (Phase 2 & Phase 3)
+1.  **Optimistic Locking (Concurrency Control):** ระบบการเงิน (Top-up/Debit) บังคับใช้ฟิลด์ `version` ในฐานข้อมูลเพื่อป้องกันปัญหา Race Condition 100% ในกรณีที่มีธุรกรรมเกิดขึ้นพร้อมกันในระดับมิลลิวินาที
+2.  **SHA-256 OTP Hashing:** รหัส OTP จะถูก Hash ก่อนบันทึกลงฐานข้อมูล ป้องกันความลับรั่วไหลแม้ผู้บุกรุกเข้าถึงฐานข้อมูลได้
+3.  **NestJS Throttler (Advanced Rate Limiting):** ป้องกันการโจมตีแบบ Brute-force บน Endpoint สำคัญ เช่น `verify-phone-otp` และ Social Login โดยจำกัดสูงสุด 5-10 ครั้งต่อนาที
+4.  **Zero-Trust WebSocket Gateway:** บังคับใช้ JWT Signature Verification ในทุกๆ ข้อความที่ส่งผ่าน Socket.io เพื่อป้องกันการสวมรอยพิกัด GPS หรือข้อความแชท
+5.  **Stripe Webhook Idempotency:** ป้องกันปัญหา Double Credit โดยการตรวจสอบ `referenceId` ภายในฐานข้อมูลแบบ Atomic Transaction
+6.  **Input Validation & Sanitization:** ใช้ `class-validator` และระบบ DTO ที่เข้มงวดเพื่อป้องกันการยิงข้อมูลแปลกปลอมเข้าระบบ
 
-เราได้เสริมฟีเจอร์ระดับองค์กรและปิดจุดอ่อนด้านความปลอดภัยระดับหลังบ้าน:
-1.  **Admin Stats API (`GET /orders/admin/stats`):** เพิ่ม Endpoint ดึงข้อมูลสถิติรวมของระบบ รวมถึงรายได้ย้อนหลัง 7 วันเพื่อใช้วิเคราะห์กระแสเงินสด
-2.  **Admin Database Seeding:** เพิ่มระบบ Seed บัญชีผู้ดูแลระบบผ่าน `prisma/seed-admin.ts`
-3.  **Unified User Profiles (`GET /users/me`):** API คืนโปรไฟล์และยอดเงินคงเหลือล่าสุดของผู้ใช้ที่ผ่านการยืนยันตัวตน JWT อย่างปลอดภัย
-4.  **Stripe Webhook Idempotency:** ป้องกันปัญหาการเติมเงินซ้ำซ้อนระดับ Webhook โดยสร้างกลไกตรวจสอบ `referenceId` ของ PaymentIntent และปรับปรุงระบบการโยน Error ให้ระบบจ่ายเงินภายนอกรู้เพื่อรับประกันความถูกต้องสูงสุดในการเพิ่มเงิน
-5.  **Public Tracking API (`GET /orders/track/:trackingNumber`):** เพิ่ม Endpoint สำหรับดึงสถานะการจัดส่งพัสดุและพิกัดการเดินทางแบบสาธารณะ โดยไม่มีการตรวจสอบสิทธิ์ JWT และควบคุมความปลอดภัยด้วยกลไก **Select Field Filter** คัดกรองข้อมูลละเอียดอ่อนส่วนบุคคล (PII) ออกจากผลลัพธ์ทั้งหมดอย่างเด็ดขาด
+---
 
-## 🚀 การรันระบบ (Development)
+## 🚀 รายการอัปเดตสำคัญ (Latest Hardening)
+
+*   **Financial Integrity Patch:** อัปเกรด `updateBalanceAtomic` ให้รองรับ Versioning เพื่อความปลอดภัยระดับ Enterprise
+*   **Auth Vulnerability Mitigation:** ปิดช่องโหว่ Brute-force บนระบบ Firebase OTP ด้วยการเพิ่ม ThrottlerGuard
+*   **Public Tracking Security:** ออกแบบระบบ Select Field Filtering เพื่อคัดกรองข้อมูลละเอียดอ่อน (PII) ออกจาก API ติดตามพัสดุสาธารณะโดยสมบูรณ์
+*   **Admin Access Lockdown:** เสริมความแข็งแกร่งให้ระบบ Admin Gate ในระดับ Controller เพื่อป้องกันสิทธิ์รั่วไหล
+
+---
+
+## 🛠️ การรันระบบ (Development)
 
 ```bash
 # ติดตั้ง dependencies
@@ -46,9 +52,9 @@ npx prisma generate
 # รัน Seeder สร้างบัญชีผู้ดูแลระบบ (Admin)
 npx ts-node prisma/seed-admin.ts
 
-# เริ่มต้นระบบในโหมดพัฒนา
+# เริ่มต้นระบบในโหมดพัฒนา (Watch mode)
 npm run start:dev
 ```
 
 ---
-*SwiftPath Backend - Engineered for Security.*
+*SwiftPath Backend - Engineered for Security. Optimized for Scale.*

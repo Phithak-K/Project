@@ -209,7 +209,7 @@ export function middleware(request: NextRequest) {
                       || pathname.startsWith('/register')
                       || pathname.startsWith('/verify-otp')
                       || pathname.startsWith('/track')
-  const isPublicAppPage = currentHost === 'app' && pathname === '/'
+  const isPublicAppPage = (currentHost === 'app' && pathname === '/') || (!currentHost && pathname === '/')
 
   // ── สร้าง Context Object ส่งให้ทุก Helper ──────────────────────────────────
   const ctx: MiddlewareContext = {
