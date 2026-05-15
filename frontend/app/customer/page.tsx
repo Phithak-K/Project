@@ -209,8 +209,21 @@ export default function CustomerDashboard() {
     }
   };
 
-  // 🛡️ Phase 1: ยังไม่ mount → render nothing (ป้องกัน Hydration mismatch)
-  if (!isMounted) return null;
+  // [FIX] Phase 1: ยังไม่ mount → render Skeleton แทน null เพื่อจัดสรรพื้นที่ Layout ล่วงหน้า
+  // ป้องกัน Cumulative Layout Shift (CLS) และ White Flash บน First Paint
+  if (!isMounted) {
+    return (
+      <>
+        <style>{`
+          @keyframes sp-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
+        <SkeletonGuest />
+      </>
+    );
+  }
 
   // 🖴 Phase 2: Mount แล้วแต่กำลังโหลด → ✅ CRITICAL-02: เลือก Skeleton ตาม Auth State ลด CLS
   if (isLoading) {

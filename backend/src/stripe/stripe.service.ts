@@ -85,10 +85,13 @@ export class StripeService {
           return; // early return = no writes committed
         }
 
-        // 1. Credit Balance
+        // 1. Credit Balance + รักษา version ให้สอดคล้องกับกติกา Optimistic Locking ของ Platform
         await tx[userRole.toLowerCase()].update({
           where: { id: userId },
-          data: { balance: { increment: amount } },
+          data: {
+            balance: { increment: amount },
+            version: { increment: 1 }, // [SEC-FIX] ป้องกัน Race Condition ภายหลังจาก Concurrent Debit
+          },
         });
 
         // 2. Transaction Record (referenceId @unique เป็น safety net อีกชั้น)

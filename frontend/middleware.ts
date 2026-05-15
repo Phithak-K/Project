@@ -85,6 +85,12 @@ function checkAuthPageAccess(ctx: MiddlewareContext): NextResponse | null {
 
   if (!token || !userRole) return null // ยังไม่ล็อกอิน → ปล่อยผ่าน
 
+  // [SEC-FIX] Admin ไม่ได้สังกัด Subdomain เดียวกับ User ทั่วไป—ปล่อยให้ Redirect ไป /admin บน Root Domain
+  // ป้องกัน Infinite Loop และ Cookie Eviction ที่เกิดจาก checkCustomerAccess นำ Admin ไปทำ clearBadCookies
+  if (userRole === 'Admin') {
+    return NextResponse.redirect(new URL(getRedirectUrl('/admin', ''), request.url))
+  }
+
   // ล็อกอินแล้วแต่เข้าหน้า Auth → ส่งกลับ Dashboard ของ Role ตัวเอง
   let targetHost = currentHost || 'app'
   if (userRole === 'Merchant') targetHost = 'store'

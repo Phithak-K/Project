@@ -70,6 +70,9 @@ export class AuthController {
   }
 
   // 5. ยืนยัน OTP จากโทรศัพท์ผ่าน Firebase
+  // [SEC-FIX] เพิ่ม Rate Limit ป้องกัน Brute-Force บน Firebase Phone Auth — จำกัดสูงสุด 5 ครั้งต่อนาที
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('verify-phone-otp')
   @HttpCode(HttpStatus.OK)
   async verifyPhoneOtp(@Body() body: { token: string }) {
