@@ -131,4 +131,45 @@ export class UsersService {
       select: { id: true, email: true }
     });
   }
+
+  /**
+   * ✅ HIGH-01: Optimistic Locking สำหรับ Balance Update
+   * ป้องกัน Race Condition เมื่อมีธุรกรรมหลายรายการพร้อมกัน
+   * @param id - User ID
+   * @param role - 'customer' | 'merchant' | 'driver'
+   * @param amount - จำนวนเงิน (บวก=เพิ่ม, ลบ=หัก)
+   * @param expectedVersion - version ที่ client รู้จัก (ต้องตรงกับ DB)
+   * @throws ConflictException ถ้า version ไม่ตรง (มีการแก้ไขซ้อนกัน)
+   */
+  async updateBalanceAtomic(
+    id: number,
+    role: string,
+    amount: number,
+    expectedVersion: number,
+  ) {
+    const delegate = this.getDelegate(role);
+
+    // Atomic: update เฉพาะเมื่อ version ตรงกับที่รู้จัก
+    // ถ้ามี Request อื่น update ก่อน → version จะเปลี่ยน → count = 0 → ConflictException
+    const result = await delegate.updateMany({
+      where: {
+        id,
+        version: expectedVersion,
+        ...(amount < 0 ? { balance: { gte: Math.abs(amount) } } : {}), // ป้องกัน balance ติดลบ
+      },
+      data: {
+        balance: amount >= 0 ? { increment: amount } : { decrement: Math.abs(amount) },
+        version: { increment: 1 }, // เพิ่ม version ทุกครั้งที่ update สำเร็จ
+      },
+    });
+
+    if (result.count === 0) {
+      const { ConflictException } = await import('@nestjs/common');
+      throw new ConflictException(
+        'Concurrent update conflict: ยอดเงินถูกแก้ไขพร้อมกันจากอุปกรณ์อื่น กรุณาลองใหม่อีกครั้ง',
+      );
+    }
+
+    return { success: true, newVersion: expectedVersion + 1 };
+  }
 }

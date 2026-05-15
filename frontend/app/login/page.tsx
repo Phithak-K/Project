@@ -47,7 +47,16 @@ export default function LoginPage() {
         const params = new URLSearchParams(window.location.search);
         const callbackUrl = params.get('callbackUrl');
 
-        if (callbackUrl) {
+        // ✅ MEDIUM-03 FIX: Domain Allowlist — ป้องกัน Open Redirect
+        const isAllowedCallback = (url: string): boolean => {
+          try {
+            const parsed = new URL(decodeURIComponent(url));
+            const allowed = ['localhost', 'swiftpath.com'];
+            return allowed.some(d => parsed.hostname === d || parsed.hostname.endsWith(`.${d}`));
+          } catch { return false; }
+        };
+
+        if (callbackUrl && isAllowedCallback(callbackUrl)) {
           window.location.href = decodeURIComponent(callbackUrl);
         } else {
           const proto = isLocalhost ? 'http' : 'https';

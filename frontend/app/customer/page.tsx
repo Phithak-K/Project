@@ -5,6 +5,134 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Package, Search, Clock, LogOut, ChevronRight, Wallet, User } from 'lucide-react';
 
+// ─── Skeleton Components ──────────────────────────────────────────────────────
+
+const shimmerStyle: React.CSSProperties = {
+  background: 'linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%)',
+  backgroundSize: '200% 100%',
+  animation: 'sp-shimmer 1.4s ease-in-out infinite',
+  borderRadius: '8px',
+};
+
+function SkeletonBlock({
+  width = '100%',
+  height = '16px',
+  style = {},
+}: {
+  width?: string;
+  height?: string;
+  style?: React.CSSProperties;
+}) {
+  return <div style={{ ...shimmerStyle, width, height, ...style }} />;
+}
+
+function SkeletonWalletCard() {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #e4e4e7',
+        borderRadius: '16px',
+        padding: '1.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '2.5rem',
+      }}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+        <SkeletonBlock width="100px" height="12px" />
+        <SkeletonBlock width="160px" height="36px" style={{ borderRadius: '6px' }} />
+      </div>
+      <SkeletonBlock width="130px" height="42px" style={{ borderRadius: '10px' }} />
+    </div>
+  );
+}
+
+function SkeletonOrderCard() {
+  return (
+    <div
+      style={{
+        background: '#fff',
+        border: '1px solid #e4e4e7',
+        borderRadius: '12px',
+        padding: '1.25rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <SkeletonBlock width="40px" height="40px" style={{ borderRadius: '10px', flexShrink: 0 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <SkeletonBlock width="140px" height="14px" />
+          <SkeletonBlock width="90px" height="12px" />
+        </div>
+      </div>
+      <SkeletonBlock width="80px" height="26px" style={{ borderRadius: '99px' }} />
+    </div>
+  );
+}
+
+function SkeletonLoggedIn() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+      {/* Skeleton Navbar */}
+      <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7' }}>
+        <SkeletonBlock width="140px" height="24px" style={{ borderRadius: '6px' }} />
+        <SkeletonBlock width="110px" height="36px" style={{ borderRadius: '8px' }} />
+      </nav>
+      {/* Skeleton Hero */}
+      <div style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fffbf7 100%)', borderBottom: '1px solid #f5ebe0', padding: '5rem 2rem', textAlign: 'center' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <SkeletonBlock width="200px" height="14px" style={{ borderRadius: '4px' }} />
+          <SkeletonBlock width="480px" height="52px" style={{ borderRadius: '8px', maxWidth: '100%' }} />
+          <SkeletonBlock width="360px" height="18px" style={{ borderRadius: '4px', maxWidth: '100%' }} />
+          <SkeletonBlock width="600px" height="60px" style={{ borderRadius: '16px', marginTop: '0.75rem', maxWidth: '100%' }} />
+        </div>
+      </div>
+      {/* Skeleton Main — Wallet + Orders */}
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+        <SkeletonWalletCard />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+          <SkeletonBlock width="120px" height="18px" />
+          <SkeletonBlock width="60px" height="26px" style={{ borderRadius: '99px' }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <SkeletonOrderCard />
+          <SkeletonOrderCard />
+          <SkeletonOrderCard />
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ✅ CRITICAL-02 FIX: Skeleton แยกสำหรับ Guest — ตรงกับ layout จริง ลด CLS
+function SkeletonGuest() {
+  return (
+    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+      <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7' }}>
+        <SkeletonBlock width="140px" height="24px" style={{ borderRadius: '6px' }} />
+        <SkeletonBlock width="110px" height="36px" style={{ borderRadius: '8px' }} />
+      </nav>
+      <div style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fffbf7 100%)', borderBottom: '1px solid #f5ebe0', padding: '5rem 2rem', textAlign: 'center' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+          <SkeletonBlock width="200px" height="14px" style={{ borderRadius: '4px' }} />
+          <SkeletonBlock width="480px" height="52px" style={{ borderRadius: '8px', maxWidth: '100%' }} />
+          <SkeletonBlock width="600px" height="60px" style={{ borderRadius: '16px', marginTop: '0.75rem', maxWidth: '100%' }} />
+        </div>
+      </div>
+      {/* Skeleton Main — CTA box เล็กๆ ตรงกับ Logged-Out UI จริง */}
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+        <SkeletonBlock width="100%" height="220px" style={{ borderRadius: '16px' }} />
+      </main>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 export default function CustomerDashboard() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
@@ -12,8 +140,14 @@ export default function CustomerDashboard() {
   const [trackingInput, setTrackingInput] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false); // 🛡️ Hydration Guard
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+  // ✅ Hydration Guard: รอ Client mount ก่อนเสมอ ป้องกัน SSR/CSR mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
@@ -23,6 +157,9 @@ export default function CustomerDashboard() {
   };
 
   useEffect(() => {
+    // Guard: รันเฉพาะหลัง mount บน client เท่านั้น
+    if (!isMounted) return;
+
     const token = getCookie('token');
     if (!token) {
       setIsLoggedIn(false);
@@ -54,7 +191,7 @@ export default function CustomerDashboard() {
     };
 
     fetchData();
-  }, [API_URL]);
+  }, [isMounted, API_URL]);
 
   const handleLogout = () => {
     const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
@@ -72,14 +209,35 @@ export default function CustomerDashboard() {
     }
   };
 
-  if (isLoading) return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: '40px', height: '40px', border: '3px solid #e4e4e7', borderTopColor: 'oklch(65% 0.18 30)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-    </div>
-  );
+  // 🛡️ Phase 1: ยังไม่ mount → render nothing (ป้องกัน Hydration mismatch)
+  if (!isMounted) return null;
 
+  // 🖴 Phase 2: Mount แล้วแต่กำลังโหลด → ✅ CRITICAL-02: เลือก Skeleton ตาม Auth State ลด CLS
+  if (isLoading) {
+    const hasToken = document.cookie.includes('token=');
+    return (
+      <>
+        <style>{`
+          @keyframes sp-shimmer {
+            0%   { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `}</style>
+        {hasToken ? <SkeletonLoggedIn /> : <SkeletonGuest />}
+      </>
+    );
+  }
+
+  // ✅ Phase 3: โหลดเสร็จ → แสดงเนื้อหาจริง
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', color: '#18181b', fontFamily: "'Inter', sans-serif" }}>
+      <style>{`
+        @keyframes sp-shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+      `}</style>
+
       {/* Navbar */}
       <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -242,12 +400,14 @@ export default function CustomerDashboard() {
   );
 }
 
+// ─── StatusBadge ──────────────────────────────────────────────────────────────
+
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string, text: string, label: string }> = {
-    PENDING: { bg: '#fef3c7', text: '#d97706', label: 'Pending Approval' },
-    ACCEPTED: { bg: '#e0f2fe', text: '#0284c7', label: 'Assigned' },
+    PENDING:   { bg: '#fef3c7', text: '#d97706', label: 'Pending Approval' },
+    ACCEPTED:  { bg: '#e0f2fe', text: '#0284c7', label: 'Assigned' },
     PICKED_UP: { bg: '#faf5ff', text: '#9333ea', label: 'Received' },
-    SHIPPING: { bg: '#ffedd5', text: '#ea580c', label: 'Shipping' },
+    SHIPPING:  { bg: '#ffedd5', text: '#ea580c', label: 'Shipping' },
     DELIVERED: { bg: '#dcfce7', text: '#16a34a', label: 'Completed' },
     CANCELLED: { bg: '#fee2e2', text: '#ef4444', label: 'Cancelled' },
   };

@@ -242,6 +242,12 @@ export class OrdersService {
 
   async getPublicOrderTracking(trackingNumber: string) {
     if (!trackingNumber) throw new BadRequestException('Tracking number is required');
+
+    // ✅ MEDIUM-02 FIX: Validate format — ป้องกันส่ง payload ยาวไม่จำกัด
+    if (!/^SP[A-Z0-9]{10}$/.test(trackingNumber)) {
+      throw new BadRequestException('รูปแบบหมายเลขพัสดุไม่ถูกต้อง (ตัวอย่าง: SP1A2B3C4D5E)');
+    }
+
     const order = await this.prisma.order.findUnique({
       where: { trackingNumber },
       select: {
@@ -273,7 +279,12 @@ export class OrdersService {
 
     if (!order) throw new BadRequestException('ไม่พบข้อมูลพัสดุสำหรับรหัสนี้');
 
-    return order;
+    // ✅ MEDIUM-01 FIX: Fuzzy lat/lng — ลดความแม่นยำเหลือ ~1km (แสดงโซนบนแมปได้แต่ระบุบ้านไม่ได้)
+    return {
+      ...order,
+      lat: order.lat != null ? Math.round(order.lat * 100) / 100 : null,
+      lng: order.lng != null ? Math.round(order.lng * 100) / 100 : null,
+    };
   }
 
   async getOrderMessages(orderId: number, userId: number, role: string) {

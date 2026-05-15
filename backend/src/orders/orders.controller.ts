@@ -5,6 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles.enum';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler'; // ✅ Per-Route Rate Limiting
 
 @Controller('orders')
 export class OrdersController {
@@ -48,6 +49,9 @@ export class OrdersController {
     return this.ordersService.getMyOrders(req.user.sub);
   }
 
+  // ✅ SEC: Public Tracking — Rate Limited 10 ครั้ง/นาที/IP เพื่อป้องกัน Brute-force Tracking ID
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Get('track/:trackingNumber')
   getPublicOrderTracking(@Param('trackingNumber') trackingNumber: string) {
     return this.ordersService.getPublicOrderTracking(trackingNumber);

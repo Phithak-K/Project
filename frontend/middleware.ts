@@ -1,163 +1,293 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface MiddlewareContext {
+  request: NextRequest
+  pathname: string
+  hostname: string
+  currentHost: string   // เช่น 'app' | 'store' | 'fleet' | ''
+  isLocalhost: boolean
+  token: string | undefined
+  userRole: string | undefined
+  isAuthPage: boolean
+  isPublicAppPage: boolean
+  getRedirectUrl: (path: string, subdomain?: string) => string
+  clearBadCookies: (response: NextResponse) => NextResponse
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: สร้าง URL สำหรับ Redirect ตาม Subdomain
+// ─────────────────────────────────────────────────────────────────────────────
+
+function buildRedirectUrl(
+  path: string,
+  subdomain: string = '',
+  protocol: string,
+  isLocalhost: boolean,
+): string {
+  const baseHost = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000'
+  const newHost  = subdomain ? `${subdomain}.${baseHost}` : baseHost
+  return `${protocol}://${newHost}${path}`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: ล้าง Cookie ที่ติดค้างอยู่ตาม Subdomain (แก้ Ping-Pong loop)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function clearBadCookies(response: NextResponse): NextResponse {
+  const cookieOptions = [
+    { path: '/' },
+    { path: '/', domain: 'localhost' },
+    { path: '/', domain: '.localhost' },
+  ]
+  cookieOptions.forEach(opt => {
+    response.cookies.set('token', '', { ...opt, maxAge: 0 })
+    response.cookies.set('role',  '', { ...opt, maxAge: 0 })
+  })
+  return response
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: ตรวจสอบสิทธิ์ผู้ดูแลระบบ (Admin)
+// คืนค่า: NextResponse ถ้าต้อง Redirect/Block | null ถ้าผ่านได้
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkAdminAccess(ctx: MiddlewareContext): NextResponse | null {
+  const { pathname, token, userRole, request, getRedirectUrl } = ctx
+
+  // หน้า Admin Login เปิดให้เข้าได้เสมอ ไม่ต้องตรวจสอบ
+  if (pathname === '/admin/login') return NextResponse.next()
+
+  if (pathname.startsWith('/admin')) {
+    if (!token || userRole !== 'Admin') {
+      const loginUrl = getRedirectUrl('/admin/login', '')
+      return NextResponse.redirect(new URL(loginUrl, request.url))
+    }
+    return NextResponse.next()
+  }
+
+  return null // ไม่ใช่ /admin path → ส่งต่อให้ตรวจขั้นตอนถัดไป
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: จัดการหน้า Auth (Login / Register / Verify-OTP / Track)
+// — ถ้าล็อกอินแล้ว → Redirect ไปหน้าหลักของ Role ตัวเอง
+// — ถ้ายังไม่ล็อกอิน → ปล่อยผ่าน (จะ Rewrite ท้ายไฟล์)
+// คืนค่า: NextResponse ถ้าต้อง Redirect | null ถ้าปล่อยผ่าน
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkAuthPageAccess(ctx: MiddlewareContext): NextResponse | null {
+  const { token, userRole, currentHost, request, getRedirectUrl } = ctx
+
+  if (!token || !userRole) return null // ยังไม่ล็อกอิน → ปล่อยผ่าน
+
+  // ล็อกอินแล้วแต่เข้าหน้า Auth → ส่งกลับ Dashboard ของ Role ตัวเอง
+  let targetHost = currentHost || 'app'
+  if (userRole === 'Merchant') targetHost = 'store'
+  else if (userRole === 'Driver')   targetHost = 'fleet'
+  else if (userRole === 'Customer') targetHost = 'app'
+
+  const response = NextResponse.redirect(new URL(getRedirectUrl('/', targetHost), request.url))
+
+  // ถ้า Cookie อยู่ผิด Subdomain → ล้างออกเพื่อป้องกัน Redirect loop
+  if (targetHost !== currentHost) return clearBadCookies(response)
+
+  return response
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: ตรวจสอบสิทธิ์ Customer (Subdomain: app)
+// — Role ไม่ใช่ Customer → ไล่ออกไป Root Login + ล้าง Cookie
+// คืนค่า: NextResponse ถ้าต้อง Redirect | null ถ้าผ่าน
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkCustomerAccess(ctx: MiddlewareContext): NextResponse | null {
+  const { currentHost, userRole, request, getRedirectUrl } = ctx
+
+  if (currentHost !== 'app') return null
+
+  if (userRole && userRole !== 'Customer') {
+    const response = NextResponse.redirect(new URL(getRedirectUrl('/login', ''), request.url))
+    return clearBadCookies(response)
+  }
+
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: ตรวจสอบสิทธิ์ Merchant (Subdomain: store)
+// — Role ไม่ใช่ Merchant → เตะไป Subdomain ที่ถูกต้อง
+// คืนค่า: NextResponse ถ้าต้อง Redirect | null ถ้าผ่าน
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkMerchantAccess(ctx: MiddlewareContext): NextResponse | null {
+  const { currentHost, userRole, request, getRedirectUrl } = ctx
+
+  if (currentHost !== 'store') return null
+
+  if (userRole !== 'Merchant') {
+    const correctHost = userRole === 'Driver' ? 'fleet' : 'app'
+    const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url))
+    return clearBadCookies(response)
+  }
+
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPER: ตรวจสอบสิทธิ์ Driver (Subdomain: fleet)
+// — Role ไม่ใช่ Driver → เตะไป Subdomain ที่ถูกต้อง
+// คืนค่า: NextResponse ถ้าต้อง Redirect | null ถ้าผ่าน
+// ─────────────────────────────────────────────────────────────────────────────
+
+function checkDriverAccess(ctx: MiddlewareContext): NextResponse | null {
+  const { currentHost, userRole, request, getRedirectUrl } = ctx
+
+  if (currentHost !== 'fleet') return null
+
+  if (userRole !== 'Driver') {
+    const correctHost = userRole === 'Merchant' ? 'store' : 'app'
+    const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url))
+    return clearBadCookies(response)
+  }
+
+  return null
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN MIDDLEWARE
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone()
+  const url      = request.nextUrl.clone()
   const hostname = request.headers.get('host') || ''
   const pathname = url.pathname
 
-  // 1. ดึง Token และ Role จาก Cookies
-  // สำคัญ: Middleware อ่านได้เฉพาะ Cookie ที่ถูกเซตมาอย่างถูกต้องเท่านั้น
-  const token = request.cookies.get('token')?.value
+  // ── ข้ามไฟล์ Static (_next, /api, ไฟล์ที่มีนามสกุล) ──────────────────────
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api')   ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next()
+  }
+
+  // ── ดึงข้อมูลพื้นฐาน ────────────────────────────────────────────────────────
+  const token    = request.cookies.get('token')?.value
   const userRole = request.cookies.get('role')?.value
 
-  // ดึง Subdomain และตรวจสอบสภาพแวดล้อม
-  const hostParts = hostname.split('.')
+  const hostParts   = hostname.split('.')
   const isLocalhost = hostname.includes('localhost')
-  
-  // หา Subdomain (เช่น store, fleet, app)
+
   let currentHost = ''
   if (hostParts.length > (isLocalhost ? 1 : 2)) {
     currentHost = hostParts[0]
   }
 
   // DEBUG LOG (ทิ้งไว้ตามที่ผู้ใช้ขอ)
-  console.log(`[Middleware] Path: ${pathname} | Host: ${hostname} | Subdomain: ${currentHost} | Token: ${!!token} | Role: ${userRole}`);
+  console.log(
+    `[Middleware] Path: ${pathname} | Host: ${hostname} | ` +
+    `Subdomain: ${currentHost} | Token: ${!!token} | Role: ${userRole}`
+  )
 
-  // 2. ข้ามไฟล์ระบบและไฟล์รูปภาพ (Static Files)
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.')
-  ) {
-    return NextResponse.next()
-  }
+  // ── สร้าง Helper ที่ผูกกับ Request ปัจจุบัน ─────────────────────────────────
+  const protocol = url.protocol.replace(':', '')
+  const getRedirectUrl = (path: string, subdomain: string = '') =>
+    buildRedirectUrl(path, subdomain, protocol, isLocalhost)
 
-  // ป้องกัน Admin Dashboard Bypass (CRITICAL SEC-FIX)
-  if (pathname === '/admin/login') {
-    return NextResponse.next()
-  }
-  if (pathname.startsWith('/admin')) {
-    if (!token || userRole !== 'Admin') {
-      const loginUrl = getRedirectUrl('/admin/login', '');
-      return NextResponse.redirect(new URL(loginUrl, request.url));
-    }
-    return NextResponse.next();
-  }
-
-  // ฟังก์ชันช่วยสร้าง URL ให้ตรงกับ Host ปัจจุบันแบบ Dynamic
-  const getRedirectUrl = (path: string, subdomain: string = '') => {
-    // 💡 ใช้ protocol เดียวกับที่ Request ส่งมาโดยตรง เพื่อป้องกันอาการวนลูป HTTPS <-> HTTP
-    const protocol = url.protocol.replace(':', '');
-    const baseHost = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000'
-    const newHost = subdomain ? `${subdomain}.${baseHost}` : baseHost
-    return `${protocol}://${newHost}${path}`
-  }
-
-  // ฟังก์ชันล้าง Cookie แบบขุดรากถอนโคน (แก้ปัญหา Cookie ดื้อติดอยู่ตาม Subdomain ต่างๆ)
-  const clearBadCookies = (response: NextResponse) => {
-    const cookieOptions = [
-      { path: '/' },
-      { path: '/', domain: 'localhost' },
-      { path: '/', domain: '.localhost' }
-    ];
-    cookieOptions.forEach(opt => {
-      response.cookies.set('token', '', { ...opt, maxAge: 0 });
-      response.cookies.set('role', '', { ...opt, maxAge: 0 });
-    });
-    return response;
-  }
-
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/verify-otp') || pathname.startsWith('/track')
-
+  const isAuthPage     = pathname.startsWith('/login')
+                      || pathname.startsWith('/register')
+                      || pathname.startsWith('/verify-otp')
+                      || pathname.startsWith('/track')
   const isPublicAppPage = currentHost === 'app' && pathname === '/'
 
-  // STRICT NULL CHECK: ถ้าไม่มีรหัส Token, ไปผุดที่ Login ของตัวเองเท่านั้น
-  if (!token) {
-    if (!isAuthPage && !isPublicAppPage) {
-      const loginBaseUrl = getRedirectUrl('/login', currentHost || 'app')
-      const callbackUrl = encodeURIComponent(request.url)
-      const loginUrlWithCallback = `${loginBaseUrl}?callbackUrl=${callbackUrl}`
-      return NextResponse.redirect(new URL(loginUrlWithCallback, request.url))
-    }
+  // ── สร้าง Context Object ส่งให้ทุก Helper ──────────────────────────────────
+  const ctx: MiddlewareContext = {
+    request, pathname, hostname, currentHost,
+    isLocalhost, token, userRole,
+    isAuthPage, isPublicAppPage,
+    getRedirectUrl,
+    clearBadCookies,
   }
 
-  // BYPASS AUTH PAGES: ปล่อยผ่านหน้า Auth โดยไม่มี Redirection ใดๆ (กันเงื่อนไขตีกัน)
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 1: Admin Gate — ตรวจก่อนเสมอ (CRITICAL SEC-FIX)
+  // ════════════════════════════════════════════════════════════════════════════
+  const adminResult = checkAdminAccess(ctx)
+  if (adminResult) return adminResult
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 2: Unauthenticated Guard
+  // ถ้าไม่มี Token และไม่ใช่หน้า Public → Redirect ไป Login พร้อม callbackUrl
+  // ════════════════════════════════════════════════════════════════════════════
+  if (!token && !isAuthPage && !isPublicAppPage) {
+    const loginBaseUrl         = getRedirectUrl('/login', currentHost || 'app')
+    const callbackUrl          = encodeURIComponent(request.url)
+    const loginUrlWithCallback = `${loginBaseUrl}?callbackUrl=${callbackUrl}`
+    return NextResponse.redirect(new URL(loginUrlWithCallback, request.url))
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 3: Auth Page Gate
+  // ถ้าล็อกอินแล้วแต่เข้าหน้า Auth → Redirect กลับ Dashboard
+  // ════════════════════════════════════════════════════════════════════════════
   if (isAuthPage) {
-    if (token && userRole) {
-       // ล็อกอินแล้วแต่มาหน้าล็อกอิน -> ส่งกลับ
-       let targetHost = currentHost || 'app';
-       if (userRole === 'Merchant') targetHost = 'store';
-       else if (userRole === 'Driver') targetHost = 'fleet';
-       else if (userRole === 'Customer') targetHost = 'app';
-       
-       const response = NextResponse.redirect(new URL(getRedirectUrl('/', targetHost), request.url))
-       if (targetHost !== currentHost) {
-           // Auto-clean: ลบ Cookie ที่อยู่ผิดโดเมนทิ้งทันที เพื่อแก้ปัญหาเตะไปเตะมา (Ping-Pong)
-           return clearBadCookies(response);
-       }
-       return response;
-    }
-    // ถ้ายังไม่ล็อกอิน ปล่อยให้เห็นหน้าล็อกอินไปเลย (จะไป Rewrite ท้ายไฟล์)
+    const authResult = checkAuthPageAccess(ctx)
+    if (authResult) return authResult
+    // ถ้ายังไม่ล็อกอิน → ปล่อยผ่าน (Rewrite ท้ายไฟล์จะจัดการ)
   } else {
-    // ROLE VERIFICATION (ถ้าไม่ใช่หน้า Auth)
-    if (currentHost === 'app') {
-      if (userRole && userRole !== 'Customer') {
-        const response = NextResponse.redirect(new URL(getRedirectUrl('/login', ''), request.url));
-        return clearBadCookies(response); // เตะไป localhost:3000/login
-      }
-    }
-    
-    if (currentHost === 'store' && userRole !== 'Merchant') {
-      const correctHost = userRole === 'Driver' ? 'fleet' : 'app';
-      const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url));
-      return clearBadCookies(response);
-    }
+    // ════════════════════════════════════════════════════════════════════════
+    // STEP 4: Role-Based Access Control (ตรวจแบบขนาน ใครโดน return ก่อน)
+    // ════════════════════════════════════════════════════════════════════════
+    const roleResult =
+      checkCustomerAccess(ctx) ??
+      checkMerchantAccess(ctx) ??
+      checkDriverAccess(ctx)
 
-    if (currentHost === 'fleet' && userRole !== 'Driver') {
-      const correctHost = userRole === 'Merchant' ? 'store' : 'app';
-      const response = NextResponse.redirect(new URL(getRedirectUrl('/', correctHost), request.url));
-      return clearBadCookies(response);
-    }
+    if (roleResult) return roleResult
   }
 
-  // 4. จัดการกรณีเข้าผ่าน localhost:3000 ตรงๆ (Root Domain สำหรับ Landing Page)
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 5: Root Domain Handler (localhost:3000 ตรงๆ)
+  // ════════════════════════════════════════════════════════════════════════════
   if (!currentHost || currentHost === 'localhost') {
-    if (pathname === '/') return NextResponse.next(); // แสดง app/page.tsx (Landing)
-    
-    // ถ้าเข้าหน้า auth หรืออื่นๆ ให้เด้งไป subdomain 'app' เพื่อใช้งาน Customer logic
+    if (pathname === '/') return NextResponse.next() // Landing Page
+
+    // Auth + Orders บน Root → เด้งไป app subdomain
     if (isAuthPage || pathname.startsWith('/orders')) {
-      return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url));
+      return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
     }
-    
-    // Fallback สำหรับกรณีอื่นๆ บน root domain
-    return NextResponse.next();
+
+    return NextResponse.next()
   }
 
-  // 4.1 ป้องกันการเข้าผิด Subdomain (Fix 404 for /driver/register etc.)
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 6: Wrong-Subdomain Guard (Fix 404 for /driver/register on app subdomain)
+  // ════════════════════════════════════════════════════════════════════════════
   if (currentHost === 'app' && (pathname.startsWith('/merchant') || pathname.startsWith('/driver'))) {
-     const targetRole = pathname.startsWith('/merchant') ? 'store' : 'fleet';
-     const cleanPath = pathname.replace('/merchant', '').replace('/driver', '');
-     return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url));
+    const targetRole = pathname.startsWith('/merchant') ? 'store' : 'fleet'
+    const cleanPath  = pathname.replace('/merchant', '').replace('/driver', '')
+    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url))
   }
 
-  // 5. Shared pages ที่มีอยู่เฉพาะที่ root level (ใช้ร่วมกันทุก subdomain)
-  // ถ้าไม่ข้าม path พวกนี้ Middleware จะ Rewrite ไปหา /customer/verify-otp ที่ไม่มีอยู่จริง
-  const sharedRootPaths = ['/verify-otp', '/track'];
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 7: Shared Root Pages (ห้าม Rewrite — เพราะไม่มีโฟลเดอร์ /customer/verify-otp)
+  // ════════════════════════════════════════════════════════════════════════════
+  const sharedRootPaths = ['/verify-otp', '/track']
   if (sharedRootPaths.some(p => pathname.startsWith(p))) {
-    return NextResponse.next();
+    return NextResponse.next()
   }
 
-  // 6. Rewrite เส้นทางเข้าสู่ Folders ตาม Subdomain
-  if (currentHost === 'store') {
-    return NextResponse.rewrite(new URL(`/merchant${pathname}`, request.url))
-  }
-  if (currentHost === 'fleet') {
-    return NextResponse.rewrite(new URL(`/driver${pathname}`, request.url))
-  }
-  if (currentHost === 'app') {
-    return NextResponse.rewrite(new URL(`/customer${pathname}`, request.url))
-  }
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 8: Subdomain → Folder Rewrite
+  // ════════════════════════════════════════════════════════════════════════════
+  if (currentHost === 'store') return NextResponse.rewrite(new URL(`/merchant${pathname}`, request.url))
+  if (currentHost === 'fleet') return NextResponse.rewrite(new URL(`/driver${pathname}`,   request.url))
+  if (currentHost === 'app')   return NextResponse.rewrite(new URL(`/customer${pathname}`, request.url))
 
   return NextResponse.next()
 }

@@ -16,8 +16,8 @@ import { NotificationsModule } from './notifications/notifications.module';
 @Module({
   imports: [
     ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 5,
+      ttl: 60000,  // 1 นาที (milliseconds)
+      limit: 100,  // Global fallback — Per-route จะ override เป็น 10 สำหรับ Public Track API
     }]),
     ConfigModule.forRoot({
       isGlobal: true,

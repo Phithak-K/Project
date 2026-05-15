@@ -60,57 +60,51 @@ export class StripeService {
   private async processTopUp(paymentIntent: any) {
     const userId = parseInt(paymentIntent.metadata.userId, 10);
     const userRole = paymentIntent.metadata.userRole;
-    const amount = paymentIntent.amount / 100; // Convert back from cents
+    const amount = paymentIntent.amount / 100;
 
     if (!userId || !userRole) return;
 
-    // Determine model
     const modelMap: any = {
       Customer: this.prisma.customer,
       Merchant: this.prisma.merchant,
-      Driver: this.prisma.driver
+      Driver: this.prisma.driver,
     };
-    
-    const dbModel = modelMap[userRole];
-    if (!dbModel) return;
+    if (!modelMap[userRole]) return;
 
-    // 🆕 1. Check Idempotency (Prevent Double Credit)
-    const existingTransaction = await this.prisma.transaction.findUnique({
-      where: { referenceId: paymentIntent.id }
-    });
-    if (existingTransaction) {
-      console.log(`Top-up skipped: PaymentIntent ${paymentIntent.id} already processed.`);
-      return;
-    }
-
-    // Atomic Transaction for Wallet Security
     try {
       await this.prisma.$transaction(async (tx: any) => {
-        // 1. Update Balance Safely
+        // ✅ CRITICAL-01 FIX: Idempotency Check อยู่ใน $transaction เดียวกับ write
+        // ป้องกัน TOCTOU: ถ้า Stripe retry 2 webhook พร้อมกัน
+        // อย่างมากแค่ 1 ใบผ่าน check นี้ได้ก่อน commit
+        // อีกใบจะ rollback โดย UniqueConstraintViolation บน referenceId
+        const existing = await tx.transaction.findUnique({
+          where: { referenceId: paymentIntent.id },
+        });
+        if (existing) {
+          console.log(`Top-up skipped (idempotent): ${paymentIntent.id}`);
+          return; // early return = no writes committed
+        }
+
+        // 1. Credit Balance
         await tx[userRole.toLowerCase()].update({
           where: { id: userId },
-          data: {
-            balance: {
-              increment: amount
-            }
-          }
+          data: { balance: { increment: amount } },
         });
 
-        // 2. Create Transaction Record
+        // 2. Transaction Record (referenceId @unique เป็น safety net อีกชั้น)
         await tx.transaction.create({
           data: {
-            amount: amount,
+            amount,
             type: 'CREDIT',
             note: `Top up via Stripe (Intent: ${paymentIntent.id})`,
             referenceId: paymentIntent.id,
-            userId: userId,
-            userRole: userRole
-          }
+            userId,
+            userRole,
+          },
         });
       });
       console.log(`Successfully topped up ${amount} THB for ${userRole} ${userId}`);
     } catch (error) {
-      // [L-05] FIX: Throw error เพื่อให้ Stripe รู้ว่าต้อง Retry (ไม่กลืน Error เงียบๆ)
       console.error(`Failed to process top-up for ${userRole} ${userId}`, error);
       throw new Error(`Webhook processing failed for PaymentIntent ${paymentIntent.id}`);
     }

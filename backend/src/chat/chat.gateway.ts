@@ -46,32 +46,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
    */
   handleConnection(client: Socket) {
     try {
-      // รับ token จาก auth header หรือ query parameter
       const token =
         (client.handshake.auth?.token as string) ||
         (client.handshake.query?.token as string) ||
         '';
-
-      // ตัด "Bearer " ออกถ้ามี
       const cleanToken = token.replace('Bearer ', '');
-
       if (!cleanToken) {
         this.logger.warn(`Client ${client.id} ถูกตัดการเชื่อมต่อ: ไม่มี Token`);
         client.emit('error', { message: 'Authentication required: กรุณาแนบ JWT Token' });
         client.disconnect();
         return;
       }
-
-      // ตรวจสอบ JWT
       const payload = this.jwtService.verify(cleanToken);
-      // เก็บข้อมูล user ไว้ใน client data เพื่อใช้ภายหลัง
       (client as any).user = payload;
-
       this.logger.log(`Client ${client.id} เชื่อมต่อสำเร็จ (userId: ${payload.sub})`);
     } catch (error) {
       this.logger.warn(`Client ${client.id} ถูกตัดการเชื่อมต่อ: Token ไม่ถูกต้องหรือหมดอายุ`);
       client.emit('error', { message: 'Authentication failed: Token ไม่ถูกต้องหรือหมดอายุ' });
       client.disconnect();
+    }
+  }
+
+  /**
+   * ✅ HIGH-02 FIX: Re-verify JWT Signature ทุก Event (Zero-Trust)
+   * ไม่ใช้ค่า exp ที่ cache ไว้ตอน connect —
+   * re-verify จริงทุกครั้ง ทำให้ token revocation และ secret rotation มีผลทันที
+   */
+  private verifyAndGetUser(client: Socket): any | null {
+    try {
+      const raw =
+        (client.handshake.auth?.token as string) ||
+        (client.handshake.query?.token as string) ||
+        '';
+      const cleanToken = raw.replace('Bearer ', '');
+      if (!cleanToken) throw new Error('No token');
+      return this.jwtService.verify(cleanToken); // re-verifies signature + expiry
+    } catch {
+      client.emit('error', { message: 'Session expired. Please reconnect.' });
+      client.disconnect();
+      return null;
     }
   }
 
@@ -85,19 +98,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string; imageUrl?: string; audioUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // ใช้ senderId จาก JWT Token ที่ตรวจสอบแล้ว
-    const user = (client as any).user;
-    if (!user) {
-      client.emit('error', { message: 'Unauthorized' });
-      return;
-    }
-    
-    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event (Persistent Identity)
-    if (user.exp && Date.now() >= user.exp * 1000) {
-      client.emit('error', { message: 'Session Expired' });
-      client.disconnect();
-      return;
-    }
+    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
+    const user = this.verifyAndGetUser(client);
+    if (!user) return;
 
     // 1. Verify sender is part of this order [H-01 FIX]
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
@@ -160,18 +163,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { orderId: number },
     @ConnectedSocket() client: Socket,
   ) {
-    const user = (client as any).user;
-    if (!user) {
-      client.emit('error', { message: 'Unauthorized' });
-      return;
-    }
-
-    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event
-    if (user.exp && Date.now() >= user.exp * 1000) {
-      client.emit('error', { message: 'Session Expired' });
-      client.disconnect();
-      return;
-    }
+    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
+    const user = this.verifyAndGetUser(client);
+    if (!user) return;
 
     // [CRITICAL SECURITY FIX] ตรวจสอบสิทธิ์การเข้าห้อง
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
@@ -200,16 +194,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() data: { orderId: number; lat: number; lng: number; heading?: number },
     @ConnectedSocket() client: Socket,
   ) {
-    const user = (client as any).user;
-    if (!user || user.role !== 'Driver') {
-      client.emit('error', { message: 'Unauthorized: Only drivers can update location' });
-      return;
-    }
+    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
+    const user = this.verifyAndGetUser(client);
+    if (!user) return;
 
-    // [ZERO-TRUST] ตรวจสอบวันหมดอายุซ้ำทุกครั้งที่มี Event
-    if (user.exp && Date.now() >= user.exp * 1000) {
-      client.emit('error', { message: 'Session Expired' });
-      client.disconnect();
+    if (user.role !== 'Driver') {
+      client.emit('error', { message: 'Unauthorized: Only drivers can update location' });
       return;
     }
 

@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -44,21 +44,25 @@ export class AuthController {
 
   // --- 🆕 ส่วนสำหรับ Social Login & Firebase ---
 
-  // 4. เข้าสู่ระบบด้วย Google
+  // ✅ HIGH-03 FIX: เพิ่ม Rate Limit บน Social Login — ป้องกัน Account Enumeration
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('google-login')
   @HttpCode(HttpStatus.OK)
   async googleLogin(@Body() body: { token: string }) {
     return this.authService.googleLogin(body.token);
   }
 
-  // เข้าสู่ระบบด้วย Facebook
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('facebook-login')
   @HttpCode(HttpStatus.OK)
   async facebookLogin(@Body() body: { token: string }) {
     return this.authService.facebookLogin(body.token);
   }
 
-  // เข้าสู่ระบบด้วย LINE
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   @Post('line-login')
   @HttpCode(HttpStatus.OK)
   async lineLogin(@Body() body: { token: string }) {
