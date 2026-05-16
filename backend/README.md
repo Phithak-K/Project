@@ -1,60 +1,114 @@
-# SwiftPath Backend (NestJS)
+# SwiftPath Backend — NestJS API Layer
 
-ระบบหลังบ้านของ SwiftPath พัฒนาด้วย NestJS โดยมุ่งเน้นสถาปัตยกรรมที่รองรับการขยายตัว (Scalable Architecture) ความถูกต้องของข้อมูลทางการเงิน และความปลอดภัยระดับสูงสุด (Hardened Security)
-
----
-
-## 🏗️ โครงสร้างระบบ (Architecture)
-
-Backend ถูกแบ่งออกเป็น Modules เพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษาตามหลัก Modular Design:
-
--   **Auth Module:** ระบบยืนยันตัวตน (JWT), การลงทะเบียนแบบ Multi-step, OTP (Hashed), และ Social Login (Google, Facebook, LINE)
--   **Users Module:** จัดการข้อมูลผู้ใช้และระบบ Role-Based Access Control (RBAC)
--   **Orders Module:** หัวใจหลักในการจัดการวงจรชีวิตออเดอร์, การคำนวณราคา Surge Pricing ตามสภาพอากาศ, และระบบ Analytics ขั้นสูง
--   **Stripe Module:** เชื่อมต่อระบบชำระเงิน Stripe API พร้อมระบบ Idempotency Webhook
--   **Weather Module:** บูรณาการ OpenWeather API เพื่อข้อมูลเรียลไทม์ในการตัดสินใจด้านราคาและโลจิสติกส์
--   **Chat Module:** ระบบสื่อสารเรียลไทม์ (WebSocket) พร้อมการตรวจสอบ Signature Verification ในทุกๆ Event
--   **Prisma Module:** Layer จัดการฐานข้อมูล PostgreSQL ผ่าน Prisma ORM
+เอกสารนี้ครอบคลุมรายละเอียดด้านวิศวกรรมของชั้น Backend ของ SwiftPath ที่พัฒนาด้วย NestJS ผู้อ่านควรอ่าน [Root README](../README.md) และ [Architecture Decision Records](../docs/adr/) ควบคู่กันเพื่อทำความเข้าใจบริบทเชิงระบบโดยรวมก่อน
 
 ---
 
-## 🔒 ฟีเจอร์ด้านความปลอดภัยและการรักษาความสมบูรณ์ของข้อมูล (Security & Data Integrity)
+## โครงสร้าง Module
 
-เราได้ดำเนินการ Hardening ระบบเพื่อป้องกันการโจมตีและความผิดพลาดเชิงตรรกะธุรกิจ (Business Logic Flaws):
+Backend ถูกแบ่งออกเป็น Module ตามหลักการ Separation of Concerns แต่ละ Module รับผิดชอบขอบเขตหน้าที่ของตัวเองอย่างชัดเจน
 
-1.  **Optimistic Locking (Concurrency Control):** ระบบการเงิน (Top-up/Debit) บังคับใช้ฟิลด์ `version` ในฐานข้อมูลเพื่อป้องกันปัญหา Race Condition 100% ในกรณีที่มีธุรกรรมเกิดขึ้นพร้อมกันในระดับมิลลิวินาที
-2.  **SHA-256 OTP Hashing:** รหัส OTP จะถูก Hash ก่อนบันทึกลงฐานข้อมูล ป้องกันความลับรั่วไหลแม้ผู้บุกรุกเข้าถึงฐานข้อมูลได้
-3.  **NestJS Throttler (Advanced Rate Limiting):** ป้องกันการโจมตีแบบ Brute-force บน Endpoint สำคัญ เช่น `verify-phone-otp` และ Social Login โดยจำกัดสูงสุด 5-10 ครั้งต่อนาที
-4.  **Zero-Trust WebSocket Gateway:** บังคับใช้ JWT Signature Verification ในทุกๆ ข้อความที่ส่งผ่าน Socket.io เพื่อป้องกันการสวมรอยพิกัด GPS หรือข้อความแชท
-5.  **Stripe Webhook Idempotency:** ป้องกันปัญหา Double Credit โดยการตรวจสอบ `referenceId` ภายในฐานข้อมูลแบบ Atomic Transaction
-6.  **Input Validation & Sanitization:** ใช้ `class-validator` และระบบ DTO ที่เข้มงวดเพื่อป้องกันการยิงข้อมูลแปลกปลอมเข้าระบบ
-
----
-
-## 🚀 รายการอัปเดตสำคัญ (Latest Hardening)
-
-*   **Financial Integrity Patch:** อัปเกรด `updateBalanceAtomic` ให้รองรับ Versioning เพื่อความปลอดภัยระดับ Enterprise
-*   **Auth Vulnerability Mitigation:** ปิดช่องโหว่ Brute-force บนระบบ Firebase OTP ด้วยการเพิ่ม ThrottlerGuard
-*   **Public Tracking Security:** ออกแบบระบบ Select Field Filtering เพื่อคัดกรองข้อมูลละเอียดอ่อน (PII) ออกจาก API ติดตามพัสดุสาธารณะโดยสมบูรณ์
-*   **Admin Access Lockdown:** เสริมความแข็งแกร่งให้ระบบ Admin Gate ในระดับ Controller เพื่อป้องกันสิทธิ์รั่วไหล
+| Module | ไฟล์หลัก | หน้าที่ |
+| :--- | :--- | :--- |
+| `AuthModule` | `src/auth/` | JWT authentication, OTP (SHA-256 hashed), Social Login (Google, Facebook, LINE), Firebase Phone Auth |
+| `UsersModule` | `src/users/` | จัดการ profile และ Role-Based Access Control สำหรับทุก actor |
+| `OrdersModule` | `src/orders/` | วงจรชีวิตออเดอร์, Surge Pricing ตามสภาพอากาศ, การคำนวณ ETA, analytics |
+| `StripeModule` | `src/stripe/` | Webhook handler พร้อม Idempotency Guard, การสร้าง PaymentIntent |
+| `ChatModule` | `src/chat/` | Real-time messaging ผ่าน Socket.io พร้อม JWT verification ทุก event |
+| `NotificationsModule` | `src/notifications/` | ส่ง FCM push notification ผ่าน Firebase Admin SDK |
+| `WeatherModule` | `src/weather/` | บูรณาการ OpenWeather API สำหรับ Surge Pricing และข้อมูล logistics |
+| `UploadModule` | `src/upload/` | จัดการรูปภาพ proof-of-delivery |
+| `PrismaModule` | `src/prisma/` | Database access layer — PostgreSQL ผ่าน Prisma ORM |
 
 ---
 
-## 🛠️ การรันระบบ (Development)
+## มาตรการความปลอดภัยและความสมบูรณ์ของข้อมูล
+
+รายการด้านล่างสะท้อนการตัดสินใจที่บันทึกไว้อย่างละเอียดใน [docs/adr/](../docs/adr/)
+
+### 1. Optimistic Concurrency Control (ADR-003)
+
+ฟิลด์ `version` บน model `Customer`, `Merchant`, และ `Driver` ป้องกัน Lost Update Anomaly เมื่อมีการแก้ไขยอดเงินพร้อมกันจากหลายช่องทาง เช่น Stripe Webhook credit racing กับ order debit
+
+```prisma
+model Customer {
+  balance  Decimal @default(0)
+  version  Int     @default(0)  // OCC sentinel — ป้องกัน Race Condition
+}
+```
+
+### 2. Stripe Webhook Idempotency (ADR-002)
+
+การตรวจสอบ `referenceId` ทำงานภายใน `prisma.$transaction` เดียวกับการ write ยอดเงิน กำจัดช่องว่าง TOCTOU race condition ในกรณีที่ Stripe ส่ง Webhook ซ้ำ
+
+```typescript
+// การตรวจสอบและการ write อยู่ใน atomic boundary เดียวกัน
+await this.prisma.$transaction(async (tx) => {
+  const existing = await tx.transaction.findUnique({ where: { referenceId: paymentIntent.id } });
+  if (existing) return; // idempotent — ไม่มีการ write
+  await tx[role].update({ data: { balance: { increment: amount }, version: { increment: 1 } } });
+  await tx.transaction.create({ data: { referenceId: paymentIntent.id, ... } });
+});
+```
+
+### 3. Rate Limiting บน Endpoint ความเสี่ยงสูง (ADR-001)
+
+`ThrottlerGuard` สกัดกั้น request ก่อนที่จะถึง service logic หรือ external API call ใดๆ
+
+| Endpoint | จำกัด | เหตุผล |
+| :--- | :--- | :--- |
+| `POST /auth/verify-phone-otp` | 5 ครั้ง / 60 วินาที | ป้องกัน Firebase OTP brute-force และการขยายต้นทุน |
+| `POST /auth/google-login` | 20 ครั้ง / 60 วินาที | ป้องกัน Account Enumeration |
+| `POST /auth/facebook-login` | 20 ครั้ง / 60 วินาที | ป้องกัน Account Enumeration |
+| `POST /auth/line-login` | 20 ครั้ง / 60 วินาที | ป้องกัน Account Enumeration |
+
+### 4. Zero-Trust WebSocket Gateway
+
+Socket.io Gateway บังคับตรวจสอบ JWT signature ทุก event ไม่ใช่แค่ตอน connection เริ่มต้น ป้องกันการ hijack session หลัง token หมดอายุ
+
+### 5. SHA-256 OTP Hashing
+
+รหัส OTP ถูก hash ก่อนบันทึกลงฐานข้อมูลในทุกกรณี ป้องกันการรั่วไหลแม้ฐานข้อมูลถูกเข้าถึงโดยไม่ได้รับอนุญาต
+
+---
+
+## การทดสอบ
+
+ไฟล์ทดสอบวิกฤตที่ตรวจสอบความถูกต้องของระบบการเงิน:
+
+```bash
+# รัน test suite ของ Stripe Webhook Idempotency
+npx jest src/stripe/stripe.service.spec.ts --verbose
+```
+
+ชุดการทดสอบ `stripe.service.spec.ts` ครอบคลุม 3 specifications:
+- **Idempotency Guard:** Webhook ซ้ำต้องไม่ก่อให้เกิดการ credit ยอดเงินซ้ำ
+- **Transaction Atomicity:** การ write บางส่วนต้อง rollback ทั้งหมดเมื่อมีความผิดพลาด
+- **Role Dispatch:** ระบบต้องเลือก database model ที่ถูกต้องตาม `userRole`
+
+---
+
+## การเริ่มต้นระบบ
 
 ```bash
 # ติดตั้ง dependencies
 npm install
 
-# รัน Prisma Generate (หากมีการแก้ไข schema)
+# สร้าง Prisma client จาก schema
 npx prisma generate
 
-# รัน Seeder สร้างบัญชีผู้ดูแลระบบ (Admin)
+# ดัน schema ขึ้นฐานข้อมูล
+npx prisma db push
+
+# สร้างบัญชี Admin เริ่มต้น
 npx ts-node prisma/seed-admin.ts
 
-# เริ่มต้นระบบในโหมดพัฒนา (Watch mode)
+# เริ่มต้นในโหมดพัฒนา (watch mode)
 npm run start:dev
 ```
 
+> **หมายเหตุ:** ต้องมีไฟล์ `.env` ที่ระบุค่า `DATABASE_URL`, `JWT_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` และข้อมูล Firebase Admin SDK ก่อนเริ่มต้นระบบ
+
 ---
-*SwiftPath Backend - Engineered for Security. Optimized for Scale.*
+
+*SwiftPath Backend — Engineered for correctness under concurrency. Secured at every boundary.*
