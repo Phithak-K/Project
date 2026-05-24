@@ -213,7 +213,7 @@ export class AuthService implements OnModuleInit {
 
     // Admin Login: ค้นหาใน Customer table แต่ override JWT role เป็น 'Admin'
     if (roleStr === 'Admin') {
-      const adminEmails = (process.env.ADMIN_EMAILS || 'admin@swiftpath.com').split(',').map(e => e.trim());
+      const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
       if (!adminEmails.includes(loginDto.email)) {
         throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
       }

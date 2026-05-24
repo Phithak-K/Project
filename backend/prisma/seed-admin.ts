@@ -1,5 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// โหลด Environment Variables จากไฟล์ .env
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const prisma = new PrismaClient();
 
@@ -8,8 +13,14 @@ const prisma = new PrismaClient();
  * รัน: npx ts-node prisma/seed-admin.ts
  */
 async function main() {
-  const email = 'admin@swiftpath.com';
-  const password = 'SwiftAdmin@2025!';
+  const email = process.env.ADMIN_SEED_EMAIL;
+  const password = process.env.ADMIN_SEED_PASSWORD;
+
+  if (!email || !password) {
+    console.error('[Seeder] Error: ADMIN_SEED_EMAIL หรือ ADMIN_SEED_PASSWORD ไม่ได้ถูกกำหนดใน .env');
+    console.error('[Seeder] กรุณากำหนดค่าเหล่านี้ในไฟล์ .env ก่อนรัน Seeder');
+    process.exit(1);
+  }
 
   // ตรวจสอบว่ามี Admin อยู่แล้วหรือยัง (กัน duplicate)
   const existingCustomer = await prisma.customer.findUnique({ where: { email } });
