@@ -125,9 +125,9 @@ checkDriverAccess   — บังคับ Driver เท่านั้นบน
 
 ---
 
-## 4. บันทึกการแก้ไขบั๊กวิกฤต
+## 4. บันทึกการแก้ไขปัญหาเชิงสถาปัตยกรรม (Architecture & UI)
 
-### BUG-001: Admin วนลูป Redirect ไม่รู้จบ
+### ARCH-001: Admin วนลูป Redirect ไม่รู้จบ
 
 **อาการ:** บัญชี Admin ที่พยายามเข้า `/admin` ถูกดักจับในวงวน redirect ที่ไม่มีที่สิ้นสุด ทำให้ session cookie ถูกลบและถูก logout โดยไม่ตั้งใจ
 
@@ -141,7 +141,7 @@ const adminResult = checkAdminAccess(ctx)
 if (adminResult) return adminResult
 ```
 
-### BUG-002: หน้าจอกระตุก (CLS) เมื่อสลับซับโดเมน
+### ARCH-002: หน้าจอกระตุก (CLS) เมื่อสลับซับโดเมน
 
 **อาการ:** ผู้ใช้ที่นำทางระหว่างซับโดเมนเห็นหน้าจอกระพริบและขาวว่างชั่วขณะ ส่งผลเสียต่อคะแนน Core Web Vitals
 
@@ -153,11 +153,15 @@ if (adminResult) return adminResult
 
 ## 5. กลยุทธ์การตรวจสอบระบบและความทนทานต่อความผิดพลาด
 
-### 5.1 การจำแนกข้อผิดพลาดจากส่วนกลาง
+### 5.1 Security Audit และรายงานช่องโหว่
+
+โปรเจกต์นี้ผ่านการทำ **White-Box Security Audit** เมื่อวันที่ 24 พฤษภาคม 2026 โดยมีการแพตช์ช่องโหว่ระดับ Critical และ High (เช่น State Machine Bypass และ Plain-text password) เรียบร้อยแล้ว รายละเอียดเชิงลึกสามารถอ่านได้ที่เอกสาร: **[Security Audit Report (docs/SECURITY_AUDIT.md)](docs/SECURITY_AUDIT.md)**
+
+### 5.2 การจำแนกข้อผิดพลาดจากส่วนกลาง
 
 pipeline ข้อผิดพลาดของ backend แปลง database constraint violations และ external service failures ทั้งหมดให้เป็น HTTP response ที่มีโครงสร้างถูกต้อง การละเมิด uniqueness ของ `referenceId` จาก Webhook ที่ส่งซ้ำถูก classify เป็น no-op ระดับ business logic แทนที่จะเป็น `InternalServerError` ทำให้ infrastructure ของ Stripe ได้รับการยืนยัน `200 OK` และหยุดส่งซ้ำ
 
-### 5.2 โทโปโลยีของ Rate Limiting
+### 5.3 โทโปโลยีของ Rate Limiting
 
 `ThrottlerGuard` จาก NestJS ถูกใช้งานแบบ global และเข้มงวดขึ้นในระดับ endpoint สำหรับการดำเนินการที่มีความเสี่ยงสูง
 
@@ -171,7 +175,7 @@ pipeline ข้อผิดพลาดของ backend แปลง database c
 
 Guard ทำงานก่อน service logic, การประเมิน business rule, หรือการเปิด database connection ใดๆ ทั้งสิ้น
 
-### 5.3 การตรวจสอบ Authentication ของ WebSocket อย่างต่อเนื่อง
+### 5.4 การตรวจสอบ Authentication ของ WebSocket อย่างต่อเนื่อง
 
 Socket.io Gateway บังคับตรวจสอบ JWT signature ทุกครั้งที่มีการ emit และ subscribe event ไม่ใช่แค่ตอน connection เริ่มต้น วิธีนี้ป้องกันการโจมตีแบบ session-hijacking ที่จับ connection ที่ valid แล้วนำไปใช้หลัง token หมดอายุ
 

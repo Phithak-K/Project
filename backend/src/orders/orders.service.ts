@@ -560,6 +560,7 @@ export class OrdersService {
     const order = await this.prisma.order.findUnique({ where: { id: orderId } });
     if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
     if (order.driverId !== driverId) throw new ForbiddenException('สิทธิ์ถูกปฏิเสธ');
+    if (order.status !== OrderStatus.DELIVERED) throw new BadRequestException('[BUG-002 FIX] ชำระเงินได้เฉพาะออเดอร์ที่จัดส่งสำเร็จแล้ว (DELIVERED) เท่านั้น');
     if (order.paymentStatus === 'Paid') throw new BadRequestException('ออเดอร์นี้ชำระเงินแล้ว');
 
     // [DATA INTEGRITY] ใช้ Prisma.Decimal ป้องกัน Precision Loss

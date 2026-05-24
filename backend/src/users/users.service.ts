@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import * as bcrypt from 'bcrypt'; // [BUG-006 FIX] ป้องกัน Plain-text Password
 
 @Injectable()
 export class UsersService {
@@ -53,10 +54,14 @@ export class UsersService {
 
   async create(createUserDto: CreateUserDto, role: string) {
     const delegate = this.getDelegate(role);
+    // [BUG-006 FIX] Hash รหัสผ่านก่อนบันทึกลง Database ป้องกัน Plain-text Password
+    const hashedPassword = createUserDto.password
+      ? await bcrypt.hash(createUserDto.password, 10)
+      : undefined;
     return delegate.create({
       data: {
         email: createUserDto.email,
-        password: createUserDto.password,
+        password: hashedPassword,
         name: createUserDto.name,
         phone: createUserDto.phone,
       },
