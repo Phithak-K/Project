@@ -83,16 +83,30 @@ export class OrdersService {
   async createOrder(merchantId: number, data: CreateOrderDto) {
     try {
       const trackingNumber = this.generateTrackingNumber();
-      
-      let finalTotalPrice = Number(data.price);
+
+      // ✅ SME Feature: คำนวณราคาจาก items[] ถ้ามี — มิฉะนั้นใช้ legacy price field
+      const hasItems = data.items && data.items.length > 0;
+      let basePrice = 0;
+      if (hasItems) {
+        basePrice = data.items!.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+      } else {
+        basePrice = Number(data.price) || 0;
+      }
+
+      let finalTotalPrice = basePrice;
       let weatherWarning: string | null = null;
       let weatherLogMessage: string | null = null;
-      let estimatedMinutes = 30; // Default: 30 mins
+      let estimatedMinutes = 30;
       let isRaining = false;
 
+      // auto-generate productName จาก items ถ้าไม่ได้ระบุมา
+      const resolvedProductName = data.productName
+        || (hasItems ? (data.items!.length === 1 ? data.items![0].productName : `สินค้า ${data.items!.length} รายการ`) : 'สินค้าไม่ระบุชื่อ');
+
       // 1. Fetch Merchant for location
+      console.log('[DEBUG] createOrder called with merchantId:', merchantId, 'type:', typeof merchantId);
       const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId } });
-      const merchantLat = merchant?.lat || 13.7563; // Default: Bangkok
+      const merchantLat = merchant?.lat || 13.7563;
       const merchantLng = merchant?.lng || 100.5018;
 
       // 2. Check Weather for Surge Pricing and ETA Penalty
@@ -101,10 +115,8 @@ export class OrdersService {
         const weatherData = await this.weatherService.getWeather(city);
         if (weatherData && weatherData.weather && weatherData.weather.length > 0) {
           const mainWeather = weatherData.weather[0].main;
-
           if (mainWeather === 'Rain' || mainWeather === 'Thunderstorm' || mainWeather === 'Drizzle') {
             isRaining = true;
-            // เพิ่มค่าบริการ 20% (Surge +20%)
             finalTotalPrice = finalTotalPrice * 1.20;
             weatherWarning = `คำเตือน: ตรวจพบฝนใน ${city} (เพิ่มค่าบริการ 20%, เวลาจัดส่งเพิ่มขึ้น)`;
             weatherLogMessage = `ตรวจพบสภาพอากาศ: ${mainWeather} ในพื้นที่ปลายทาง (ปรับราคาส่วนต่าง +20% & ETA +15 นาที)`;
@@ -115,61 +127,77 @@ export class OrdersService {
       // 3. Calculate ETA (Distance + Weather)
       if (data.lat && data.lng) {
         const distance = this.calculateDistance(merchantLat, merchantLng, data.lat, data.lng);
-        // Average speed 30km/h -> 2 mins per km
-        estimatedMinutes = Math.ceil(distance * 2) + 10; // +10 mins for pickup
-        if (isRaining) estimatedMinutes += 15; // +15 mins if raining
+        estimatedMinutes = Math.ceil(distance * 2) + 10;
+        if (isRaining) estimatedMinutes += 15;
       }
 
       // 4. Insurance System
       const insuranceFee = data.hasInsurance ? 50 : 0;
       finalTotalPrice += insuranceFee;
 
-      // 5. Create Order & Logs in Atomic Transaction
+      // 5. Create Order, OrderItems & Logs in Atomic Transaction
       const newOrder = await this.prisma.$transaction(async (tx) => {
         const order = await tx.order.create({
-          data: {
-            merchantId: Number(merchantId),
-            trackingNumber,
-            productName: data.productName,
-            productDetail: data.productDetail || null,
-            quantity: data.quantity,
-            price: Number(data.price),
-            totalPrice: finalTotalPrice,
-            weatherWarning: weatherWarning,
-            estimatedMinutes: estimatedMinutes,
-            hasInsurance: !!data.hasInsurance,
-            insuranceFee: insuranceFee,
-            receiverName: data.receiverName,
-            receiverPhone: data.receiverPhone,
-            address: data.address,
-            lat: data.lat,
-            lng: data.lng,
-            status: OrderStatus.PENDING,
-          },
-        });
+  data: {
+    merchantId: Number(merchantId),
+    trackingNumber,
+    productName: resolvedProductName,
+    productDetail: data.productDetail || null,
+    quantity: hasItems ? data.items!.reduce((s, i) => s + i.quantity, 0) : (data.quantity || 1),
+    price: basePrice,
+    totalPrice: finalTotalPrice,
+    weatherWarning,
+    estimatedMinutes,
+    hasInsurance: !!data.hasInsurance,
+    insuranceFee,
 
-        // 6. Create Tracking Logs inside transaction
+    // 🛡️ พิมพ์เปลี่ยน 3 บรรทัดนี้ให้เป็นแบบนี้ครับ
+    receiverName: (data as any).recipientName || data.receiverName,
+    receiverPhone: (data as any).recipientPhone || data.receiverPhone,
+    address: (data as any).deliveryAddress || data.address,
+
+    lat: data.lat,
+    lng: data.lng,
+    status: OrderStatus.PENDING,
+  },
+});
+
+        // ✅ SME Feature: สร้าง OrderItems ถ้ามีหลายรายการ
+        if (hasItems) {
+          await tx.orderItem.createMany({
+            data: data.items!.map((item) => ({
+              orderId: order.id,
+              productName: item.productName,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              totalPrice: item.unitPrice * item.quantity,
+              note: item.note || null,
+              productId: item.productId || null,
+            })),
+          });
+        }
+
         await tx.trackingLog.create({
           data: { orderId: order.id, status: 'PENDING', note: `ร้านค้าสร้างออเดอร์สำเร็จ (ETA: ${estimatedMinutes} นาที)`, location: 'ระบบ SwiftPath (Automatic)' }
         });
-        
         if (weatherLogMessage) {
           await tx.trackingLog.create({
-             data: { orderId: order.id, status: 'PENDING', note: weatherLogMessage, location: 'ระบบ SwiftPath (Automatic)' }
+            data: { orderId: order.id, status: 'PENDING', note: weatherLogMessage, location: 'ระบบ SwiftPath (Automatic)' }
           });
         }
-        
         if (data.hasInsurance) {
           await tx.trackingLog.create({
-             data: { orderId: order.id, status: 'PENDING', note: 'มีการเปิดความคุ้มครองประกันภัยสินค้า SwiftPath Insurance', location: 'ระบบ SwiftPath (Automatic)' }
+            data: { orderId: order.id, status: 'PENDING', note: 'มีการเปิดความคุ้มครองประกันภัยสินค้า SwiftPath Insurance', location: 'ระบบ SwiftPath (Automatic)' }
           });
         }
         return order;
       });
 
-      this.notifyDrivers(newOrder);
+      this.notifyDrivers({
+        ...newOrder,
+        productName: newOrder.productName ?? 'หลายรายการ'
+      });
 
-      // 📡 Push Notification via WebSocket (Driver Radar)
       if (this.chatGateway && this.chatGateway.server) {
         this.chatGateway.server.emit('new_available_order', {
           ...newOrder,
@@ -450,6 +478,22 @@ export class OrdersService {
         status: OrderStatus.PENDING,
       },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // ✅ New Feature: Fetch assigned/active jobs for a specific driver
+  async getDriverActiveJobs(driverId: number) {
+    return this.prisma.order.findMany({
+      where: {
+        driverId: Number(driverId),
+        status: {
+          in: [OrderStatus.ACCEPTED, OrderStatus.PICKED_UP, OrderStatus.SHIPPING]
+        }
+      },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        merchant: { select: { storeName: true, phone: true } },
+      }
     });
   }
 
@@ -761,5 +805,118 @@ export class OrdersService {
       },
       revenueChart: days,
     };
+  }
+
+  // ==== ✅ SME Feature: Merchant Assigns Driver ====
+  async assignDriver(orderId: number, merchantId: number, driverId: number) {
+    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
+
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.merchantId !== merchantId) throw new ForbiddenException('คุณไม่ใช่เจ้าของออเดอร์นี้');
+    if (order.status !== OrderStatus.PENDING) {
+      throw new BadRequestException('สามารถมอบหมายคนขับได้เฉพาะออเดอร์ที่ยังรอดำเนินการ (PENDING) เท่านั้น');
+    }
+
+    // ✅ ตรวจว่า Driver สังกัดร้านนี้จริง
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new BadRequestException('ไม่พบข้อมูลคนขับ');
+    if (driver.merchantId && driver.merchantId !== merchantId) {
+      throw new ForbiddenException('คนขับคนนี้ไม่ได้สังกัดร้านของคุณ');
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: { driverId, status: OrderStatus.ACCEPTED },
+    });
+
+    await this.createTrackingLog(orderId, 'ACCEPTED', `ร้านค้ามอบหมายงานให้ ${driver.name || 'คนขับ'} (ทะเบียน: ${driver.vehiclePlate || '-'})`);
+
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
+    }
+
+    return updatedOrder;
+  }
+
+  // ==== ✅ SME Feature: ค้นหาประวัติออเดอร์ด้วยเบอร์โทรผู้รับ ====
+  async getOrdersByPhone(phone: string) {
+    if (!phone || phone.length < 9) throw new BadRequestException('กรุณาระบุเบอร์โทรที่ถูกต้อง (อย่างน้อย 9 หลัก)');
+
+    const orders = await this.prisma.order.findMany({
+      where: { receiverPhone: phone },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        trackingNumber: true,
+        productName: true,
+        status: true,
+        totalPrice: true,
+        price: true,
+        receiverName: true,
+        address: true,
+        createdAt: true,
+        estimatedMinutes: true,
+        items: {
+          select: { productName: true, quantity: true, unitPrice: true, totalPrice: true }
+        },
+        merchant: { select: { storeName: true, phone: true } },
+        trackingLogs: {
+          where: { isPublic: true },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { status: true, note: true, createdAt: true }
+        }
+      }
+    });
+
+    return orders;
+  }
+
+  // ==== ✅ SME Feature: Export รายการออเดอร์เป็น CSV ====
+  async exportOrdersCsv(merchantId: number, dateFrom?: string, dateTo?: string): Promise<string> {
+    const whereClause: any = { merchantId: Number(merchantId) };
+
+    if (dateFrom || dateTo) {
+      whereClause.createdAt = {};
+      if (dateFrom) whereClause.createdAt.gte = new Date(dateFrom);
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        whereClause.createdAt.lte = end;
+      }
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: true,
+        driver: { select: { name: true, vehiclePlate: true } },
+      },
+    });
+
+    const headers = [
+      'Tracking Number', 'วันที่สร้าง', 'สินค้า', 'จำนวนรายการ',
+      'ราคาสุทธิ (บาท)', 'สถานะ', 'ชื่อผู้รับ', 'เบอร์ผู้รับ',
+      'ที่อยู่', 'คนขับ', 'ทะเบียน'
+    ];
+
+    const rows = orders.map(o => [
+      o.trackingNumber,
+      new Date(o.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+      o.productName || '-',
+      o.items.length > 0 ? o.items.length : 1,
+      Number(o.totalPrice || o.price).toFixed(2),
+      o.status,
+      o.receiverName,
+      o.receiverPhone,
+      `"${o.address.replace(/"/g, '""')}"`,
+      o.driver?.name || '-',
+      o.driver?.vehiclePlate || '-',
+    ]);
+
+    const csvLines = [headers.join(','), ...rows.map(r => r.join(','))];
+    return csvLines.join('\n');
   }
 }

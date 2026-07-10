@@ -9,9 +9,10 @@ import { ChatModule } from './chat/chat.module';
 import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ThrottlerModule } from '@nestjs/throttler'; // ✅ ป้องกัน Brute Force
+import { ThrottlerModule } from '@nestjs/throttler';
 import { StripeModule } from './stripe/stripe.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ProductsModule } from './products/products.module'; // ✅ SME Feature: Product Catalog
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     UsersModule,
     StripeModule,
     NotificationsModule,
+    ProductsModule, // ✅ SME Feature: Product Catalog API
   ],
   controllers: [AppController],
   providers: [AppService],

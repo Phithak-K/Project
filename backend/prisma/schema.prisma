@@ -75,6 +75,8 @@ model Merchant {
   lng              Float?    
 
   orders           Order[]   @relation("MerchantOrders")
+  drivers          Driver[]  @relation("MerchantDrivers") // ✅ คนขับที่สังกัดร้าน
+  products         Product[] // ✅ สินค้าใน Catalog ของร้าน
 }
 
 model Driver {
@@ -98,6 +100,10 @@ model Driver {
   balance          Decimal   @default(0)
   version          Int       @default(0) // ✅ Optimistic Locking
 
+  // ✅ SME Feature: คนขับสังกัดร้านค้า (Optional — ถ้า null = Freelance)
+  merchantId       Int?
+  merchant         Merchant? @relation("MerchantDrivers", fields: [merchantId], references: [id])
+
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -107,13 +113,13 @@ model Driver {
 model Order {
   id               Int           @id @default(autoincrement())
   trackingNumber   String        @unique
-  productName      String
+  productName      String?       // ✅ Optional — ถ้ามี items[] จะ auto-generate
   productDetail    String?
   quantity         Int           @default(1)
   
   // --- ระบบราคาและสภาพอากาศ ---
-  price            Decimal       // ราคาต้นทุนสินค้า
-  totalPrice       Decimal?      // ราคาสุทธิที่ลูกค้ายต้องจ่าย (รวม Surge Price)
+  price            Decimal       // ราคาต้นทุนสินค้า (รวมจาก items หรือกำหนดตรง)
+  totalPrice       Decimal?      // ราคาสุทธิที่ลูกค้าต้องจ่าย (รวม Surge Price)
   weatherWarning   String?
   estimatedMinutes Int?          // ✅ ETA: ประมาณการเวลาจัดส่ง (นาที)
   hasInsurance     Boolean       @default(false) // ✅ Insurance toggle
@@ -122,8 +128,8 @@ model Order {
   receiverName     String
   receiverPhone    String
   address          String
-  lat              Float?        // ✅ เพิ่ม: พิกัดละติจูดปลายทาง
-  lng              Float?        // ✅ เพิ่ม: พิกัดลองจิจูดปลายทาง
+  lat              Float?        // ✅ พิกัดละติจูดปลายทาง
+  lng              Float?        // ✅ พิกัดลองจิจูดปลายทาง
   
   status           OrderStatus   @default(PENDING)
   paymentStatus    PaymentStatus @default(Unpaid)
@@ -144,9 +150,47 @@ model Order {
   messages         Message[]     
   transactions     Transaction[]
   rating           Rating?
+  items            OrderItem[]   // ✅ SME Feature: รายการสินค้าหลายรายการในออเดอร์เดียว
 
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
+}
+
+// ✅ SME Feature: รายการสินค้าในออเดอร์ (Multi-item Invoice)
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productName  String
+  quantity     Int      @default(1)
+  unitPrice    Decimal
+  totalPrice   Decimal  // quantity * unitPrice
+
+  note         String?  // หมายเหตุรายการ เช่น "ขอสีเทา"
+
+  // ✅ เชื่อมกับ Product Catalog (optional)
+  productId    Int?
+  product      Product? @relation(fields: [productId], references: [id])
+
+  createdAt    DateTime @default(now())
+}
+
+// ✅ SME Feature: Catalog สินค้าของร้านค้า
+model Product {
+  id            Int        @id @default(autoincrement())
+  merchantId    Int
+  merchant      Merchant   @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  name          String
+  unit          String?    // เช่น "ถุง", "เส้น", "กล่อง", "กก."
+  defaultPrice  Decimal    @default(0)
+  isActive      Boolean    @default(true)
+
+  orderItems    OrderItem[]
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 }
 
 model TrackingLog {
@@ -158,7 +202,7 @@ model TrackingLog {
   lat       Float?   
   lng       Float?   
   note      String?
-  isPublic  Boolean  @default(true) // ✅ เพิ่ม: กำหนดว่าลูกค้าเห็น Log นี้ได้ไหม
+  isPublic  Boolean  @default(true) // ✅ กำหนดว่าลูกค้าเห็น Log นี้ได้ไหม
   
   imageUrl  String?  
 

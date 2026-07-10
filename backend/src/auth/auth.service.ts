@@ -43,7 +43,7 @@ export class AuthService implements OnModuleInit {
     if (admin.apps.length === 0) {
       try {
         admin.initializeApp({
-          credential: admin.credential.cert(path.join(__dirname, '..', '..', 'firebase-adminsdk.json')),
+          credential: admin.credential.cert(path.join(process.cwd(), 'firebase-adminsdk.json')),
         });
         console.log('🔥 Firebase Admin Initialized');
       } catch (error: any) {

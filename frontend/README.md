@@ -15,7 +15,7 @@
 ```
 app.localhost:3000/dashboard   →  app/customer/dashboard/page.tsx
 store.localhost:3000/orders    →  app/merchant/orders/page.tsx
-fleet.localhost:3000/radar     →  app/driver/radar/page.tsx
+fleet.localhost:3000/orders    →  app/driver/orders/page.tsx
 localhost:3000/admin           →  app/admin/ (ต้องผ่าน Admin Gate ก่อน)
 ```
 
@@ -44,12 +44,14 @@ frontend/
 │   │   ├── wallet/      # ระบบกระเป๋าเงินและ Stripe Embedded Checkout
 │   │   └── orders/      # ประวัติออเดอร์
 │   ├── merchant/        # หน้าสำหรับ Merchant (rewrite จาก store.localhost)
-│   │   ├── page.tsx     # Dashboard และ analytics รายได้
-│   │   ├── orders/      # จัดการออเดอร์และ Surge Pricing
+│   │   ├── page.tsx     # Dashboard, สถิติยอดขาย และปุ่มเมนูด่วน
+│   │   ├── orders/      # จัดการออเดอร์ (สร้าง, กำหนดคนขับ)
+│   │   ├── catalog/     # จัดการคลังสินค้า
+│   │   ├── drivers/     # จัดการพนักงานขับรถของร้าน
 │   │   └── register/    # ลงทะเบียนร้านค้า
 │   ├── driver/          # หน้าสำหรับ Driver (rewrite จาก fleet.localhost)
-│   │   ├── page.tsx     # Radar Map รับงาน
-│   │   └── orders/      # จัดการงานที่รับ
+│   │   ├── page.tsx     # ดูงานที่ร้านค้ามอบหมายให้ (Assigned Jobs)
+│   │   └── orders/      # อัปเดตสถานะและถ่ายรูปส่งงาน
 │   ├── admin/           # ศูนย์บริหารจัดการ (เฉพาะ Admin role)
 │   ├── login/           # หน้า Login รวม (ใช้ร่วมกันทุกซับโดเมน)
 │   ├── register/        # หน้าลงทะเบียน

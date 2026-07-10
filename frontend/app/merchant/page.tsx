@@ -2,13 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Package, Plus, Truck, CheckCircle, Clock, LogOut, ChevronRight, RefreshCcw, Shield } from 'lucide-react';
+import { Package, Plus, Truck, CheckCircle, Clock, LogOut, ChevronRight, RefreshCcw, Shield, UserCheck, X, BookOpen, Users } from 'lucide-react';
 
 export default function MerchantDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({ pending: 0, shipping: 0, delivered: 0, todaySales: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [assignModal, setAssignModal] = useState<{ orderId: number; trackingNumber: string } | null>(null);
+  const [myDrivers, setMyDrivers] = useState<any[]>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -25,15 +28,17 @@ export default function MerchantDashboard() {
     setIsRefreshing(true);
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
-      const [statsRes, ordersRes] = await Promise.all([
+      const [statsRes, ordersRes, driversRes] = await Promise.all([
         fetch(`${API_URL}/orders/stats`, { headers }),
-        fetch(`${API_URL}/orders/my-orders`, { headers })
+        fetch(`${API_URL}/orders/my-orders`, { headers }),
+        fetch(`${API_URL}/users/my-drivers`, { headers }),
       ]);
       if (statsRes.ok && ordersRes.ok) {
         const s = await statsRes.json();
-        setStats({ pending: s.pendingOrders || s.pendingCount || 0, shipping: s.shippingOrders || s.shippingCount || 0, delivered: s.deliveredOrders || s.completedToday || 0, todaySales: s.todaySales || 0 });
+        setStats({ pending: s.pendingOrders || 0, shipping: s.shippingOrders || 0, delivered: s.deliveredOrders || 0, todaySales: s.todaySales || 0 });
         setOrders(await ordersRes.json());
       }
+      if (driversRes.ok) setMyDrivers(await driversRes.json());
     } catch (err) { console.error(err); }
     finally { setIsLoading(false); setIsRefreshing(false); }
   }, [API_URL]);
@@ -55,6 +60,28 @@ export default function MerchantDashboard() {
       <p className="sp-caps" style={{ color: 'var(--n-400)' }}>กำลังโหลด</p>
     </div>
   );
+
+  const handleAssign = async (driverId: number) => {
+    if (!assignModal) return;
+    const token = getCookie('token');
+    if (!token) return;
+    setAssignLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/orders/${assignModal.orderId}/assign`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverId }),
+      });
+      if (res.ok) {
+        setAssignModal(null);
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'มอบหมายไม่สำเร็จ');
+      }
+    } catch { alert('Network Error'); }
+    finally { setAssignLoading(false); }
+  };
 
   return (
     <div className="sp-page">
@@ -81,14 +108,26 @@ export default function MerchantDashboard() {
             <span className="sp-section-eyebrow">แผงควบคุม</span>
             <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-900)' }}>ออเดอร์วันนี้</h1>
             <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              ยอดขายสะสม <Link href="/stats" className="sp-link-brand" style={{ fontWeight: 700 }}>฿{stats.todaySales.toLocaleString()}</Link>
+              ยอดขายสะสม <Link href="/merchant/stats" className="sp-link-brand" style={{ fontWeight: 700 }}>฿{stats.todaySales.toLocaleString()}</Link>
             </p>
           </div>
-          <Link href="/create-order">
-            <button id="btn-create-order" className="sp-btn-primary">
-              <Plus size={16} /> สร้างออเดอร์ใหม่
-            </button>
-          </Link>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href="/merchant/catalog">
+              <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
+                <BookOpen size={16} /> Catalog สินค้า
+              </button>
+            </Link>
+            <Link href="/merchant/drivers">
+              <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
+                <Users size={16} /> จัดการคนขับ
+              </button>
+            </Link>
+            <Link href="/merchant/create-order">
+              <button id="btn-create-order" className="sp-btn-primary" style={{ padding: '0.6rem 1.25rem' }}>
+                <Plus size={16} /> สร้างออเดอร์ใหม่
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* ── Stats ── */}
@@ -153,7 +192,16 @@ export default function MerchantDashboard() {
                       <td className="sp-td">{order.receiverName}</td>
                       <td className="sp-td" style={{ fontWeight: 600 }}>฿{(order.totalPrice || order.price)?.toLocaleString()}</td>
                       <td className="sp-td"><StatusBadge status={order.status} /></td>
-                      <td className="sp-td" style={{ textAlign: 'right' }}>
+                      <td className="sp-td" style={{ textAlign: 'right', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {order.status === 'PENDING' && !order.driverId && (
+                          <button
+                            onClick={() => setAssignModal({ orderId: order.id, trackingNumber: order.trackingNumber })}
+                            className="sp-btn-ghost"
+                            style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem', whiteSpace: 'nowrap' }}
+                          >
+                            <UserCheck size={12} /> มอบหมายคนขับ
+                          </button>
+                        )}
                         <Link href={`/orders/${order.id}`}>
                           <ChevronRight size={16} style={{ color: 'var(--n-300)' }} />
                         </Link>
@@ -166,6 +214,60 @@ export default function MerchantDashboard() {
           )}
         </div>
       </main>
+
+      {/* ── Assign Driver Modal ── */}
+      {assignModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)'
+        }}>
+          <div className="sp-card" style={{ width: '100%', maxWidth: '480px', margin: '1rem', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+              <div>
+                <h2 className="sp-font-display" style={{ fontWeight: 800, fontSize: '1.25rem' }}>มอบหมายคนขับ</h2>
+                <p style={{ color: 'var(--n-500)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
+                  ออเดอร์: <code style={{ background: 'var(--n-100)', padding: '0.1rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.8rem' }}>{assignModal.trackingNumber}</code>
+                </p>
+              </div>
+              <button onClick={() => setAssignModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', padding: '0.25rem' }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {myDrivers.length === 0 ? (
+              <div className="sp-empty-centered">
+                <Truck size={28} className="sp-empty-icon" />
+                <p className="sp-empty-title">ไม่มีคนขับในระบบ</p>
+                <p className="sp-empty-body">เพิ่มคนขับก่อนที่หน้า <Link href="/drivers" className="sp-link-brand">จัดการคนขับ</Link></p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {myDrivers.map(driver => (
+                  <div key={driver.id} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '0.875rem 1rem', border: '1px solid var(--n-150)', borderRadius: '0.75rem'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{driver.name}</div>
+                      <div style={{ color: 'var(--n-400)', fontSize: '0.8rem' }}>
+                        {driver.vehiclePlate || '-'} · {driver.vehicleType || '-'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleAssign(driver.id)}
+                      disabled={assignLoading}
+                      className="sp-btn-primary"
+                      style={{ padding: '0.45rem 0.9rem', fontSize: '0.8rem' }}
+                    >
+                      {assignLoading ? <span className="sp-spinner" /> : <><UserCheck size={14} /> มอบหมาย</>}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -177,4 +177,77 @@ export class UsersService {
 
     return { success: true, newVersion: expectedVersion + 1 };
   }
+
+  // ==== ✅ SME Feature: Driver Management for Merchants ====
+
+  /** คืน list คนขับทั้งหมดที่สังกัดร้านค้านี้ */
+  async getMyDrivers(merchantId: number) {
+    return this.prisma.driver.findMany({
+      where: { merchantId },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        vehiclePlate: true,
+        vehicleType: true,
+        isActive: true,
+        isVerified: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  /** ผูก Driver เข้ากับร้านค้า (Driver ต้องยืนยันตัวตนแล้ว) */
+  async linkDriverToMerchant(driverId: number, merchantId: number) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new NotFoundException('ไม่พบข้อมูลคนขับ');
+    if (!driver.isVerified) throw new BadRequestException('คนขับต้องยืนยันตัวตนก่อนจึงจะผูกกับร้านได้');
+    if (driver.merchantId && driver.merchantId !== merchantId) {
+      throw new BadRequestException('คนขับคนนี้สังกัดร้านอื่นอยู่แล้ว กรุณาให้ร้านเดิมยกเลิกก่อน');
+    }
+
+    return this.prisma.driver.update({
+      where: { id: driverId },
+      data: { merchantId },
+      select: { id: true, name: true, phone: true, vehiclePlate: true, merchantId: true },
+    });
+  }
+
+  /** ยกเลิกความสัมพันธ์คนขับกับร้านค้า (คนขับกลายเป็น Freelance) */
+  async unlinkDriverFromMerchant(driverId: number, merchantId: number) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new NotFoundException('ไม่พบข้อมูลคนขับ');
+    if (driver.merchantId !== merchantId) {
+      throw new BadRequestException('คนขับคนนี้ไม่ได้สังกัดร้านของคุณ');
+    }
+
+    return this.prisma.driver.update({
+      where: { id: driverId },
+      data: { merchantId: null },
+      select: { id: true, name: true, merchantId: true },
+    });
+  }
+
+  /** ค้นหา Driver ด้วย email หรือ phone สำหรับการผูก */
+  async findDriverByContact(contact: string) {
+    const driver = await this.prisma.driver.findFirst({
+      where: {
+        OR: [
+          { email: contact },
+          { phone: contact },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        vehiclePlate: true,
+        vehicleType: true,
+        isVerified: true,
+        merchantId: true,
+      },
+    });
+    if (!driver) throw new NotFoundException('ไม่พบคนขับจากข้อมูลที่ระบุ');
+    return driver;
+  }
 }

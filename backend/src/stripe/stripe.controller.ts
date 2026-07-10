@@ -15,7 +15,7 @@ export class StripeController {
     if (!body.amount || body.amount <= 0) throw new BadRequestException('จำนวนเงินต้องมากกว่า 0');
     if (body.amount > 100000) throw new BadRequestException('ไม่สามารถเติมเงินเกิน 100,000 บาทต่อครั้ง');
     // อ่าน userId และ role จาก JWT Token ที่ยืนยันแล้ว ไม่ใช่จาก Body
-    return this.stripeService.createTopUpIntent(req.user.sub, req.user.role, body.amount);
+    return this.stripeService.createTopUpIntent(req.user.userId, req.user.role, body.amount);
   }
 
   @Post('webhook')

@@ -37,7 +37,7 @@ export default function DriverDashboard() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const [ordersRes, statsRes, hotRes] = await Promise.all([
-        fetch(`${API_URL}/orders/available`, { headers }),
+        fetch(`${API_URL}/orders/driver/my-jobs`, { headers }), // Fetch active assigned jobs instead of available ones
         fetch(`${API_URL}/orders/driver-stats`, { headers }),
         fetch(`${API_URL}/weather/hotspots`, { headers }),
       ]);
@@ -139,9 +139,9 @@ export default function DriverDashboard() {
           </div>
         )}
 
-        {/* ── Available Orders ── */}
+        {/* ── Assigned Orders ── */}
         <div className="sp-section-header" style={{ marginBottom: '1rem' }}>
-          <h2 className="sp-section-title" style={{ color: 'var(--n-100)' }}>งานใหม่</h2>
+          <h2 className="sp-section-title" style={{ color: 'var(--n-100)' }}>งานที่ได้รับมอบหมาย</h2>
           <span className="sp-caps" style={{ color: 'var(--n-600)' }}>{orders.length} งาน</span>
         </div>
 
@@ -192,15 +192,11 @@ export default function DriverDashboard() {
                   </div>
 
                   <button
-                    onClick={() => handleAccept(order.id)}
-                    disabled={accepting === order.id}
+                    onClick={() => router.push(`/driver/orders/${order.id}`)}
                     className="sp-btn-brand sp-btn-full"
                     style={{ padding: '0.75rem' }}
                   >
-                    {accepting === order.id
-                      ? <span className="sp-spinner" />
-                      : <><CheckCircle size={15} /> รับงานนี้</>
-                    }
+                    ดูรายละเอียด / อัปเดตสถานะ
                   </button>
                 </div>
               </div>

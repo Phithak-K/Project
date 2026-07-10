@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  ArrowLeft, Download, CreditCard, TrendingUp, Calendar, 
-  ArrowUpRight, ArrowDownLeft, Wallet, Filter, Search, Printer, Activity, CheckCircle, Clock, XCircle
+  ArrowLeft, Download, TrendingUp, Calendar, 
+  ArrowUpRight, ArrowDownLeft, Wallet, Activity, CheckCircle, Printer
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -13,6 +13,9 @@ export default function MerchantStatsPage() {
   const [data, setData] = useState<any>(null);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [exportLoading, setExportLoading] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -52,6 +55,29 @@ export default function MerchantStatsPage() {
 
   const handlePrint = () => { window.print(); };
 
+  const handleExportCsv = async () => {
+    const token = getCookie('token');
+    if (!token) return;
+    setExportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
+      const res = await fetch(`${API_URL}/orders/export/csv?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) { alert('ดาวน์โหลดไม่สำเร็จ'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `swiftpath-orders-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { alert('Network Error'); }
+    finally { setExportLoading(false); }
+  };
+
   if (loading) return <div className="sp-page-loading"><span className="sp-spinner sp-spinner-lg" /></div>;
 
   const COLORS = ['#ea580c', '#3b82f6', '#10b981', '#f59e0b', '#64748b', '#ef4444'];
@@ -71,9 +97,11 @@ export default function MerchantStatsPage() {
           <ArrowLeft size={16} /> กลับไปยัง Dashboard
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span> Analytics</span>
-        <button onClick={handlePrint} className="sp-btn-ghost">
-          <Printer size={16} /> พิมพ์รายงาน
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button onClick={handlePrint} className="sp-btn-ghost">
+            <Printer size={16} /> พิมพ์รายงาน
+          </button>
+        </div>
       </nav>
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
@@ -84,7 +112,34 @@ export default function MerchantStatsPage() {
           <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>ภาพรวมทางธุรกิจและการกระจายตัวของสถานะออเดอร์ในเดือนนี้</p>
         </header>
 
-        {/* Global Stats */}
+        {/* ── CSV Export Panel ── */}
+        <div className="sp-card no-print" style={{ marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
+          <div style={{ flex: 1 }}>
+            <div className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Download size={12} /> ดาวน์โหลดรายงาน CSV
+            </div>
+            <p style={{ color: 'var(--n-400)', fontSize: '0.8rem' }}>เลือกช่วงวันที่ (ถ้าไม่เลือก = ดึงทั้งหมด) แล้วกดดาวน์โหลด เปิดได้ใน Excel</p>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div className="sp-field">
+              <label className="sp-label">จากวันที่</label>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="sp-input" style={{ width: '150px' }} />
+            </div>
+            <div className="sp-field">
+              <label className="sp-label">ถึงวันที่</label>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="sp-input" style={{ width: '150px' }} />
+            </div>
+            <button
+              id="btn-export-csv"
+              onClick={handleExportCsv}
+              disabled={exportLoading}
+              className="sp-btn-brand"
+              style={{ padding: '0.6rem 1.2rem', whiteSpace: 'nowrap' }}
+            >
+              {exportLoading ? <span className="sp-spinner" /> : <><Download size={15} /> ดาวน์โหลด CSV</>}
+            </button>
+          </div>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
           
           <div className="sp-card sp-animate-d1" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
