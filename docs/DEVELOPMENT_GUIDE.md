@@ -55,9 +55,10 @@ cd backend
    ```bash
    npx ts-node prisma/seed-admin.ts
    ```
-   * **บัญชีผู้ดูแลระบบที่จะถูกสร้าง**:
-     * **Email**: `admin@swiftpath.com`
-     * **Password**: `MySecretAdminSecurePassword2026!`
+    * **บัญชีผู้ดูแลระบบที่จะถูกสร้าง (อิงตามที่กำหนดใน .env)**:
+      * **Email**: `<ADMIN_SEED_EMAIL>` (เช่น `admin@swiftpath.com`)
+      * **Password**: `<ADMIN_SEED_PASSWORD>`
+
 
 ---
 
