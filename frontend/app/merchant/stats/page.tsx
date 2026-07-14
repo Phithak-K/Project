@@ -34,7 +34,7 @@ export default function MerchantStatsPage() {
       
       const [analyticsRes, profileRes] = await Promise.all([
         fetch(`${API_URL}/orders/analytics`, { headers }),
-        fetch(`${API_URL}/auth/profile`, { headers })
+        fetch(`${API_URL}/users/me`, { headers })
       ]);
       
       if (profileRes.ok) {

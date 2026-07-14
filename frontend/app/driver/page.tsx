@@ -38,7 +38,7 @@ export default function DriverDashboard() {
       const headers = { Authorization: `Bearer ${token}` };
       const [ordersRes, statsRes, hotRes] = await Promise.all([
         fetch(`${API_URL}/orders/driver/my-jobs`, { headers }), // Fetch active assigned jobs instead of available ones
-        fetch(`${API_URL}/orders/driver-stats`, { headers }),
+        fetch(`${API_URL}/orders/stats/driver`, { headers }),
         fetch(`${API_URL}/weather/hotspots`, { headers }),
       ]);
       if (ordersRes.ok) setOrders(await ordersRes.json());

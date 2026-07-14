@@ -65,6 +65,22 @@ export class OrdersController {
     return this.ordersService.getPublicOrderTracking(trackingNumber);
   }
 
+  // 🆕 Endpoint สำหรับ Dashboard Analytics สถิติขั้นสูง
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('analytics')
+  async getAnalytics(@Req() req: any) {
+    return this.ordersService.getMerchantAnalytics(Number(req.user.userId));
+  }
+
+  // Admin: สถิติภาพรวมทั้งระบบ
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @Get('admin/stats')
+  async getAdminStats() {
+    return this.ordersService.getAdminStats();
+  }
+
   @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
   @Get(':id')
   getOrderById(@Param('id') id: string, @Req() req: any) {
@@ -143,21 +159,7 @@ export class OrdersController {
     return this.ordersService.rateOrder(Number(id), Number(req.user.userId), req.user.role, body.score, body.comment);
   }
 
-  // 🆕 Endpoint สำหรับ Dashboard Analytics สถิติขั้นสูง
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Merchant)
-  @Get('analytics')
-  async getAnalytics(@Req() req: any) {
-    return this.ordersService.getMerchantAnalytics(Number(req.user.userId));
-  }
 
-  // Admin: สถิติภาพรวมทั้งระบบ
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Admin)
-  @Get('admin/stats')
-  async getAdminStats() {
-    return this.ordersService.getAdminStats();
-  }
 
   // ✅ SME Feature: Merchant มอบหมายคนขับให้ออเดอร์
   @UseGuards(JwtAuthGuard, RolesGuard)
