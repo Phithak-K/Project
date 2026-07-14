@@ -152,7 +152,7 @@ export default function CreateOrderPage() {
       });
 
       if (res.ok) {
-        router.push('/merchant');
+        router.push('/');
       } else {
         const err = await res.json();
         alert(err.message || 'เกิดข้อผิดพลาดในการสร้างออเดอร์');

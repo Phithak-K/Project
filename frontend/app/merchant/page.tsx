@@ -108,21 +108,21 @@ export default function MerchantDashboard() {
             <span className="sp-section-eyebrow">แผงควบคุม</span>
             <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-900)' }}>ออเดอร์วันนี้</h1>
             <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-              ยอดขายสะสม <Link href="/merchant/stats" className="sp-link-brand" style={{ fontWeight: 700 }}>฿{stats.todaySales.toLocaleString()}</Link>
+              ยอดขายสะสม <Link href="/stats" className="sp-link-brand" style={{ fontWeight: 700 }}>฿{stats.todaySales.toLocaleString()}</Link>
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <Link href="/merchant/catalog">
+            <Link href="/catalog">
               <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
                 <BookOpen size={16} /> Catalog สินค้า
               </button>
             </Link>
-            <Link href="/merchant/drivers">
+            <Link href="/drivers">
               <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
                 <Users size={16} /> จัดการคนขับ
               </button>
             </Link>
-            <Link href="/merchant/create-order">
+            <Link href="/create-order">
               <button id="btn-create-order" className="sp-btn-primary" style={{ padding: '0.6rem 1.25rem' }}>
                 <Plus size={16} /> สร้างออเดอร์ใหม่
               </button>
@@ -202,7 +202,7 @@ export default function MerchantDashboard() {
                             <UserCheck size={12} /> มอบหมายคนขับ
                           </button>
                         )}
-                        <Link href={`/orders/${order.id}`}>
+                        <Link href={`/order/${order.id}`}>
                           <ChevronRight size={16} style={{ color: 'var(--n-300)' }} />
                         </Link>
                       </td>
