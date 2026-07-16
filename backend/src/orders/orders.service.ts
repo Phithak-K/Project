@@ -275,6 +275,7 @@ export class OrdersService {
         merchant: { select: { storeName: true, phone: true } },
         driver: { select: { name: true, phone: true, vehiclePlate: true } },
         customer: { select: { name: true } },
+        items: true,
       },
     });
 

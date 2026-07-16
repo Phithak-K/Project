@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
   ArrowLeft, Package, MapPin, Truck, CheckCircle, Clock, 
-  Shield, Star, MessageSquare, AlertCircle
+  Shield, Star, MessageSquare, AlertCircle, Download
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { toast } from 'react-hot-toast';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -69,6 +70,37 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
     } catch { alert('เกิดข้อผิดพลาด'); }
   };
 
+  const handleDownloadPdf = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('กรุณาเข้าสู่ระบบก่อน');
+      return;
+    }
+    
+    try {
+      toast.loading('กำลังสร้างไฟล์ PDF...', { id: 'pdf' });
+      const res = await fetch(`${API_URL}/orders/${orderId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch PDF');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `delivery-order-${order.trackingNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('ดาวน์โหลดสำเร็จ', { id: 'pdf' });
+    } catch (err) {
+      console.error(err);
+      toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้', { id: 'pdf' });
+    }
+  };
+
   if (loading) return <div className="sp-page-loading"><span className="sp-spinner sp-spinner-lg" /></div>;
   if (!order) return null;
 
@@ -121,6 +153,24 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
           </div>
         </div>
 
+        {/* รายการสินค้า (Items) */}
+        {order.items && order.items.length > 0 && (
+          <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1rem' }}>รายการสินค้าในบิล</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {order.items.map((item: any, idx: number) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9rem', color: 'var(--n-700)' }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>{item.productName}</span>
+                    <span style={{ color: 'var(--n-400)', marginLeft: '0.5rem' }}>× {item.quantity}</span>
+                  </div>
+                  <span style={{ fontWeight: 700 }}>฿{Number(item.totalPrice).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Payment QR (if needed) */}
         {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
           <div className="sp-card-dark sp-animate" style={{ background: 'var(--brand-500)', border: 'none', textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -162,16 +212,24 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
         )}
 
         {/* Details Footer */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2.5rem', marginBottom: '1.5rem' }}>
           <div>
             <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.5rem' }}>ผู้ส่ง</p>
             <p style={{ fontWeight: 700 }}>{order.merchant?.storeName || 'Partner Store'}</p>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.5rem' }}>ค่าบริการรวม</p>
+            <p className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '0.5rem' }}>ยอดรวมสุทธิ</p>
             <p className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 900 }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
           </div>
         </div>
+
+        <button 
+          onClick={handleDownloadPdf}
+          className="sp-btn-primary sp-btn-full" 
+          style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+        >
+          <Download size={16} /> ดาวน์โหลดใบเสร็จ / ใบส่งของ (PDF)
+        </button>
 
       </main>
     </div>
