@@ -87,6 +87,24 @@ export class UsersService {
     return user;
   }
 
+  async updateProfile(id: number, role: string, updateDto: UpdateUserDto) {
+    const delegate = this.getDelegate(role);
+    
+    // Prevent updating sensitive fields
+    const safeUpdateDto = { ...updateDto };
+    delete (safeUpdateDto as any).email;
+    delete (safeUpdateDto as any).password;
+    delete (safeUpdateDto as any).balance;
+    delete (safeUpdateDto as any).isVerified;
+    delete (safeUpdateDto as any).role;
+    
+    return delegate.update({
+      where: { id },
+      data: safeUpdateDto,
+      select: { id: true, email: true, name: true, phone: true }
+    });
+  }
+
   async update(id: number, updateUserDto: UpdateUserDto, role: string) {
     const delegate = this.getDelegate(role);
     return delegate.update({

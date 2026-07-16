@@ -3,6 +3,7 @@ import { Fraunces, Onest } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import FCMProvider from '../components/FCMProvider';
+import { Toaster } from 'react-hot-toast';
 
 // Editorial display font — dramatic contrast, logistics gravitas
 const fraunces = Fraunces({
@@ -42,6 +43,7 @@ export default function RootLayout({
             {children}
           </FCMProvider>
         </GoogleOAuthProvider>
+        <Toaster position="top-center" reverseOrder={false} />
       </body>
     </html>
   );

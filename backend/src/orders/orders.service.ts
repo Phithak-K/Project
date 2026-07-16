@@ -232,12 +232,34 @@ export class OrdersService {
     }
   }
 
-  async getMyOrders(merchantId: number) {
-    return this.prisma.order.findMany({
-      where: { merchantId: Number(merchantId) },
-      orderBy: { createdAt: 'desc' },
-      include: { trackingLogs: true },
-    });
+  async getMyOrders(merchantId: number, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { merchantId: Number(merchantId) },
+        orderBy: { createdAt: 'desc' },
+        include: { trackingLogs: true },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where: { merchantId: Number(merchantId) } })
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  async getCustomerOrders(customerId: number, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where: { customerId: Number(customerId) },
+        orderBy: { createdAt: 'desc' },
+        include: { trackingLogs: true, merchant: { select: { storeName: true } } },
+        skip,
+        take: limit,
+      }),
+      this.prisma.order.count({ where: { customerId: Number(customerId) } })
+    ]);
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
   }
 
   async getOrderById(orderId: number, userId: number, role: string) {

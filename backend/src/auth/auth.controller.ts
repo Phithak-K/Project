@@ -34,6 +34,21 @@ export class AuthController {
     return this.authService.resendOtp(body.email);
   }
 
+  // --- 🆕 ระบบ Forgot Password / Reset Password ---
+  @UseGuards(ThrottlerGuard)
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  @UseGuards(ThrottlerGuard)
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
+    return this.authService.resetPassword(body.email, body.otp, body.newPassword);
+  }
+
   // 3. เข้าสู่ระบบแบบปกติ
   @UseGuards(ThrottlerGuard) // [L-03] FIX: Rate limit to prevent brute force
   @Post('login')

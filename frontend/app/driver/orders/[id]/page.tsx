@@ -8,6 +8,8 @@ import {
   ArrowLeft, Phone, DollarSign, Shield, Zap, Navigation
 } from 'lucide-react';
 import QRScanner from '@/components/QRScanner';
+import { toast } from 'react-hot-toast';
+import OrderSkeleton from '@/components/OrderSkeleton';
 
 export default function DriverOrderWorkflowPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -61,9 +63,11 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
       });
       if (!res.ok) {
         const err = await res.json();
-        alert(err.message || 'Error updating status');
+        toast.error(err.message || 'Error updating status');
+      } else {
+        toast.success('อัปเดตสถานะสำเร็จ');
       }
-    } catch { alert('Network error'); }
+    } catch { toast.error('Network error'); }
     finally { setUpdating(false); }
   };
 
@@ -76,7 +80,16 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
     }
   };
 
-  if (loading) return <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}><span className="sp-spinner sp-spinner-lg" /></div>;
+  if (loading) {
+    return (
+      <div className="sp-page-dark" style={{ minHeight: '100vh', padding: '2rem 1.25rem' }}>
+        <div style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '4rem' }}>
+          <OrderSkeleton dark />
+          <OrderSkeleton dark />
+        </div>
+      </div>
+    );
+  }
   if (!order) return null;
 
   return (
@@ -198,8 +211,10 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
                       const data = JSON.parse(text);
                       if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
                         await updateStatus('pay');
+                      } else {
+                        toast.error('QR ไม่ถูกต้องสำหรับออเดอร์นี้');
                       }
-                    } catch { alert('QR ไม่ถูกต้อง'); }
+                    } catch { toast.error('QR ไม่ถูกต้อง'); }
                   }}
                 />
               </div>

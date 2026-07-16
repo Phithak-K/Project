@@ -207,6 +207,60 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+  // --- 🆕 ระบบ Forgot Password / Reset Password ---
+  async forgotPassword(email: string) {
+    const result = await this.findUserByEmailAcrossRoles(email);
+    if (!result) throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้ในระบบ');
+    
+    const { user, model, role } = result;
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const expiry = new Date();
+    expiry.setMinutes(expiry.getMinutes() + 15);
+
+    await (model as any).update({
+      where: { email },
+      data: { otpCode: hashOtp(otp), otpExpires: expiry },
+    });
+
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: `รหัสรีเซ็ตรหัสผ่านสำหรับ SwiftPath - [${role}]`,
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <p>รหัสสำหรับการรีเซ็ตรหัสผ่านของคุณคือ:</p>
+            <div style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #dc3545;">
+              ${otp}
+            </div>
+            <p>รหัสนี้จะหมดอายุภายใน 15 นาที หากไม่ได้เป็นคนขอ กรุณาละเว้นอีเมลฉบับนี้</p>
+          </div>
+        `,
+      });
+      return { message: 'ส่งรหัสรีเซ็ตรหัสผ่านไปยังอีเมลของคุณแล้ว' };
+    } catch (error) {
+      throw new BadRequestException('ไม่สามารถส่งอีเมลได้ในขณะนี้');
+    }
+  }
+
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    const result = await this.findUserByEmailAcrossRoles(email);
+    if (!result) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
+    
+    const { user, model } = result;
+
+    if (user.otpCode !== hashOtp(otp)) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await (model as any).update({
+      where: { email },
+      data: { password: hashedPassword, otpCode: null, otpExpires: null },
+    });
+
+    return { message: 'รีเซ็ตรหัสผ่านสำเร็จ คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที' };
+  }
+
   // 3. เข้าสู่ระบบแบบเฉพาะเจาะจงตาราง (Strict Isolation)
   async login(loginDto: LoginDto) {
     const roleStr = loginDto.role || 'Customer';

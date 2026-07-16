@@ -53,8 +53,31 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Get('my-orders')
-  getMyOrders(@Req() req: any) {
-    return this.ordersService.getMyOrders(Number(req.user.userId));
+  getMyOrders(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ordersService.getMyOrders(
+      Number(req.user.userId),
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Customer)
+  @Get('customer/my-orders')
+  getCustomerOrders(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ordersService.getCustomerOrders(
+      Number(req.user.userId),
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10
+    );
   }
 
   // ✅ SEC: Public Tracking — Rate Limited 10 ครั้ง/นาที/IP เพื่อป้องกัน Brute-force Tracking ID

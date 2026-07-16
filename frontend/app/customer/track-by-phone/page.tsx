@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Phone, Search, Package, ArrowRight, Clock, CheckCircle, Truck, XCircle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'react-hot-toast';
+import OrderSkeleton from '@/components/OrderSkeleton';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: any }> = {
   PENDING:   { label: 'รอดำเนินการ', color: '#d97706', bg: '#fefce8', icon: Clock },
@@ -35,9 +37,9 @@ export default function TrackByPhonePage() {
         setOrders(await res.json());
       } else {
         const err = await res.json();
-        alert(err.message || 'ไม่สามารถค้นหาได้');
+        toast.error(err.message || 'ไม่สามารถค้นหาได้');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setLoading(false); setSearched(true); }
   };
 
@@ -92,7 +94,14 @@ export default function TrackByPhonePage() {
         </form>
 
         {/* ── Results ── */}
-        {searched && (
+        {loading && (
+          <div className="sp-animate" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <OrderSkeleton />
+            <OrderSkeleton />
+          </div>
+        )}
+
+        {!loading && searched && (
           <div className="sp-animate">
             {orders.length === 0 ? (
               <div className="sp-empty-centered" style={{ padding: '3rem' }}>

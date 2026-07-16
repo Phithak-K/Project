@@ -19,6 +19,13 @@ export class UsersController {
     return this.usersService.findOne(req.user.userId, req.user.role);
   }
 
+  // 🆕 PATCH /users/profile — อัปเดตข้อมูลส่วนตัว
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile')
+  updateProfile(@Req() req: any, @Body() updateDto: UpdateUserDto) {
+    return this.usersService.updateProfile(req.user.userId, req.user.role, updateDto);
+  }
+
   // ==== ✅ SME Feature: Driver Management (Merchant Only) ====
 
   /** GET /users/my-drivers — คนขับที่สังกัดร้านของ Merchant */
