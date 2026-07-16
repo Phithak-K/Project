@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
   ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, DollarSign, 
-  MessageSquare, Shield, AlertCircle, ChevronRight, User
+  MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -59,6 +60,48 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
 
   const currentStepIndex = STATUS_FLOW.indexOf(order.status);
 
+  const handleShareLine = () => {
+    const trackingUrl = `${window.location.origin}/track/${order.trackingNumber}`;
+    const text = `ร้านได้รับออเดอร์ของคุณแล้ว!\nตรวจสอบสถานะการจัดส่งได้ที่ลิงก์นี้เลยครับ:\n${trackingUrl}`;
+    
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success('คัดลอกลิงก์สำเร็จ นำไปวางในแชท LINE ได้เลย');
+    }).catch(() => {
+      toast.error('ไม่สามารถคัดลอกข้อความได้');
+    });
+  };
+
+  const handleDownloadPdf = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      toast.error('กรุณาเข้าสู่ระบบก่อน');
+      return;
+    }
+    
+    try {
+      toast.loading('กำลังสร้างไฟล์ PDF...', { id: 'pdf' });
+      const res = await fetch(`${API_URL}/orders/${orderId}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!res.ok) throw new Error('Failed to fetch PDF');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `delivery-order-${order.trackingNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('ดาวน์โหลดสำเร็จ', { id: 'pdf' });
+    } catch (err) {
+      console.error(err);
+      toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้', { id: 'pdf' });
+    }
+  };
+
   return (
     <div className="sp-page">
       <nav className="sp-nav">
@@ -83,6 +126,9 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.625rem' }}>
+            <button onClick={handleShareLine} className="sp-btn-primary" style={{ background: '#06c755', borderColor: '#06c755' }}>
+              <Share2 size={16} /> คัดลอกลิงก์ส่งลูกค้า
+            </button>
             <button className="sp-btn-ghost"><MessageSquare size={16} /> แชทกับคนขับ</button>
             <button className="sp-btn-danger" style={{ background: 'var(--error-bg)', color: 'var(--error-text)' }}>ยกเลิกออเดอร์</button>
           </div>
@@ -158,6 +204,13 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
                     ฿{(order.totalPrice || order.price).toLocaleString()}
                   </span>
                 </div>
+                <button 
+                  onClick={handleDownloadPdf}
+                  className="sp-btn-ghost" 
+                  style={{ width: '100%', marginTop: '1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                >
+                  <Download size={16} /> ดาวน์โหลดใบส่งของ (PDF)
+                </button>
               </div>
             </div>
 

@@ -110,6 +110,13 @@ export class OrdersController {
     return this.ordersService.getOrderById(Number(id), Number(req.user.userId), req.user.role);
   }
 
+  // ✅ SME Feature: Download Delivery Order (PDF)
+  @UseGuards(JwtAuthGuard)
+  @Get(':id/pdf')
+  async exportOrderPdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    return this.ordersService.exportOrderPdf(Number(id), Number(req.user.userId), req.user.role, res);
+  }
+
   @UseGuards(JwtAuthGuard) 
   @Get(':id/messages')
   getOrderMessages(@Param('id') id: string, @Req() req: any) {

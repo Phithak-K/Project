@@ -34,6 +34,7 @@
 | Endpoint | Role | คำอธิบาย |
 |---|---|---|
 | `PATCH /orders/:id/assign` | Merchant | มอบหมายคนขับ |
+| `GET /orders/:id/pdf` | Merchant/Customer | ดาวน์โหลดใบส่งของ (PDF) พร้อมภาษาไทย |
 | `GET /orders/track-by-phone/:phone` | Public | ค้นหา order ด้วยเบอร์โทร (rate-limited 5 req/min) |
 | `GET /orders/export/csv` | Merchant | ดาวน์โหลด CSV + query `dateFrom`, `dateTo` |
 
@@ -71,7 +72,11 @@
 - เพิ่ม **CSV Export Panel** พร้อม date picker (จากวันที่ - ถึงวันที่)
 - กดดาวน์โหลด → ไฟล์ `.csv` UTF-8 BOM เปิดใน Excel ได้ทันที
 
-### 11. `merchant/drivers/page.tsx` ✅ ไฟล์ใหม่
+### 11. `merchant/orders/[id]/page.tsx` ✏️ (Updated)
+- เพิ่ม **ปุ่มแชร์ LINE (คัดลอกลิงก์)** (ก๊อปปี้ลิงก์ติดตามพัสดุสำเร็จรูปส่งเข้าแชท LINE ของลูกค้าได้ทันที)
+- เพิ่ม **ปุ่มดาวน์โหลดใบส่งของ (PDF)** ดึงข้อมูลบิลและออกไฟล์ PDF เพื่อปริ้นท์หน้างานได้สะดวก รองรับภาษาไทย 100%
+
+### 12. `merchant/drivers/page.tsx` ✅ ไฟล์ใหม่
 - ค้นหาคนขับด้วย email / เบอร์โทร
 - แสดง isVerified badge และ merchantId ก่อนอนุญาต Link
 - ยกเลิกคนขับออกจากร้าน (Unlink → Freelance)
