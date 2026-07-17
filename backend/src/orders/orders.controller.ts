@@ -104,26 +104,26 @@ export class OrdersController {
     return this.ordersService.getAdminStats();
   }
 
-  @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
-  @Get(':id')
-  getOrderById(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.getOrderById(Number(id), Number(req.user.userId), req.user.role);
-  }
-
-  // ✅ SME Feature: Download Delivery Order (PDF)
+  // ✅ SME Feature: Download Delivery Order (PDF) — [BUG-01 FIX] ย้ายมาก่อน :id
   @UseGuards(JwtAuthGuard)
   @Get(':id/pdf')
   async exportOrderPdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     return this.ordersService.exportOrderPdf(Number(id), Number(req.user.userId), req.user.role, res);
   }
 
-  @UseGuards(JwtAuthGuard) 
+  // [BUG-01 FIX] ย้ายมาก่อน :id เช่นกัน
+  @UseGuards(JwtAuthGuard)
   @Get(':id/messages')
   getOrderMessages(@Param('id') id: string, @Req() req: any) {
     return this.ordersService.getOrderMessages(Number(id), Number(req.user.userId), req.user.role);
   }
 
-
+  // [BUG-01 FIX] Generic :id route อยู่ท้ายสุดใน GET group
+  @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
+  @Get(':id')
+  getOrderById(@Param('id') id: string, @Req() req: any) {
+    return this.ordersService.getOrderById(Number(id), Number(req.user.userId), req.user.role);
+  }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)

@@ -41,21 +41,21 @@ export class OrdersService {
   }
 
   private async notifyOrderParties(orderId: number, status: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId }});
+    // [PERF-01 FIX] ใช้ include ดึงข้อมูล Customer และ Merchant ใน Query เดียวแทน 3 Queries
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        customer: { select: { fcmToken: true } },
+        merchant: { select: { fcmToken: true } },
+      },
+    });
     if (!order) return;
 
-    if (order.customerId) {
-       const customer = await this.prisma.customer.findUnique({ where: { id: order.customerId } });
-       if (customer?.fcmToken) {
-         await this.notificationsService.sendOrderStatusUpdate(customer.fcmToken, order.trackingNumber, status);
-       }
+    if (order.customer?.fcmToken) {
+      await this.notificationsService.sendOrderStatusUpdate(order.customer.fcmToken, order.trackingNumber, status);
     }
-
-    if (order.merchantId) {
-       const merchant = await this.prisma.merchant.findUnique({ where: { id: order.merchantId } });
-       if (merchant?.fcmToken) {
-         await this.notificationsService.sendOrderStatusUpdate(merchant.fcmToken, order.trackingNumber, status);
-       }
+    if (order.merchant?.fcmToken) {
+      await this.notificationsService.sendOrderStatusUpdate(order.merchant.fcmToken, order.trackingNumber, status);
     }
   }
 
@@ -108,7 +108,6 @@ export class OrdersService {
         || (hasItems ? (data.items!.length === 1 ? data.items![0].productName : `สินค้า ${data.items!.length} รายการ`) : 'สินค้าไม่ระบุชื่อ');
 
       // 1. Fetch Merchant for location
-      console.log('[DEBUG] createOrder called with merchantId:', merchantId, 'type:', typeof merchantId);
       const merchant = await this.prisma.merchant.findUnique({ where: { id: merchantId } });
       const merchantLat = merchant?.lat || 13.7563;
       const merchantLng = merchant?.lng || 100.5018;
@@ -961,9 +960,12 @@ export class OrdersService {
 
     if (!order) throw new BadRequestException('Order not found');
     
-    // Auth Check
+    // Auth Check — [SEC-02 FIX] เพิ่ม Driver guard ป้องกัน Driver คนอื่นดู PDF
     if (userRole === 'Merchant' && order.merchantId !== userId) throw new ForbiddenException('Access denied');
     if (userRole === 'Customer' && order.customerId !== userId) throw new ForbiddenException('Access denied');
+    if (userRole === 'Driver') {
+      if (!order.driverId || order.driverId !== userId) throw new ForbiddenException('Access denied: คุณไม่ใช่คนขับของออเดอร์นี้');
+    }
 
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     

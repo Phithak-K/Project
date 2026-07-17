@@ -15,6 +15,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
@@ -61,7 +62,11 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   const currentStepIndex = STATUS_FLOW.indexOf(order.status);
 
   const handleShareLine = () => {
-    const trackingUrl = `${window.location.origin}/track/${order.trackingNumber}`;
+    // [BUG-03 FIX] ใช้ NEXT_PUBLIC_BASE_DOMAIN แทน window.location.origin
+    // เพื่อให้ลิงก์ชี้ไปที่ Root Domain (localhost:3000) ไม่ใช่ store.localhost:3000
+    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+    const protocol = window.location.protocol; // http: หรือ https:
+    const trackingUrl = `${protocol}//${baseDomain}/track/${order.trackingNumber}`;
     const text = `ร้านได้รับออเดอร์ของคุณแล้ว!\nตรวจสอบสถานะการจัดส่งได้ที่ลิงก์นี้เลยครับ:\n${trackingUrl}`;
     
     navigator.clipboard.writeText(text).then(() => {
@@ -102,6 +107,31 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
     }
   };
 
+  // [BUG-04 FIX] เพิ่ม Handler สำหรับปุ่มยกเลิกออเดอร์
+  const handleCancelOrder = async () => {
+    if (!window.confirm(`ยืนยันการยกเลิกออเดอร์ ${order.trackingNumber} ใช่หรือไม่?`)) return;
+    const token = getAuthToken();
+    if (!token) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        toast.success('ยกเลิกออเดอร์เรียบร้อยแล้ว');
+        await fetchOrder();
+      } else {
+        const errData = await res.json();
+        toast.error(errData.message || 'ไม่สามารถยกเลิกออเดอร์ได้');
+      }
+    } catch {
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   return (
     <div className="sp-page">
       <nav className="sp-nav">
@@ -125,12 +155,28 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
               สร้างเมื่อ {new Date(order.createdAt).toLocaleString('th-TH')}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.625rem' }}>
+          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
             <button onClick={handleShareLine} className="sp-btn-primary" style={{ background: '#06c755', borderColor: '#06c755' }}>
               <Share2 size={16} /> คัดลอกลิงก์ส่งลูกค้า
             </button>
-            <button className="sp-btn-ghost"><MessageSquare size={16} /> แชทกับคนขับ</button>
-            <button className="sp-btn-danger" style={{ background: 'var(--error-bg)', color: 'var(--error-text)' }}>ยกเลิกออเดอร์</button>
+            {/* [BUG-04 FIX] ปุ่มแชทเปิดหน้า messages แทนไม่ทำอะไร */}
+            <button
+              className="sp-btn-ghost"
+              onClick={() => router.push(`/merchant/orders/${orderId}/messages`)}
+            >
+              <MessageSquare size={16} /> แชทกับคนขับ
+            </button>
+            {/* [BUG-04 FIX] แสดงปุ่มยกเลิกเฉพาะ PENDING และมี onClick handler */}
+            {order.status === 'PENDING' && (
+              <button
+                className="sp-btn-danger"
+                style={{ background: 'var(--error-bg)', color: 'var(--error-text)' }}
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+              >
+                {cancelling ? 'กำลังยกเลิก...' : 'ยกเลิกออเดอร์'}
+              </button>
+            )}
           </div>
         </div>
 

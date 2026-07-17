@@ -194,11 +194,7 @@ export function middleware(request: NextRequest) {
     currentHost = hostParts[0]
   }
 
-  // DEBUG LOG (ทิ้งไว้ตามที่ผู้ใช้ขอ)
-  console.log(
-    `[Middleware] Path: ${pathname} | Host: ${hostname} | ` +
-    `Subdomain: ${currentHost} | Token: ${!!token} | Role: ${userRole}`
-  )
+  // DEBUG LOG ถูกลบออกแล้ว (Production Cleanup)
 
   // ── สร้าง Helper ที่ผูกกับ Request ปัจจุบัน ─────────────────────────────────
   const protocol = url.protocol.replace(':', '')
