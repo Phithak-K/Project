@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search } from 'lucide-react';
+import { io } from 'socket.io-client';
+import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search, Radio } from 'lucide-react';
 
 export default function TrackingDetailPage() {
   const params = useParams();
@@ -13,10 +14,12 @@ export default function TrackingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
+  const [isLive, setIsLive] = useState(false); // true เมื่อได้รับพิกัดสดจากคนขับ
   
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const socketRef = useRef<any>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -73,7 +76,7 @@ export default function TrackingDetailPage() {
     const L = (window as any).L;
     if (!L) return;
 
-    // Determine location: Latest log with lat/lng OR destination lat/lng OR Bangkok default
+    // Determine initial location: Latest log with lat/lng OR destination lat/lng OR Bangkok default
     let centerLat = 13.7563;
     let centerLng = 100.5018;
     
@@ -99,32 +102,60 @@ export default function TrackingDetailPage() {
 
     mapInstanceRef.current = map;
 
-    // Add marker
+    // Add driver truck marker
     const iconHtml = `
       <div style="
-        width: 40px; height: 40px; border-radius: 50%;
+        width: 44px; height: 44px; border-radius: 50%;
         background: oklch(65% 0.18 30 / 0.15); border: 2px solid oklch(65% 0.18 30);
         display: flex; align-items: center; justify-content: center;
         box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+        transition: all 0.3s ease;
       ">
-        <div style="width: 14px; height: 14px; border-radius: 50%; background: oklch(65% 0.18 30);"></div>
+        <span style="font-size: 20px;">🚛</span>
       </div>
     `;
-    const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [40, 40], iconAnchor: [20, 20] });
+    const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
     
     markerRef.current = L.marker([centerLat, centerLng], { icon })
       .addTo(map)
       .bindPopup(`
         <div style="font-family: 'Inter', sans-serif; padding: 4px; text-align: center;">
           <strong style="color: oklch(65% 0.18 30); font-size: 0.9rem;">SwiftPath Delivery</strong><br/>
-          <span style="font-size: 0.8rem; color: #52525b;">Latest Known Location</span>
+          <span style="font-size: 0.8rem; color: #52525b;">ตำแหน่งคนขับ</span>
         </div>
       `);
       
-    // Re-center map slightly higher so popup fits
     map.panBy([0, -50]);
 
-  }, [mapReady, order]);
+    // [REALTIME-FIX] เชื่อมต่อ Socket.io แบบ Public (ไม่ต้อง Auth)
+    // Subscribe รับพิกัดสดจากคนขับผ่าน tracking room
+    const socket = io(API_URL, {
+      transports: ['websocket', 'polling'],
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      // บอก Server ว่าต้องการรับพิกัดของ Tracking Number นี้
+      socket.emit('subscribe_tracking', { trackingNumber: order.trackingNumber });
+    });
+
+    // เมื่อได้รับพิกัดจากคนขับ → ขยับหมุดบนแผนที่ทันที
+    socket.on('location_updated', (data: { lat: number; lng: number; heading?: number }) => {
+      if (!markerRef.current || !mapInstanceRef.current) return;
+      const newLatLng = (window as any).L.latLng(data.lat, data.lng);
+      markerRef.current.setLatLng(newLatLng);
+      // Pan แผนที่ตามรถแบบ smooth
+      mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
+      setIsLive(true);
+    });
+
+    socket.on('disconnect', () => setIsLive(false));
+
+    return () => {
+      socket.disconnect();
+    };
+
+  }, [mapReady, order, API_URL, trackingNumber]);
 
   if (loading) {
     return (
@@ -246,9 +277,18 @@ export default function TrackingDetailPage() {
           
           {/* Map Section */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e4e4e7', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <MapPin size={18} style={{ color: 'oklch(65% 0.18 30)' }} />
-              <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#18181b' }}>Live Location</h2>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <MapPin size={18} style={{ color: 'oklch(65% 0.18 30)' }} />
+                <h2 style={{ fontSize: '1rem', fontWeight: 800, color: '#18181b' }}>Live Location</h2>
+              </div>
+              {/* [REALTIME-FIX] แสดงสัญญาณ Live เมื่อรับพิกัดจากคนขับ */}
+              {isLive && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0.625rem', background: '#dcfce7', borderRadius: '99px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', animation: 'pulse 1.5s infinite' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803d' }}>LIVE</span>
+                </div>
+              )}
             </div>
             <div style={{ height: '300px', width: '100%', position: 'relative', background: '#f4f4f5' }}>
               <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />

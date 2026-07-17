@@ -40,9 +40,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   /**
-   * ตรวจสอบ JWT Token ตอนเชื่อมต่อ WebSocket
-   * Client ต้องส่ง token มาใน handshake auth หรือ query parameter
-   * เช่น: io('http://localhost:3000', { auth: { token: 'Bearer xxx' } })
+   * handleConnection — รองรับ 2 ประเภทการเชื่อมต่อ:
+   * 1. Authenticated: ต้องส่ง JWT token มาใน handshake.auth.token (Driver/Merchant/Customer)
+   * 2. Public: ไม่มี token — จะได้รับสถานะ isPublic=true (ดูพิกัดได้อย่างเดียว ส่งข้อมูลไม่ได้)
    */
   handleConnection(client: Socket) {
     try {
@@ -50,27 +50,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         (client.handshake.auth?.token as string) ||
         (client.handshake.query?.token as string) ||
         '';
-      const cleanToken = token.replace('Bearer ', '');
-      if (!cleanToken) {
-        this.logger.warn(`Client ${client.id} ถูกตัดการเชื่อมต่อ: ไม่มี Token`);
-        client.emit('error', { message: 'Authentication required: กรุณาแนบ JWT Token' });
-        client.disconnect();
+
+      if (!token) {
+        // [REALTIME-FIX] อนุญาตให้ Public Client (หน้า Tracking) เชื่อมต่อได้โดยไม่ต้อง Auth
+        (client as any).isPublic = true;
+        (client as any).user = null;
+        this.logger.log(`Public client ${client.id} connected (tracking-only access)`);
         return;
       }
+
+      const cleanToken = token.replace('Bearer ', '');
       const payload = this.jwtService.verify(cleanToken);
       (client as any).user = payload;
-      this.logger.log(`Client ${client.id} เชื่อมต่อสำเร็จ (userId: ${payload.sub})`);
+      (client as any).isPublic = false;
+      this.logger.log(`Client ${client.id} connected (userId: ${payload.sub}, role: ${payload.role})`);
     } catch (error) {
-      this.logger.warn(`Client ${client.id} ถูกตัดการเชื่อมต่อ: Token ไม่ถูกต้องหรือหมดอายุ`);
+      this.logger.warn(`Client ${client.id} disconnected: invalid token`);
       client.emit('error', { message: 'Authentication failed: Token ไม่ถูกต้องหรือหมดอายุ' });
       client.disconnect();
     }
   }
 
   /**
-   * ✅ HIGH-02 FIX: Re-verify JWT Signature ทุก Event (Zero-Trust)
-   * ไม่ใช้ค่า exp ที่ cache ไว้ตอน connect —
-   * re-verify จริงทุกครั้ง ทำให้ token revocation และ secret rotation มีผลทันที
+   * Re-verify JWT Signature ทุก Event (Zero-Trust)
+   * ใช้เฉพาะ Event ที่ต้องการ Auth เท่านั้น
    */
   private verifyAndGetUser(client: Socket): any | null {
     try {
@@ -80,7 +83,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         '';
       const cleanToken = raw.replace('Bearer ', '');
       if (!cleanToken) throw new Error('No token');
-      return this.jwtService.verify(cleanToken); // re-verifies signature + expiry
+      return this.jwtService.verify(cleanToken);
     } catch {
       client.emit('error', { message: 'Session expired. Please reconnect.' });
       client.disconnect();
@@ -89,20 +92,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client ${client.id} ตัดการเชื่อมต่อ`);
+    this.logger.log(`Client ${client.id} disconnected`);
   }
 
-  // เมื่อมีข้อความส่งมาจากหน้าบ้าน (Event: send_message)
+  // ─── Public Event: หน้า Tracking Subscribe รับพิกัดสดโดยไม่ต้อง Auth ─────────
+  // ใครก็ตามที่มีหมายเลข Tracking สามารถดูพิกัดรถแบบ Real-time ได้
+  @SubscribeMessage('subscribe_tracking')
+  async handleSubscribeTracking(
+    @MessageBody() data: { trackingNumber: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data.trackingNumber) {
+      client.emit('error', { message: 'trackingNumber is required' });
+      return;
+    }
+    // ตรวจว่า Tracking Number นี้มีจริงในระบบก่อน Subscribe
+    const order = await this.prisma.order.findFirst({
+      where: { trackingNumber: data.trackingNumber },
+    });
+    if (!order) {
+      client.emit('error', { message: 'Tracking number not found' });
+      return;
+    }
+    const room = `tracking_${data.trackingNumber}`;
+    client.join(room);
+    this.logger.log(`Client ${client.id} subscribed to public tracking room: ${room}`);
+    return { event: 'subscribed', room };
+  }
+
+  // ─── Authenticated Event: ส่งข้อความแชทในออเดอร์ ─────────────────────────────
   @SubscribeMessage('send_message')
   async handleMessage(
     @MessageBody() data: { orderId: number; receiverId: number; receiverRole: string; content: string; imageUrl?: string; audioUrl?: string },
     @ConnectedSocket() client: Socket,
   ) {
-    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
     const user = this.verifyAndGetUser(client);
     if (!user) return;
 
-    // 1. Verify sender is part of this order [H-01 FIX]
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
     if (!order) {
       client.emit('error', { message: 'Order not found' });
@@ -117,7 +143,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // 2. บันทึกลง Firebase Firestore (NoSQL)
     const firestore = admin.firestore();
     const chatRef = firestore.collection('chats').doc(`order_${data.orderId}`).collection('messages');
     
@@ -148,26 +173,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
 
     const docRef = await chatRef.add(messageDoc);
-
     const newMessage = { id: docRef.id, ...messageDoc, createdAt: new Date() };
 
-    // 3. ยิงข้อความออกไปให้คนที่กำลังรอรับ (Real-time WebSocket)
     this.server.to(`order_${data.orderId}`).emit('receive_message', newMessage);
-
     return newMessage;
   }
 
-  // ระบบเข้าห้อง (Join Room) เพื่อให้คุยกันเฉพาะในออเดอร์นั้นๆ
+  // ─── Authenticated Event: เข้าห้องออเดอร์ (Merchant/Driver/Customer) ────────
   @SubscribeMessage('join_order')
   async handleJoinOrder(
     @MessageBody() data: { orderId: number },
     @ConnectedSocket() client: Socket,
   ) {
-    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
     const user = this.verifyAndGetUser(client);
     if (!user) return;
 
-    // [CRITICAL SECURITY FIX] ตรวจสอบสิทธิ์การเข้าห้อง
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
     if (!order) {
       client.emit('error', { message: 'Order not found' });
@@ -179,7 +199,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       (user.role === 'Customer' && order.customerId === user.sub);
     
     if (!isInvolved) {
-      this.logger.warn(`User ${user.sub} (${user.role}) พยายามเข้าถึงห้อง order_${data.orderId} โดยไม่มีสิทธิ์`);
+      this.logger.warn(`User ${user.sub} (${user.role}) tried to join order_${data.orderId} without permission`);
       client.emit('error', { message: 'Forbidden: คุณไม่มีสิทธิ์เข้าถึงข้อความในออเดอร์นี้' });
       return;
     }
@@ -188,13 +208,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { event: 'joined', room: `order_${data.orderId}` };
   }
 
-  // --- 🆕 Tracking Gateway (Real-time GPS Update) ---
+  // ─── Authenticated Event: Driver ส่งพิกัด GPS Real-time ─────────────────────
   @SubscribeMessage('update_location')
   async handleUpdateLocation(
     @MessageBody() data: { orderId: number; lat: number; lng: number; heading?: number },
     @ConnectedSocket() client: Socket,
   ) {
-    // ✅ HIGH-02: Re-verify JWT signature ทุก event (Zero-Trust)
     const user = this.verifyAndGetUser(client);
     if (!user) return;
 
@@ -203,29 +222,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // [APP SEC] ตรวจสอบกรอบค่าละติจูดและลองจิจูด เพื่อป้องกัน GPS Spoofing
+    // ตรวจสอบกรอบค่าพิกัดเพื่อป้องกัน GPS Spoofing
     if (data.lat < -90 || data.lat > 90 || data.lng < -180 || data.lng > 180) {
-      this.logger.warn(`Potential GPS Spoofing Detected: ${user.sub} ส่งค่า lat: ${data.lat}, lng: ${data.lng}`);
+      this.logger.warn(`Potential GPS Spoofing: driver ${user.sub} sent lat:${data.lat}, lng:${data.lng}`);
       client.emit('error', { message: 'Invalid GPS coordinates' });
       return;
     }
 
-    // [CRITICAL SECURITY FIX] ตรวจสอบสิทธิ์ความเป็นเจ้าของงานก่อนจะรับพิกัด
+    // ตรวจสอบสิทธิ์ความเป็นเจ้าของงาน
     const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
     if (!order || order.driverId !== user.sub) {
-      this.logger.warn(`Driver ${user.sub} พยายามจำลองพิกัดในออเดอร์ ${data.orderId} ที่ไม่ได้เป็นเจ้าของ`);
+      this.logger.warn(`Driver ${user.sub} tried to spoof location for order ${data.orderId}`);
       client.emit('error', { message: 'Forbidden: คุณไม่ใช่คนขับที่รับผิดชอบออเดอร์นี้' });
       return;
     }
 
-    const room = `order_${data.orderId}`;
-    // Broadcast ตำแหน่งแบบสดๆ ให้ลูกค้าและร้านค้าในห้อง (ไม่เซฟลง Database ทุกรอบเพื่อประหยัดทรัพยากร)
-    this.server.to(room).emit('location_updated', {
+    const locationPayload = {
       lat: data.lat,
       lng: data.lng,
       heading: data.heading,
       timestamp: new Date().toISOString(),
-      driverId: user.sub
-    });
+      driverId: user.sub,
+    };
+
+    // [REALTIME-FIX] Broadcast พิกัดไปทั้ง 2 ห้องพร้อมกัน:
+    // - order_<id>              → Merchant/Customer ที่ล็อกอินอยู่ในหน้าออเดอร์
+    // - tracking_<trackingNo>  → Public Tracking Page (ไม่ต้อง Auth)
+    this.server.to(`order_${data.orderId}`).emit('location_updated', locationPayload);
+    this.server.to(`tracking_${order.trackingNumber}`).emit('location_updated', locationPayload);
   }
 }
