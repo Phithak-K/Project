@@ -277,6 +277,19 @@ export function middleware(request: NextRequest) {
   }
 
   // ════════════════════════════════════════════════════════════════════════════
+  // STEP 6.1: Subdomain self-cleanup (Prevent double prefix 404s)
+  // ════════════════════════════════════════════════════════════════════════════
+  if (currentHost === 'store' && pathname.startsWith('/merchant')) {
+    const cleanPath = pathname.replace('/merchant', '')
+    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'store'), request.url))
+  }
+  if (currentHost === 'fleet' && pathname.startsWith('/driver')) {
+    const cleanPath = pathname.replace('/driver', '')
+    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'fleet'), request.url))
+  }
+
+
+  // ════════════════════════════════════════════════════════════════════════════
   // STEP 7: Shared Root Pages (ห้าม Rewrite — เพราะไม่มีโฟลเดอร์ /customer/verify-otp)
   // ════════════════════════════════════════════════════════════════════════════
   const sharedRootPaths = ['/verify-otp', '/track']

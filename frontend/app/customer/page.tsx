@@ -171,14 +171,17 @@ export default function CustomerDashboard() {
     const fetchData = async () => {
       try {
         const [ordersRes, userRes] = await Promise.all([
-          fetch(`${API_URL}/orders/my-orders`, {
+          fetch(`${API_URL}/orders/customer/my-orders`, {
             headers: { Authorization: `Bearer ${token}` }
           }),
           fetch(`${API_URL}/users/me`, {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
-        if (ordersRes.ok) setOrders(await ordersRes.json());
+        if (ordersRes.ok) {
+          const oData = await ordersRes.json();
+          setOrders(oData.data || oData || []);
+        }
         if (userRes.ok) {
           const userData = await userRes.json();
           setBalance(Number(userData.balance || 0));

@@ -36,7 +36,9 @@ export default function MerchantDashboard() {
       if (statsRes.ok && ordersRes.ok) {
         const s = await statsRes.json();
         setStats({ pending: s.pendingOrders || 0, shipping: s.shippingOrders || 0, delivered: s.deliveredOrders || 0, todaySales: s.todaySales || 0 });
-        setOrders(await ordersRes.json());
+        
+        const oData = await ordersRes.json();
+        setOrders(oData.data || oData || []);
       }
       if (driversRes.ok) setMyDrivers(await driversRes.json());
     } catch (err) { console.error(err); }
