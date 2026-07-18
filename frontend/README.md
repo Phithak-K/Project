@@ -80,9 +80,17 @@ const adminResult = checkAdminAccess(ctx)
 if (adminResult) return adminResult  // short-circuit — ไม่ผ่าน check อื่น
 ```
 
+### BUG-003: Double Prefix 404 (แก้ไขแล้ว)
+* **ปัญหา:** พอร์ทัลภายใต้ซับโดเมน (เช่น `store.localhost:3000`) มีการเผลอเขียนลิงก์แบบระบุเส้นทางซ้ำซ้อน เช่น `/merchant/create-order` ซึ่งทำให้ Middleware เขียนเส้นทางซ้อนไปเป็น `/merchant/merchant/create-order` และเกิดข้อผิดพลาด 404 Not Found
+* **การแก้ไข:** เพิ่มขั้นตอน **Step 6.1 (Subdomain self-cleanup)** ใน Middleware เพื่อดักจับคำนำหน้าโดเมนที่ซ้ำซ้อน (`/merchant`, `/driver`, `/customer`) แล้วทำการ Redirect ไปยังเส้นทางที่สะอาดขึ้นโดยอัตโนมัติ
+
+### BUG-004: Paginated Dashboard Crash (แก้ไขแล้ว)
+* **ปัญหา:** API หลังบ้านมีการปรับรูปแบบข้อมูลของหน้าประวัติออเดอร์ให้รองรับการแบ่งหน้า (Pagination) ทำให้ค่าส่งกลับมีลักษณะเป็น Object `{ data: [...], total: N }` แต่หน้าแดชบอร์ดฝั่ง Merchant และ Customer พยายามลูป (`.slice()` / `.map()`) บนตัวแปรตรงๆ ทำให้เกิด `TypeError: slice is not a function` (แสดงผลหน้า 500)
+* **การแก้ไข:** แก้ไขไฟล์ `app/merchant/page.tsx` และ `app/customer/page.tsx` ให้เข้าถึงข้อมูลในฟิลด์ `.data` (และมี fallback สำรอง) อย่างปลอดภัย ป้องกันแอปพัง
+
 ### BUG-002: Cumulative Layout Shift (CLS) บนการสลับซับโดเมน (แก้ไขแล้ว)
 
-รูปแบบ `return null` ระหว่างก่อน hydration ถูกแทนที่ด้วย **Safe Server Skeleton** ที่กำหนดขนาดแบบ static ใน Server Component ทำให้เบราว์เซอร์ได้รับโครงสร้างหน้าที่มีมิติ stable ตั้งแต่ HTML payload ชิ้นแรก กำจัดหน้าขาวว่างและรักษาคะแนน Core Web Vitals
+ฟังก์ชัน `return null` ระหว่างก่อน hydration ถูกแทนที่ด้วย **Safe Server Skeleton** ที่กำหนดขนาดแบบ static ใน Server Component ทำให้เบราว์เซอร์ได้รับโครงสร้างหน้าที่มีมิติ stable ตั้งแต่ HTML payload ชิ้นแรก กำจัดหน้าขาวว่างและรักษาคะแนน Core Web Vitals
 
 ---
 
