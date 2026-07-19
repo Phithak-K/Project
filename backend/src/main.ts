@@ -4,10 +4,20 @@ import { ValidationPipe } from '@nestjs/common';
 import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  // [ARC-01 FIX] Disable NestJS's built-in bodyParser so we can register
+  // our own with the correct 10MB limit BEFORE any other middleware runs.
+  // Without bodyParser: false, the default 100KB parser runs first and
+  // the subsequent app.use(express.json({ limit: '10mb' })) has no effect.
+  const app = await NestFactory.create(AppModule, {
+    rawBody: true,
+    bodyParser: false, // ← CRITICAL: disable built-in parser first
+  });
 
-  // 1. ตั้งค่า Global Validation Pipe
-  // ช่วยตรวจสอบ Data Transfer Object (DTO) ให้ถูกต้องก่อนเข้า Controller
+  // Now register Express body parsers with the desired 10MB limit
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+  // 1. Global Validation Pipe — validates all DTOs before reaching controllers
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -15,10 +25,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
-  // [FIX] เพิ่มขนาด Limit การส่งข้อมูล (ป้องกัน HTTP 413 Payload Too Large เวลาอัปโหลดรูป Base64)
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
   app.enableCors({
     origin: [

@@ -50,7 +50,11 @@ export class AuthController {
   }
 
   // 3. เข้าสู่ระบบแบบปกติ
-  @UseGuards(ThrottlerGuard) // [L-03] FIX: Rate limit to prevent brute force
+  // [SEC-02 FIX] Strict Rate Limit on Login — especially important for Admin credentials.
+  // 5 attempts / 60 seconds is the security baseline for password endpoints.
+  // The Global ThrottlerGuard allows 100 req/min, which is insufficient for login.
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {

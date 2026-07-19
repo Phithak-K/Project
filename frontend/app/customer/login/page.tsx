@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowRight, User } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { FaFacebook, FaLine } from 'react-icons/fa';
+import { handleLoginCallback } from '@/lib/auth';
 
 export default function CustomerLoginPage() {
   const [email, setEmail] = useState('');
@@ -32,26 +33,9 @@ export default function CustomerLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        const isLocalhost = baseDomain.includes('localhost');
-        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
-        const cookieOptions = `path=/; ${domainStr}expires=${expires}; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
-
-        if (data.access_token) {
-          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
-        }
-        const role = data.user?.role || 'Customer';
-        document.cookie = `role=${role}; ${cookieOptions}`;
-
-        const proto = isLocalhost ? 'http' : 'https';
-        if (role === 'Driver') {
-          window.location.href = `${proto}://fleet.${baseDomain}/`;
-        } else if (role === 'Merchant') {
-          window.location.href = `${proto}://store.${baseDomain}/`;
-        } else {
-          window.location.href = `${proto}://app.${baseDomain}/`;
-        }
+        // [SEC-01/SEC-03 FIX] Server sets HttpOnly cookie — token is XSS-safe
+        const { redirectUrl } = await handleLoginCallback(data);
+        window.location.href = redirectUrl;
       } else {
         const msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
         if (msg.includes('ยังไม่ได้ยืนยัน')) {
@@ -79,15 +63,9 @@ export default function CustomerLoginPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        const baseDomainG = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        const isLocalhostG = baseDomainG.includes('localhost');
-        const domainStrG = isLocalhostG ? '' : `domain=.${baseDomainG.split(':')[0]}; `;
-        const protoG = isLocalhostG ? 'http' : 'https';
-        const cookieOptionsG = `path=/; ${domainStrG}max-age=86400; SameSite=Lax${isLocalhostG ? '' : '; Secure'}`;
-        
-        document.cookie = `token=${data.access_token}; ${cookieOptionsG}`;
-        document.cookie = `role=${data.user?.role || 'Customer'}; ${cookieOptionsG}`;
-        window.location.href = `${protoG}://app.${baseDomainG}/`;
+        // [SEC-01/SEC-03 FIX] Same HttpOnly approach for Google OAuth
+        const { redirectUrl } = await handleLoginCallback(data);
+        window.location.href = redirectUrl;
       } else {
         setErrorMsg(data.message || 'Google Login Failed');
       }

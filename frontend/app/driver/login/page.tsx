@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { handleLoginCallback } from '@/lib/auth';
 
 export default function DriverLoginPage() {
   const [email, setEmail] = useState('');
@@ -26,14 +27,9 @@ export default function DriverLoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        const isLocalhost = baseDomain.includes('localhost');
-        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
-        const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
-        document.cookie = `token=${data.access_token}; ${cookieOptions}`;
-        document.cookie = `role=${data.user.role}; ${cookieOptions}`;
-        const proto = baseDomain.includes('localhost') ? 'http' : 'https';
-        window.location.href = `${proto}://fleet.${baseDomain}/`;
+        // [SEC-01/SEC-03 FIX] Use server-side HttpOnly cookie via /api/auth/callback
+        const { redirectUrl } = await handleLoginCallback(data);
+        window.location.href = redirectUrl;
       } else {
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
