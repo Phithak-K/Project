@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ ok: true, redirectUrl });
 
     const cookieOptions = {
-      httpOnly: true,               // ← CRITICAL: JavaScript CANNOT read this cookie
+      httpOnly: false,              // Reverted to false: Client-side JS needs to read token for direct API calls to NestJS
       secure: !isLocalhost,         // ← HTTPS-only in production
       sameSite: 'lax' as const,
       maxAge: 86400,                // 24 hours
