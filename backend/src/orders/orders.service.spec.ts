@@ -80,7 +80,9 @@ describe('OrdersService', () => {
         status: OrderStatus.SHIPPING,
       });
 
-      await expect(service.payOrder(1, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.payOrder(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
       await expect(service.payOrder(1, 10)).rejects.toThrow(
         'ชำระเงินได้เฉพาะออเดอร์ที่จัดส่งสำเร็จแล้ว (DELIVERED) เท่านั้น',
       );
@@ -92,7 +94,9 @@ describe('OrdersService', () => {
         status: OrderStatus.ACCEPTED,
       });
 
-      await expect(service.payOrder(1, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.payOrder(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('[BUG-002] ควร throw BadRequestException ถ้า order อยู่สถานะ PICKED_UP', async () => {
@@ -101,7 +105,9 @@ describe('OrdersService', () => {
         status: OrderStatus.PICKED_UP,
       });
 
-      await expect(service.payOrder(1, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.payOrder(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('ควร throw ForbiddenException ถ้า driverId ไม่ตรงกับ order', async () => {
@@ -119,8 +125,12 @@ describe('OrdersService', () => {
         paymentStatus: 'Paid',
       });
 
-      await expect(service.payOrder(1, 10)).rejects.toThrow(BadRequestException);
-      await expect(service.payOrder(1, 10)).rejects.toThrow('ออเดอร์นี้ชำระเงินแล้ว');
+      await expect(service.payOrder(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.payOrder(1, 10)).rejects.toThrow(
+        'ออเดอร์นี้ชำระเงินแล้ว',
+      );
     });
 
     it('ควรคืนผลสำเร็จถ้า order อยู่สถานะ DELIVERED และยังไม่ชำระเงิน', async () => {
@@ -153,15 +163,21 @@ describe('OrdersService', () => {
   // ===== rateOrder Tests =====
   describe('rateOrder()', () => {
     it('ควร throw BadRequestException ถ้าคะแนนน้อยกว่า 1', async () => {
-      await expect(service.rateOrder(1, 5, 'Customer', 0)).rejects.toThrow(BadRequestException);
+      await expect(service.rateOrder(1, 5, 'Customer', 0)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('ควร throw BadRequestException ถ้าคะแนนมากกว่า 5', async () => {
-      await expect(service.rateOrder(1, 5, 'Customer', 6)).rejects.toThrow(BadRequestException);
+      await expect(service.rateOrder(1, 5, 'Customer', 6)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('ควร throw BadRequestException ถ้า orderId ไม่ใช่ตัวเลข', async () => {
-      await expect(service.rateOrder(NaN, 5, 'Customer', 4)).rejects.toThrow(BadRequestException);
+      await expect(service.rateOrder(NaN, 5, 'Customer', 4)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('ควร throw ForbiddenException ถ้า Customer ไม่ใช่เจ้าของออเดอร์', async () => {
@@ -173,21 +189,27 @@ describe('OrdersService', () => {
         status: OrderStatus.DELIVERED,
       });
 
-      await expect(service.rateOrder(1, 5, 'Customer', 4)).rejects.toThrow(ForbiddenException);
+      await expect(service.rateOrder(1, 5, 'Customer', 4)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
   // ===== acceptOrder Tests =====
   describe('acceptOrder()', () => {
     it('ควร throw BadRequestException ถ้า orderId ไม่ใช่ตัวเลข', async () => {
-      await expect(service.acceptOrder(NaN, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.acceptOrder(NaN, 10)).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('[Race Condition] ควร throw BadRequestException ถ้าออเดอร์ถูกรับไปแล้ว (Prisma P2025)', async () => {
       const prismaError = { code: 'P2025' };
       mockPrismaService.order.update.mockRejectedValue(prismaError);
 
-      await expect(service.acceptOrder(1, 10)).rejects.toThrow(BadRequestException);
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        BadRequestException,
+      );
       await expect(service.acceptOrder(1, 10)).rejects.toThrow(
         'ออเดอร์นี้ถูกรับไปแล้ว หรือออเดอร์ถูกยกเลิก',
       );
@@ -197,11 +219,15 @@ describe('OrdersService', () => {
   // ===== getPublicOrderTracking Tests (MEDIUM-01 + MEDIUM-02) =====
   describe('getPublicOrderTracking()', () => {
     it('[MEDIUM-02] ควร throw BadRequestException ถ้า tracking number รูปแบบผิด', async () => {
-      await expect(service.getPublicOrderTracking('INVALID')).rejects.toThrow(BadRequestException);
+      await expect(service.getPublicOrderTracking('INVALID')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('[MEDIUM-02] ควร throw ถ้าขึ้นต้นด้วย SP แต่สั้นเกินไป', async () => {
-      await expect(service.getPublicOrderTracking('SP123')).rejects.toThrow(BadRequestException);
+      await expect(service.getPublicOrderTracking('SP123')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('[MEDIUM-02] ควรยอมรับ tracking number รูปแบบถูกต้อง SP + 10 ตัวอักษรพิมพ์ใหญ่', async () => {

@@ -8,6 +8,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [WeatherModule, ChatModule, NotificationsModule],
   providers: [OrdersService],
-  controllers: [OrdersController]
+  controllers: [OrdersController],
 })
 export class OrdersModule {}

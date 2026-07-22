@@ -1,8 +1,13 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt'; // [BUG-006 FIX] ป้องกัน Plain-text Password
+import { UserRole } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -12,42 +17,47 @@ export class UsersService {
   // Helper function เพื่อเลือก Table ตาม Role
   private getDelegate(role: string): any {
     switch (role?.toLowerCase()) {
-      case 'merchant': return this.prisma.merchant;
-      case 'driver': return this.prisma.driver;
-      case 'customer': return this.prisma.customer;
-      default: throw new BadRequestException(`Invalid role: ${role}`);
+      case 'merchant':
+        return this.prisma.merchant;
+      case 'driver':
+        return this.prisma.driver;
+      case 'customer':
+        return this.prisma.customer;
+      default:
+        throw new BadRequestException(`Invalid role: ${role}`);
     }
   }
 
   // Helper function กำจัดข้อมูลหลอน (Orphaned Data)
   private async cleanupUserRelatedData(id: number, role: string) {
-    const roleCapitalized = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
-    
+    const roleCapitalized =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
     // 1. ลบ Message ทั้งหมดที่ User คนนี้เป็นผู้ส่งหรือผู้รับ
     await this.prisma.message.deleteMany({
       where: {
         OR: [
-          { senderId: id, senderRole: roleCapitalized },
-          { receiverId: id, receiverRole: roleCapitalized }
-        ]
-      }
+          { senderId: id, senderRole: roleCapitalized as UserRole },
+          { receiverId: id, receiverRole: roleCapitalized as UserRole },
+        ],
+      },
     });
 
     // 2. ปล่อย Order ไว้เป็นประวัติการเงิน แต่ชี้ Foreign Key เป็น null (Anonymize)
     if (roleCapitalized === 'Customer') {
       await this.prisma.order.updateMany({
         where: { customerId: id },
-        data: { customerId: null }
+        data: { customerId: null },
       });
     } else if (roleCapitalized === 'Driver') {
       await this.prisma.order.updateMany({
         where: { driverId: id },
-        data: { driverId: null }
+        data: { driverId: null },
       });
     } else if (roleCapitalized === 'Merchant') {
       await this.prisma.order.updateMany({
         where: { merchantId: id },
-        data: { merchantId: null }
+        data: { merchantId: null },
       });
     }
   }
@@ -65,14 +75,21 @@ export class UsersService {
         name: createUserDto.name,
         phone: createUserDto.phone,
       },
-      select: { id: true, email: true, name: true, phone: true, balance: true }
+      select: { id: true, email: true, name: true, phone: true, balance: true },
     });
   }
 
   async findAll(role: string) {
     const delegate = this.getDelegate(role);
     return delegate.findMany({
-      select: { id: true, email: true, name: true, phone: true, balance: true, isVerified: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        balance: true,
+        isVerified: true,
+      },
       orderBy: { id: 'desc' },
     });
   }
@@ -81,15 +98,23 @@ export class UsersService {
     const delegate = this.getDelegate(role);
     const user = await delegate.findUnique({
       where: { id },
-      select: { id: true, email: true, name: true, phone: true, balance: true, isVerified: true }
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        phone: true,
+        balance: true,
+        isVerified: true,
+      },
     });
-    if (!user) throw new NotFoundException(`User with ID ${id} not found in ${role}`);
+    if (!user)
+      throw new NotFoundException(`User with ID ${id} not found in ${role}`);
     return user;
   }
 
   async updateProfile(id: number, role: string, updateDto: UpdateUserDto) {
     const delegate = this.getDelegate(role);
-    
+
     // Prevent updating sensitive fields
     const safeUpdateDto = { ...updateDto };
     delete (safeUpdateDto as any).email;
@@ -97,11 +122,11 @@ export class UsersService {
     delete (safeUpdateDto as any).balance;
     delete (safeUpdateDto as any).isVerified;
     delete (safeUpdateDto as any).role;
-    
+
     return delegate.update({
       where: { id },
       data: safeUpdateDto,
-      select: { id: true, email: true, name: true, phone: true }
+      select: { id: true, email: true, name: true, phone: true },
     });
   }
 
@@ -110,40 +135,53 @@ export class UsersService {
     return delegate.update({
       where: { id },
       data: updateUserDto,
-      select: { id: true, email: true, name: true, phone: true, balance: true }
+      select: { id: true, email: true, name: true, phone: true, balance: true },
     });
   }
 
   async remove(id: number, role: string) {
     const delegate = this.getDelegate(role);
-    
+
     // ตรวจสอบว่ามีบัญชีนี้อยู่จริง
     const user = await this.findOne(id, role);
-    
-    const roleCapitalized = role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
+
+    const roleCapitalized =
+      role.charAt(0).toUpperCase() + role.slice(1).toLowerCase();
 
     // Option A: Prevent hard deletion if financial or order records exist
     const txCount = await this.prisma.transaction.count({
-      where: { userId: id, userRole: roleCapitalized }
+      where: { userId: id, userRole: roleCapitalized as UserRole },
     });
-    if (txCount > 0) throw new BadRequestException('ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติธุรกรรมการเงิน');
+    if (txCount > 0)
+      throw new BadRequestException(
+        'ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติธุรกรรมการเงิน',
+      );
 
     const orderCount = await this.prisma.order.count({
-      where: roleCapitalized === 'Customer' ? { customerId: id } : 
-             roleCapitalized === 'Driver' ? { driverId: id } : 
-             { merchantId: id }
+      where:
+        roleCapitalized === 'Customer'
+          ? { customerId: id }
+          : roleCapitalized === 'Driver'
+            ? { driverId: id }
+            : { merchantId: id },
     });
-    if (orderCount > 0) throw new BadRequestException('ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติออเดอร์');
+    if (orderCount > 0)
+      throw new BadRequestException(
+        'ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติออเดอร์',
+      );
 
     const ratingCount = await this.prisma.rating.count({
       where: {
         OR: [
-          { raterId: id, raterRole: roleCapitalized },
-          { driverId: roleCapitalized === 'Driver' ? id : -1 }
-        ]
-      }
+          { raterId: id, raterRole: roleCapitalized as UserRole },
+          { driverId: roleCapitalized === 'Driver' ? id : -1 },
+        ],
+      },
     });
-    if (ratingCount > 0) throw new BadRequestException('ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติการให้คะแนนรีวิว');
+    if (ratingCount > 0)
+      throw new BadRequestException(
+        'ไม่สามารถลบบัญชีนี้ได้ เนื่องจากมีประวัติการให้คะแนนรีวิว',
+      );
 
     // 1. เคลียร์ข้อมูลหลอนที่ผูกกับตารางนี้ (Messages)
     await this.cleanupUserRelatedData(id, role);
@@ -151,7 +189,7 @@ export class UsersService {
     // 2. ลบผู้ใช้ทิ้งอย่างปลอดภัย
     return delegate.delete({
       where: { id },
-      select: { id: true, email: true }
+      select: { id: true, email: true },
     });
   }
 
@@ -181,7 +219,8 @@ export class UsersService {
         ...(amount < 0 ? { balance: { gte: Math.abs(amount) } } : {}), // ป้องกัน balance ติดลบ
       },
       data: {
-        balance: amount >= 0 ? { increment: amount } : { decrement: Math.abs(amount) },
+        balance:
+          amount >= 0 ? { increment: amount } : { decrement: Math.abs(amount) },
         version: { increment: 1 }, // เพิ่ม version ทุกครั้งที่ update สำเร็จ
       },
     });
@@ -217,23 +256,38 @@ export class UsersService {
 
   /** ผูก Driver เข้ากับร้านค้า (Driver ต้องยืนยันตัวตนแล้ว) */
   async linkDriverToMerchant(driverId: number, merchantId: number) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+    });
     if (!driver) throw new NotFoundException('ไม่พบข้อมูลคนขับ');
-    if (!driver.isVerified) throw new BadRequestException('คนขับต้องยืนยันตัวตนก่อนจึงจะผูกกับร้านได้');
+    if (!driver.isVerified)
+      throw new BadRequestException(
+        'คนขับต้องยืนยันตัวตนก่อนจึงจะผูกกับร้านได้',
+      );
     if (driver.merchantId && driver.merchantId !== merchantId) {
-      throw new BadRequestException('คนขับคนนี้สังกัดร้านอื่นอยู่แล้ว กรุณาให้ร้านเดิมยกเลิกก่อน');
+      throw new BadRequestException(
+        'คนขับคนนี้สังกัดร้านอื่นอยู่แล้ว กรุณาให้ร้านเดิมยกเลิกก่อน',
+      );
     }
 
     return this.prisma.driver.update({
       where: { id: driverId },
       data: { merchantId },
-      select: { id: true, name: true, phone: true, vehiclePlate: true, merchantId: true },
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        vehiclePlate: true,
+        merchantId: true,
+      },
     });
   }
 
   /** ยกเลิกความสัมพันธ์คนขับกับร้านค้า (คนขับกลายเป็น Freelance) */
   async unlinkDriverFromMerchant(driverId: number, merchantId: number) {
-    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+    });
     if (!driver) throw new NotFoundException('ไม่พบข้อมูลคนขับ');
     if (driver.merchantId !== merchantId) {
       throw new BadRequestException('คนขับคนนี้ไม่ได้สังกัดร้านของคุณ');
@@ -250,10 +304,7 @@ export class UsersService {
   async findDriverByContact(contact: string) {
     const driver = await this.prisma.driver.findFirst({
       where: {
-        OR: [
-          { email: contact },
-          { phone: contact },
-        ],
+        OR: [{ email: contact }, { phone: contact }],
       },
       select: {
         id: true,

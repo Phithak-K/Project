@@ -1,4 +1,15 @@
-import { Controller, Post, Get, Body, Req, UseGuards, Patch, Param, Query, Res } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Req,
+  UseGuards,
+  Patch,
+  Param,
+  Query,
+  Res,
+} from '@nestjs/common';
 import type { Response } from 'express';
 import { OrdersService } from './orders.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -14,10 +25,13 @@ export class OrdersController {
 
   // 2. ใช้ฟังก์ชันสร้างออเดอร์ที่ผ่านการ Validate แล้ว
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(Role.Merchant)  // ✅ SEC-05: เฉพาะ Merchant เท่านั้นที่สร้าง Order ได้
+  @Roles(Role.Merchant) // ✅ SEC-05: เฉพาะ Merchant เท่านั้นที่สร้าง Order ได้
   @Post()
   create(@Req() req: any, @Body() createOrderDto: CreateOrderDto) {
-    return this.ordersService.createOrder(Number(req.user.userId), createOrderDto);
+    return this.ordersService.createOrder(
+      Number(req.user.userId),
+      createOrderDto,
+    );
   }
 
   // ==== 🆕 New Merchant Features ====
@@ -61,7 +75,7 @@ export class OrdersController {
     return this.ordersService.getMyOrders(
       Number(req.user.userId),
       page ? Number(page) : 1,
-      limit ? Number(limit) : 10
+      limit ? Number(limit) : 10,
     );
   }
 
@@ -76,7 +90,7 @@ export class OrdersController {
     return this.ordersService.getCustomerOrders(
       Number(req.user.userId),
       page ? Number(page) : 1,
-      limit ? Number(limit) : 10
+      limit ? Number(limit) : 10,
     );
   }
 
@@ -107,39 +121,65 @@ export class OrdersController {
   // ✅ SME Feature: Download Delivery Order (PDF) — [BUG-01 FIX] ย้ายมาก่อน :id
   @UseGuards(JwtAuthGuard)
   @Get(':id/pdf')
-  async exportOrderPdf(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
-    return this.ordersService.exportOrderPdf(Number(id), Number(req.user.userId), req.user.role, res);
+  async exportOrderPdf(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    return this.ordersService.exportOrderPdf(
+      Number(id),
+      Number(req.user.userId),
+      req.user.role,
+      res,
+    );
   }
 
   // [BUG-01 FIX] ย้ายมาก่อน :id เช่นกัน
   @UseGuards(JwtAuthGuard)
   @Get(':id/messages')
   getOrderMessages(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.getOrderMessages(Number(id), Number(req.user.userId), req.user.role);
+    return this.ordersService.getOrderMessages(
+      Number(id),
+      Number(req.user.userId),
+      req.user.role,
+    );
   }
 
   // [BUG-01 FIX] Generic :id route อยู่ท้ายสุดใน GET group
   @UseGuards(JwtAuthGuard) // Any role can access it, access control is handled in service
   @Get(':id')
   getOrderById(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.getOrderById(Number(id), Number(req.user.userId), req.user.role);
+    return this.ordersService.getOrderById(
+      Number(id),
+      Number(req.user.userId),
+      req.user.role,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Patch(':id/cancel')
   cancelOrder(@Param('id') id: string, @Req() req: any) {
-    return this.ordersService.cancelOrderByMerchant(Number(id), Number(req.user.userId));
+    return this.ordersService.cancelOrderByMerchant(
+      Number(id),
+      Number(req.user.userId),
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Merchant)
   @Patch(':id/preparation-time')
-  updatePreparationTime(@Param('id') id: string, @Body() body: { estimatedReadyAt: string }, @Req() req: any) {
-    return this.ordersService.updatePreparationTime(Number(id), Number(req.user.userId), body.estimatedReadyAt);
+  updatePreparationTime(
+    @Param('id') id: string,
+    @Body() body: { estimatedReadyAt: string },
+    @Req() req: any,
+  ) {
+    return this.ordersService.updatePreparationTime(
+      Number(id),
+      Number(req.user.userId),
+      body.estimatedReadyAt,
+    );
   }
-
-
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
@@ -168,9 +208,17 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
   @Patch(':id/complete')
-  completeOrder(@Param('id') id: string, @Body() body: { proofOfDelivery?: string }, @Req() req: any) {
+  completeOrder(
+    @Param('id') id: string,
+    @Body() body: { proofOfDelivery?: string },
+    @Req() req: any,
+  ) {
     const driverId = Number(req.user.userId);
-    return this.ordersService.completeOrder(Number(id), driverId, body.proofOfDelivery);
+    return this.ordersService.completeOrder(
+      Number(id),
+      driverId,
+      body.proofOfDelivery,
+    );
   }
 
   // ==== 💰 Enterprise Features ====
@@ -185,11 +233,19 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Customer, Role.Merchant)
   @Post(':id/rate')
-  rateOrder(@Param('id') id: string, @Body() body: { score: number, comment?: string }, @Req() req: any) {
-    return this.ordersService.rateOrder(Number(id), Number(req.user.userId), req.user.role, body.score, body.comment);
+  rateOrder(
+    @Param('id') id: string,
+    @Body() body: { score: number; comment?: string },
+    @Req() req: any,
+  ) {
+    return this.ordersService.rateOrder(
+      Number(id),
+      Number(req.user.userId),
+      req.user.role,
+      body.score,
+      body.comment,
+    );
   }
-
-
 
   // ✅ SME Feature: Merchant มอบหมายคนขับให้ออเดอร์
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -200,7 +256,11 @@ export class OrdersController {
     @Body() body: { driverId: number },
     @Req() req: any,
   ) {
-    return this.ordersService.assignDriver(Number(id), Number(req.user.userId), body.driverId);
+    return this.ordersService.assignDriver(
+      Number(id),
+      Number(req.user.userId),
+      body.driverId,
+    );
   }
 
   // ✅ SME Feature: ค้นหาประวัติออเดอร์ด้วยเบอร์โทรผู้รับ (Public, Rate-limited)
@@ -221,10 +281,17 @@ export class OrdersController {
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
-    const csv = await this.ordersService.exportOrdersCsv(Number(req.user.userId), dateFrom, dateTo);
+    const csv = await this.ordersService.exportOrdersCsv(
+      Number(req.user.userId),
+      dateFrom,
+      dateTo,
+    );
     const dateStr = new Date().toISOString().split('T')[0];
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="swiftpath-orders-${dateStr}.csv"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="swiftpath-orders-${dateStr}.csv"`,
+    );
     // BOM for Excel Thai character support
     res.send('\uFEFF' + csv);
   }

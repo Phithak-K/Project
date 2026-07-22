@@ -20,7 +20,10 @@ describe('AuthController', () => {
       providers: [
         { provide: AuthService, useValue: mockAuthService },
         // Override ThrottlerGuard — ไม่ต้องใช้ ThrottlerModule จริงใน unit test
-        { provide: ThrottlerGuard, useValue: { canActivate: jest.fn().mockReturnValue(true) } },
+        {
+          provide: ThrottlerGuard,
+          useValue: { canActivate: jest.fn().mockReturnValue(true) },
+        },
       ],
     })
       .overrideGuard(ThrottlerGuard)

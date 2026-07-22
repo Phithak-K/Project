@@ -35,7 +35,7 @@ async function bootstrap() {
       'http://store.localhost:3000',
       'http://fleet.localhost:3000',
       'http://app.localhost:3000',
-      'http://localhost:3000'
+      'http://localhost:3000',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
@@ -50,6 +50,8 @@ async function bootstrap() {
   // แสดง URL ที่กำลังรันอยู่เพื่อความสะดวกในการ Debug
   const url = await app.getUrl();
   console.log(`🚀 SwiftPath Backend is running on: ${url}`);
-  console.log(`📡 CORS allowed for: http://*.localhost:3000 and *.swiftpath.com`);
+  console.log(
+    `📡 CORS allowed for: http://*.localhost:3000 and *.swiftpath.com`,
+  );
 }
 bootstrap();

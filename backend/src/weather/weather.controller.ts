@@ -17,7 +17,7 @@ export class WeatherController {
     }
 
     const data = await this.weatherService.getWeather(city);
-    
+
     // Return empty payload if weather fetching fails, allowing frontend fallback logic
     if (!data) {
       return { success: false, weather: [] };

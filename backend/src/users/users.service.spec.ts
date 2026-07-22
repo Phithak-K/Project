@@ -111,14 +111,18 @@ describe('UsersService', () => {
         phone: '0800000000',
       };
 
-      await expect(service.create(createDto, 'admin')).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, 'admin')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
   // ===== findAll() Tests =====
   describe('findAll()', () => {
     it('ควร throw BadRequestException ถ้า role ไม่ถูกต้อง', async () => {
-      await expect(service.findAll('unknown')).rejects.toThrow(BadRequestException);
+      await expect(service.findAll('unknown')).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('ควรเรียก prisma.customer.findMany ถ้า role เป็น customer', async () => {

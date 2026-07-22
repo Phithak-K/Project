@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -23,7 +35,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
   updateProfile(@Req() req: any, @Body() updateDto: UpdateUserDto) {
-    return this.usersService.updateProfile(req.user.userId, req.user.role, updateDto);
+    return this.usersService.updateProfile(
+      req.user.userId,
+      req.user.role,
+      updateDto,
+    );
   }
 
   // ==== ✅ SME Feature: Driver Management (Merchant Only) ====
@@ -41,7 +57,8 @@ export class UsersController {
   @Roles(Role.Merchant)
   @Get('find-driver')
   findDriverByContact(@Query('contact') contact: string) {
-    if (!contact) throw new BadRequestException('กรุณาระบุ email หรือเบอร์โทรของคนขับ');
+    if (!contact)
+      throw new BadRequestException('กรุณาระบุ email หรือเบอร์โทรของคนขับ');
     return this.usersService.findDriverByContact(contact);
   }
 
@@ -50,7 +67,10 @@ export class UsersController {
   @Roles(Role.Merchant)
   @Patch('drivers/:driverId/link')
   linkDriver(@Param('driverId') driverId: string, @Req() req: any) {
-    return this.usersService.linkDriverToMerchant(Number(driverId), req.user.userId);
+    return this.usersService.linkDriverToMerchant(
+      Number(driverId),
+      req.user.userId,
+    );
   }
 
   /** PATCH /users/drivers/:driverId/unlink — ยกเลิกความสัมพันธ์ Driver กับร้าน */
@@ -58,7 +78,10 @@ export class UsersController {
   @Roles(Role.Merchant)
   @Patch('drivers/:driverId/unlink')
   unlinkDriver(@Param('driverId') driverId: string, @Req() req: any) {
-    return this.usersService.unlinkDriverFromMerchant(Number(driverId), req.user.userId);
+    return this.usersService.unlinkDriverFromMerchant(
+      Number(driverId),
+      req.user.userId,
+    );
   }
 
   // ==== Admin-only routes ====
@@ -74,7 +97,8 @@ export class UsersController {
   @Roles(Role.Admin)
   @Get()
   findAll(@Query('role') role: string) {
-    if (!role) throw new BadRequestException('Role query parameter is required');
+    if (!role)
+      throw new BadRequestException('Role query parameter is required');
     return this.usersService.findAll(role);
   }
 
@@ -82,15 +106,21 @@ export class UsersController {
   @Roles(Role.Admin)
   @Get(':id')
   findOne(@Param('id') id: string, @Query('role') role: string) {
-    if (!role) throw new BadRequestException('Role query parameter is required');
+    if (!role)
+      throw new BadRequestException('Role query parameter is required');
     return this.usersService.findOne(+id, role);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Admin)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Query('role') role: string) {
-    if (!role) throw new BadRequestException('Role query parameter is required');
+  update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+    @Query('role') role: string,
+  ) {
+    if (!role)
+      throw new BadRequestException('Role query parameter is required');
     return this.usersService.update(+id, updateUserDto, role);
   }
 
@@ -98,7 +128,8 @@ export class UsersController {
   @Roles(Role.Admin)
   @Delete(':id')
   remove(@Param('id') id: string, @Query('role') role: string) {
-    if (!role) throw new BadRequestException('Role query parameter is required');
+    if (!role)
+      throw new BadRequestException('Role query parameter is required');
     return this.usersService.remove(+id, role);
   }
 }

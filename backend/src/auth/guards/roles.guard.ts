@@ -18,7 +18,7 @@ export class RolesGuard implements CanActivate {
     }
 
     const { user } = context.switchToHttp().getRequest();
-    
+
     // Check if the user has the required role (user is attached by JwtAuthGuard)
     return requiredRoles.includes(user?.role);
   }

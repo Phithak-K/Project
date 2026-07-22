@@ -1,4 +1,12 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -45,8 +53,14 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
-  async resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
-    return this.authService.resetPassword(body.email, body.otp, body.newPassword);
+  async resetPassword(
+    @Body() body: { email: string; otp: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.email,
+      body.otp,
+      body.newPassword,
+    );
   }
 
   // 3. เข้าสู่ระบบแบบปกติ
@@ -103,6 +117,10 @@ export class AuthController {
   @Post('fcm-token')
   @HttpCode(HttpStatus.OK)
   async updateFcmToken(@Req() req: any, @Body() body: { fcmToken: string }) {
-    return this.authService.updateFcmToken(req.user.sub, req.user.role, body.fcmToken);
+    return this.authService.updateFcmToken(
+      req.user.sub,
+      req.user.role,
+      body.fcmToken,
+    );
   }
 }

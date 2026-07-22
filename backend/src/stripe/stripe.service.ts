@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import Stripe from 'stripe';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,7 +15,8 @@ export class StripeService {
   }
 
   async createTopUpIntent(userId: number, role: string, amount: number) {
-    if (amount <= 0) throw new BadRequestException('Amount must be greater than 0');
+    if (amount <= 0)
+      throw new BadRequestException('Amount must be greater than 0');
 
     // Create a PaymentIntent with the order amount and currency
     const paymentIntent = await this.stripe.paymentIntents.create({
@@ -20,7 +25,7 @@ export class StripeService {
       metadata: {
         userId: userId.toString(),
         userRole: role,
-        type: 'TOPUP'
+        type: 'TOPUP',
       },
       automatic_payment_methods: {
         enabled: true,
@@ -37,7 +42,9 @@ export class StripeService {
     let event: any;
 
     if (!webhookSecret) {
-      throw new InternalServerErrorException('Missing STRIPE_WEBHOOK_SECRET configuration');
+      throw new InternalServerErrorException(
+        'Missing STRIPE_WEBHOOK_SECRET configuration',
+      );
     }
 
     try {
@@ -48,9 +55,9 @@ export class StripeService {
 
     // Handle the event
     if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object as any;
+      const paymentIntent = event.data.object;
       if (paymentIntent.metadata.type === 'TOPUP') {
-         await this.processTopUp(paymentIntent);
+        await this.processTopUp(paymentIntent);
       }
     }
 
@@ -106,10 +113,17 @@ export class StripeService {
           },
         });
       });
-      console.log(`Successfully topped up ${amount} THB for ${userRole} ${userId}`);
+      console.log(
+        `Successfully topped up ${amount} THB for ${userRole} ${userId}`,
+      );
     } catch (error) {
-      console.error(`Failed to process top-up for ${userRole} ${userId}`, error);
-      throw new Error(`Webhook processing failed for PaymentIntent ${paymentIntent.id}`);
+      console.error(
+        `Failed to process top-up for ${userRole} ${userId}`,
+        error,
+      );
+      throw new Error(
+        `Webhook processing failed for PaymentIntent ${paymentIntent.id}`,
+      );
     }
   }
 }

@@ -27,14 +27,25 @@ export class WeatherService {
       return response.data;
     } catch (error: any) {
       const status = error.response?.status;
-      this.logger.error(`Failed to fetch weather for city "${city}". Status: ${status}. Error: ${error.message}`);
+      this.logger.error(
+        `Failed to fetch weather for city "${city}". Status: ${status}. Error: ${error.message}`,
+      );
       return null;
     }
   }
 
   async getHotspots(): Promise<any[]> {
     // Standard city queries for OWM
-    const cities = ['Bangkok,TH', 'Chiang Mai,TH', 'Phuket,TH', 'Chonburi,TH', 'Khon Kaen,TH', 'Korat,TH', 'Surat Thani,TH', 'Hat Yai,TH'];
+    const cities = [
+      'Bangkok,TH',
+      'Chiang Mai,TH',
+      'Phuket,TH',
+      'Chonburi,TH',
+      'Khon Kaen,TH',
+      'Korat,TH',
+      'Surat Thani,TH',
+      'Hat Yai,TH',
+    ];
     const hotspots: any[] = [];
 
     for (const city of cities) {
@@ -42,7 +53,11 @@ export class WeatherService {
         const data = await this.getWeather(city);
         if (data && data.weather && data.weather.length > 0) {
           const main = data.weather[0].main;
-          if (main === 'Rain' || main === 'Thunderstorm' || main === 'Drizzle') {
+          if (
+            main === 'Rain' ||
+            main === 'Thunderstorm' ||
+            main === 'Drizzle'
+          ) {
             hotspots.push({
               city: city.replace(',TH', ''),
               condition: main,

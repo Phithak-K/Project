@@ -87,7 +87,9 @@ export class ProductsService {
       data: {
         ...(dto.name !== undefined && { name: dto.name.trim() }),
         ...(dto.unit !== undefined && { unit: dto.unit?.trim() || null }),
-        ...(dto.defaultPrice !== undefined && { defaultPrice: dto.defaultPrice }),
+        ...(dto.defaultPrice !== undefined && {
+          defaultPrice: dto.defaultPrice,
+        }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });

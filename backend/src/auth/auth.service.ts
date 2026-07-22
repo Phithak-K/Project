@@ -43,7 +43,9 @@ export class AuthService implements OnModuleInit {
     if (admin.apps.length === 0) {
       try {
         admin.initializeApp({
-          credential: admin.credential.cert(path.join(process.cwd(), 'firebase-adminsdk.json')),
+          credential: admin.credential.cert(
+            path.join(process.cwd(), 'firebase-adminsdk.json'),
+          ),
         });
         console.log('🔥 Firebase Admin Initialized');
       } catch (error: any) {
@@ -63,11 +65,11 @@ export class AuthService implements OnModuleInit {
   private async findUserByEmailAcrossRoles(email: string) {
     let user = await this.prisma.customer.findUnique({ where: { email } });
     if (user) return { user, model: this.prisma.customer, role: 'Customer' };
-    
-    user = await this.prisma.merchant.findUnique({ where: { email } }) as any;
+
+    user = (await this.prisma.merchant.findUnique({ where: { email } })) as any;
     if (user) return { user, model: this.prisma.merchant, role: 'Merchant' };
 
-    user = await this.prisma.driver.findUnique({ where: { email } }) as any;
+    user = (await this.prisma.driver.findUnique({ where: { email } })) as any;
     if (user) return { user, model: this.prisma.driver, role: 'Driver' };
 
     return null;
@@ -76,18 +78,31 @@ export class AuthService implements OnModuleInit {
   // 1. สมัครสมาชิกแบบปกติ
   async register(dto: RegisterDto) {
     const roleStr = dto.role || 'Customer';
-    if (roleStr === 'Admin') throw new BadRequestException('ไม่สามารถสมัครบัญชีผู้ดูแลระบบได้ด้วยตนเอง');
+    if (roleStr === 'Admin')
+      throw new BadRequestException(
+        'ไม่สามารถสมัครบัญชีผู้ดูแลระบบได้ด้วยตนเอง',
+      );
 
     const model = this.getModel(roleStr);
 
-    const emailExists = await (model as any).findUnique({ where: { email: dto.email } });
-    if (emailExists) throw new BadRequestException(`อีเมลนี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+    const emailExists = await (model as any).findUnique({
+      where: { email: dto.email },
+    });
+    if (emailExists)
+      throw new BadRequestException(`อีเมลนี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
 
-    const phoneExists = await (model as any).findUnique({ where: { phone: dto.phone } });
-    if (phoneExists) throw new BadRequestException(`เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+    const phoneExists = await (model as any).findUnique({
+      where: { phone: dto.phone },
+    });
+    if (phoneExists)
+      throw new BadRequestException(
+        `เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
+      );
 
     if (roleStr === 'Merchant' && !dto.name) {
-      throw new BadRequestException('กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant');
+      throw new BadRequestException(
+        'กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant',
+      );
     }
 
     const otp = crypto.randomInt(100000, 1000000).toString();
@@ -106,15 +121,17 @@ export class AuthService implements OnModuleInit {
           otpCode: hashOtp(otp), // [M-01] เซฟแบบ Hash
           otpExpires: expiry,
           isVerified: false,
-          ...(roleStr === 'Driver' && { 
-             vehiclePlate: dto.vehiclePlate, 
-             vehicleType: dto.vehicleType 
-          })
+          ...(roleStr === 'Driver' && {
+            vehiclePlate: dto.vehiclePlate,
+            vehicleType: dto.vehicleType,
+          }),
         },
       });
       user.role = roleStr;
     } catch (error: any) {
-      throw new BadRequestException('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
+      throw new BadRequestException(
+        'เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message,
+      );
     }
 
     try {
@@ -151,10 +168,12 @@ export class AuthService implements OnModuleInit {
 
   async resendOtp(email: string) {
     const result = await this.findUserByEmailAcrossRoles(email);
-    if (!result) throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้ในระบบใดเลย');
-    
+    if (!result)
+      throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้ในระบบใดเลย');
+
     const { user, model, role } = result;
-    if (user.isVerified) throw new BadRequestException('บัญชีนี้ยืนยันตัวตนแล้วเข้าสู่ระบบได้เลย');
+    if (user.isVerified)
+      throw new BadRequestException('บัญชีนี้ยืนยันตัวตนแล้วเข้าสู่ระบบได้เลย');
 
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
@@ -187,13 +206,16 @@ export class AuthService implements OnModuleInit {
   // 2. ยืนยัน OTP
   async verifyOtp(email: string, otp: string) {
     const result = await this.findUserByEmailAcrossRoles(email);
-    if (!result) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
-    
+    if (!result)
+      throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
+
     const { user, model, role } = result;
 
     // [M-01] FIX: เปรียบเทียบ Hash แทนการเปรียบเทียบ Plaintext
-    if (user.otpCode !== hashOtp(otp)) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
-    if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
+    if (user.otpCode !== hashOtp(otp))
+      throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    if (!user.otpExpires || new Date() > user.otpExpires)
+      throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
 
     const updatedUser = await (model as any).update({
       where: { email },
@@ -211,7 +233,7 @@ export class AuthService implements OnModuleInit {
   async forgotPassword(email: string) {
     const result = await this.findUserByEmailAcrossRoles(email);
     if (!result) throw new BadRequestException('ไม่พบบัญชีผู้ใช้นี้ในระบบ');
-    
+
     const { user, model, role } = result;
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
@@ -244,12 +266,15 @@ export class AuthService implements OnModuleInit {
 
   async resetPassword(email: string, otp: string, newPassword: string) {
     const result = await this.findUserByEmailAcrossRoles(email);
-    if (!result) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
-    
+    if (!result)
+      throw new BadRequestException('รหัส OTP ไม่ถูกต้อง หรือไม่พบบัญชี');
+
     const { user, model } = result;
 
-    if (user.otpCode !== hashOtp(otp)) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
-    if (!user.otpExpires || new Date() > user.otpExpires) throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
+    if (user.otpCode !== hashOtp(otp))
+      throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    if (!user.otpExpires || new Date() > user.otpExpires)
+      throw new BadRequestException('รหัส OTP หมดอายุแล้ว');
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
@@ -258,7 +283,10 @@ export class AuthService implements OnModuleInit {
       data: { password: hashedPassword, otpCode: null, otpExpires: null },
     });
 
-    return { message: 'รีเซ็ตรหัสผ่านสำเร็จ คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที' };
+    return {
+      message:
+        'รีเซ็ตรหัสผ่านสำเร็จ คุณสามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้ทันที',
+    };
   }
 
   // 3. เข้าสู่ระบบแบบเฉพาะเจาะจงตาราง (Strict Isolation)
@@ -267,12 +295,17 @@ export class AuthService implements OnModuleInit {
 
     // Admin Login: ค้นหาใน Customer table แต่ override JWT role เป็น 'Admin'
     if (roleStr === 'Admin') {
-      const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+      const adminEmails = (process.env.ADMIN_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim());
       if (!adminEmails.includes(loginDto.email)) {
         throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
       }
-      const admin = await this.prisma.customer.findUnique({ where: { email: loginDto.email } });
-      if (!admin || !admin.password) throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
+      const admin = await this.prisma.customer.findUnique({
+        where: { email: loginDto.email },
+      });
+      if (!admin || !admin.password)
+        throw new BadRequestException('ไม่พบบัญชีผู้ดูแลระบบ');
       const valid = await bcrypt.compare(loginDto.password, admin.password);
       if (!valid) throw new BadRequestException('รหัสผ่านไม่ถูกต้อง');
       (admin as any).role = 'Admin';
@@ -280,13 +313,26 @@ export class AuthService implements OnModuleInit {
     }
 
     const model = this.getModel(roleStr);
-    const user = await (model as any).findUnique({ where: { email: loginDto.email } });
-    if (!user) throw new BadRequestException(`ไม่พบบัญชีนี้ในระบบ ${roleStr} (คุณอาจสมัครไว้ในระบบอื่น)`);
-    if (!user.password) throw new BadRequestException('บัญชีนี้สมัครใช้งานผ่านช่องทางอื่น โปรดเข้าสู่ระบบด้วย Google หรือ Phone');
-    if (!user.isVerified) throw new BadRequestException('บัญชีนี้ยังไม่ได้ยืนยันตัวตน');
+    const user = await (model as any).findUnique({
+      where: { email: loginDto.email },
+    });
+    if (!user)
+      throw new BadRequestException(
+        `ไม่พบบัญชีนี้ในระบบ ${roleStr} (คุณอาจสมัครไว้ในระบบอื่น)`,
+      );
+    if (!user.password)
+      throw new BadRequestException(
+        'บัญชีนี้สมัครใช้งานผ่านช่องทางอื่น โปรดเข้าสู่ระบบด้วย Google หรือ Phone',
+      );
+    if (!user.isVerified)
+      throw new BadRequestException('บัญชีนี้ยังไม่ได้ยืนยันตัวตน');
 
-    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
-    if (!isPasswordValid) throw new BadRequestException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    const isPasswordValid = await bcrypt.compare(
+      loginDto.password,
+      user.password,
+    );
+    if (!isPasswordValid)
+      throw new BadRequestException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
 
     user.role = roleStr;
     return this.generateToken(user);
@@ -305,14 +351,18 @@ export class AuthService implements OnModuleInit {
       const { email, name, sub: googleId } = payload;
 
       let user = await this.prisma.customer.findFirst({
-        where: { googleId }
+        where: { googleId },
       });
 
       if (!user) {
         // Check if email already exists but NOT linked to googleId
-        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: email! } });
+        const existingEmailUser = await this.prisma.customer.findUnique({
+          where: { email: email! },
+        });
         if (existingEmailUser) {
-          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+          throw new BadRequestException(
+            'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน',
+          );
         }
 
         user = await this.prisma.customer.create({
@@ -340,20 +390,26 @@ export class AuthService implements OnModuleInit {
       const response = await firstValueFrom(this.httpService.get(fbUrl));
       const { id: facebookId, name, email } = response.data;
 
-      if (!facebookId) throw new BadRequestException('Facebook Token ไม่ถูกต้อง');
+      if (!facebookId)
+        throw new BadRequestException('Facebook Token ไม่ถูกต้อง');
 
       // [H-05] FIX: ใช้ UUID ที่คาดเดาไม่ได้ แทนการใช้ facebookId ที่ทุกคนรู้
-      const userEmail = email || `fb-${crypto.randomUUID()}@social.swiftpath.internal`;
+      const userEmail =
+        email || `fb-${crypto.randomUUID()}@social.swiftpath.internal`;
 
       let user = await this.prisma.customer.findFirst({
-        where: { facebookId }
+        where: { facebookId },
       });
 
       if (!user) {
         // Check email hijacking
-        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: userEmail } });
+        const existingEmailUser = await this.prisma.customer.findUnique({
+          where: { email: userEmail },
+        });
         if (existingEmailUser) {
-          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+          throw new BadRequestException(
+            'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน',
+          );
         }
 
         user = await this.prisma.customer.create({
@@ -378,9 +434,11 @@ export class AuthService implements OnModuleInit {
     try {
       // ดึงข้อมูลโปรไฟล์จาก LINE API ด้วย Access Token
       const lineUrl = `https://api.line.me/v2/profile`;
-      const response = await firstValueFrom(this.httpService.get(lineUrl, {
-        headers: { Authorization: `Bearer ${token}` }
-      }));
+      const response = await firstValueFrom(
+        this.httpService.get(lineUrl, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      );
       const { userId: lineId, displayName, pictureUrl } = response.data;
 
       if (!lineId) throw new BadRequestException('LINE Token ไม่ถูกต้อง');
@@ -389,13 +447,17 @@ export class AuthService implements OnModuleInit {
       const userEmail = `line-${crypto.randomUUID()}@social.swiftpath.internal`;
 
       let user = await this.prisma.customer.findFirst({
-        where: { lineId }
+        where: { lineId },
       });
 
       if (!user) {
-        const existingEmailUser = await this.prisma.customer.findUnique({ where: { email: userEmail } });
+        const existingEmailUser = await this.prisma.customer.findUnique({
+          where: { email: userEmail },
+        });
         if (existingEmailUser) {
-          throw new BadRequestException('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน');
+          throw new BadRequestException(
+            'อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบด้วยรหัสผ่าน',
+          );
         }
 
         user = await this.prisma.customer.create({
@@ -420,9 +482,12 @@ export class AuthService implements OnModuleInit {
     try {
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const phoneNumber = decodedToken.phone_number;
-      if (!phoneNumber) throw new BadRequestException('ไม่พบเบอร์โทรศัพท์ใน Token');
+      if (!phoneNumber)
+        throw new BadRequestException('ไม่พบเบอร์โทรศัพท์ใน Token');
 
-      let user = await this.prisma.customer.findUnique({ where: { phone: phoneNumber } });
+      let user = await this.prisma.customer.findUnique({
+        where: { phone: phoneNumber },
+      });
 
       if (!user) {
         user = await this.prisma.customer.create({
@@ -430,8 +495,8 @@ export class AuthService implements OnModuleInit {
             email: `${phoneNumber}@swiftpath.tmp`,
             phone: phoneNumber,
             name: `User ${phoneNumber.slice(-4)}`,
-            isVerified: true
-          }
+            isVerified: true,
+          },
         });
       }
 
@@ -449,7 +514,7 @@ export class AuthService implements OnModuleInit {
     try {
       await (model as any).update({
         where: { id: userId },
-        data: { fcmToken }
+        data: { fcmToken },
       });
       return { success: true };
     } catch (error) {
@@ -467,8 +532,8 @@ export class AuthService implements OnModuleInit {
         email: user.email,
         name: user.name,
         role: user.role,
-        phone: user.phone
-      }
+        phone: user.phone,
+      },
     };
   }
 }

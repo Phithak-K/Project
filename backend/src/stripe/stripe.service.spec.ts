@@ -42,8 +42,9 @@ const mockPrismaClient = {
 };
 
 const mockPrismaService = {
-  $transaction: jest.fn(async (callback: (tx: typeof mockPrismaClient) => Promise<unknown>) =>
-    callback(mockPrismaClient),
+  $transaction: jest.fn(
+    async (callback: (tx: typeof mockPrismaClient) => Promise<unknown>) =>
+      callback(mockPrismaClient),
   ),
   ...mockPrismaClient,
 };
@@ -101,19 +102,21 @@ describe('StripeService — การตรวจสอบความทนท�
       );
 
       // รัน transaction จริงเพื่อตรวจสอบพฤติกรรม
-      await mockPrismaService.$transaction(async (tx: typeof mockPrismaClient) => {
-        const existing = await tx.transaction.findUnique({
-          where: { referenceId: duplicatePaymentIntent.id },
-        });
-        // Idempotency: ถ้าพบ record ที่มีอยู่แล้ว คืนค่าเร็วโดยไม่ write
-        if (existing) {
-          return;
-        }
-        await tx.customer.update({
-          where: { id: 42 },
-          data: { balance: { increment: 1500 }, version: { increment: 1 } },
-        });
-      });
+      await mockPrismaService.$transaction(
+        async (tx: typeof mockPrismaClient) => {
+          const existing = await tx.transaction.findUnique({
+            where: { referenceId: duplicatePaymentIntent.id },
+          });
+          // Idempotency: ถ้าพบ record ที่มีอยู่แล้ว คืนค่าเร็วโดยไม่ write
+          if (existing) {
+            return;
+          }
+          await tx.customer.update({
+            where: { id: 42 },
+            data: { balance: { increment: 1500 }, version: { increment: 1 } },
+          });
+        },
+      );
 
       // ยืนยัน: ฐานข้อมูลต้องบันทึกการแก้ไขยอดเงินเป็นศูนย์
       // การเรียก customer.update ใดๆ จะบ่งชี้ว่าการรับประกัน idempotency ล้มเหลว
@@ -124,31 +127,37 @@ describe('StripeService — การตรวจสอบความทนท�
     it('ต้องดำเนินการ credit ยอดเงินและสร้าง transaction record เมื่อ referenceId ใหม่ไม่เคยพบมาก่อน', async () => {
       // จัดเตรียม: ไม่มี record สำหรับ PaymentIntent นี้
       mockPrismaClient.transaction.findUnique.mockResolvedValue(null);
-      mockPrismaClient.customer.update.mockResolvedValue({ id: 1, balance: 1500, version: 1 });
+      mockPrismaClient.customer.update.mockResolvedValue({
+        id: 1,
+        balance: 1500,
+        version: 1,
+      });
       mockPrismaClient.transaction.create.mockResolvedValue({ id: 99 });
 
       // รัน transaction สำหรับ event ใหม่ที่ยังไม่ได้ประมวลผล
-      await mockPrismaService.$transaction(async (tx: typeof mockPrismaClient) => {
-        const existing = await tx.transaction.findUnique({
-          where: { referenceId: 'pi_new_intent_002' },
-        });
-        if (existing) return;
+      await mockPrismaService.$transaction(
+        async (tx: typeof mockPrismaClient) => {
+          const existing = await tx.transaction.findUnique({
+            where: { referenceId: 'pi_new_intent_002' },
+          });
+          if (existing) return;
 
-        await tx.customer.update({
-          where: { id: 1 },
-          data: { balance: { increment: 1500 }, version: { increment: 1 } },
-        });
+          await tx.customer.update({
+            where: { id: 1 },
+            data: { balance: { increment: 1500 }, version: { increment: 1 } },
+          });
 
-        await tx.transaction.create({
-          data: {
-            amount: 1500,
-            type: 'CREDIT',
-            referenceId: 'pi_new_intent_002',
-            userId: 1,
-            userRole: 'Customer',
-          },
-        });
-      });
+          await tx.transaction.create({
+            data: {
+              amount: 1500,
+              type: 'CREDIT',
+              referenceId: 'pi_new_intent_002',
+              userId: 1,
+              userRole: 'Customer',
+            },
+          });
+        },
+      );
 
       // ยืนยัน: การ write ทั้งสองต้องถูกดำเนินการพอดีหนึ่งครั้ง
       expect(mockPrismaClient.customer.update).toHaveBeenCalledTimes(1);
@@ -172,7 +181,11 @@ describe('StripeService — การตรวจสอบความทนท�
     it('ต้องไม่ทิ้งยอดเงินที่อัปเดตไว้เมื่อการสร้าง transaction record ล้มเหลว', async () => {
       // จัดเตรียม: การอัปเดตยอดเงินสำเร็จแต่การสร้าง transaction record throw error
       mockPrismaClient.transaction.findUnique.mockResolvedValue(null);
-      mockPrismaClient.customer.update.mockResolvedValue({ id: 1, balance: 500, version: 1 });
+      mockPrismaClient.customer.update.mockResolvedValue({
+        id: 1,
+        balance: 500,
+        version: 1,
+      });
       mockPrismaClient.transaction.create.mockRejectedValue(
         new Error('Unique constraint violation on referenceId'),
       );
@@ -204,7 +217,9 @@ describe('StripeService — การตรวจสอบความทนท�
       );
 
       // ยืนยัน: การดำเนินการ transaction โดยรวมต้อง reject
-      await expect(transactionExecution).rejects.toThrow('Unique constraint violation');
+      await expect(transactionExecution).rejects.toThrow(
+        'Unique constraint violation',
+      );
     });
   });
 
@@ -215,32 +230,38 @@ describe('StripeService — การตรวจสอบความทนท�
   describe('Role-Based Model Dispatch', () => {
     it('ต้อง resolve Merchant model เมื่อ userRole เป็น Merchant', async () => {
       mockPrismaClient.transaction.findUnique.mockResolvedValue(null);
-      mockPrismaClient.merchant.update.mockResolvedValue({ id: 5, balance: 2000, version: 3 });
+      mockPrismaClient.merchant.update.mockResolvedValue({
+        id: 5,
+        balance: 2000,
+        version: 3,
+      });
       mockPrismaClient.transaction.create.mockResolvedValue({ id: 100 });
 
-      await mockPrismaService.$transaction(async (tx: typeof mockPrismaClient) => {
-        const existing = await tx.transaction.findUnique({
-          where: { referenceId: 'pi_merchant_004' },
-        });
-        if (existing) return;
+      await mockPrismaService.$transaction(
+        async (tx: typeof mockPrismaClient) => {
+          const existing = await tx.transaction.findUnique({
+            where: { referenceId: 'pi_merchant_004' },
+          });
+          if (existing) return;
 
-        // service resolve model ผ่าน modelMap[userRole.toLowerCase()]
-        // สำหรับ 'Merchant' จะ resolve เป็น tx.merchant
-        await tx.merchant.update({
-          where: { id: 5 },
-          data: { balance: { increment: 2000 }, version: { increment: 1 } },
-        });
+          // service resolve model ผ่าน modelMap[userRole.toLowerCase()]
+          // สำหรับ 'Merchant' จะ resolve เป็น tx.merchant
+          await tx.merchant.update({
+            where: { id: 5 },
+            data: { balance: { increment: 2000 }, version: { increment: 1 } },
+          });
 
-        await tx.transaction.create({
-          data: {
-            amount: 2000,
-            type: 'CREDIT',
-            referenceId: 'pi_merchant_004',
-            userId: 5,
-            userRole: 'Merchant',
-          },
-        });
-      });
+          await tx.transaction.create({
+            data: {
+              amount: 2000,
+              type: 'CREDIT',
+              referenceId: 'pi_merchant_004',
+              userId: 5,
+              userRole: 'Merchant',
+            },
+          });
+        },
+      );
 
       // ยืนยัน: ต้องอัปเดต merchant เท่านั้น ไม่ใช่ customer หรือ driver
       expect(mockPrismaClient.merchant.update).toHaveBeenCalledTimes(1);

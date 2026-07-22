@@ -11,7 +11,10 @@ describe('WeatherService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WeatherService,
-        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('test-api-key') } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('test-api-key') },
+        },
         { provide: HttpService, useValue: { get: jest.fn() } },
       ],
     }).compile();

@@ -1,4 +1,13 @@
-import { Controller, Post, Body, Req, Headers, BadRequestException, UseGuards, type RawBodyRequest } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  Headers,
+  BadRequestException,
+  UseGuards,
+  type RawBodyRequest,
+} from '@nestjs/common';
 import { StripeService } from './stripe.service';
 import { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -12,16 +21,29 @@ export class StripeController {
   @UseGuards(JwtAuthGuard)
   @Post('create-topup')
   async createTopUpIntent(@Req() req: any, @Body() body: { amount: number }) {
-    if (!body.amount || body.amount <= 0) throw new BadRequestException('จำนวนเงินต้องมากกว่า 0');
-    if (body.amount > 100000) throw new BadRequestException('ไม่สามารถเติมเงินเกิน 100,000 บาทต่อครั้ง');
+    if (!body.amount || body.amount <= 0)
+      throw new BadRequestException('จำนวนเงินต้องมากกว่า 0');
+    if (body.amount > 100000)
+      throw new BadRequestException(
+        'ไม่สามารถเติมเงินเกิน 100,000 บาทต่อครั้ง',
+      );
     // อ่าน userId และ role จาก JWT Token ที่ยืนยันแล้ว ไม่ใช่จาก Body
-    return this.stripeService.createTopUpIntent(req.user.userId, req.user.role, body.amount);
+    return this.stripeService.createTopUpIntent(
+      req.user.userId,
+      req.user.role,
+      body.amount,
+    );
   }
 
   @Post('webhook')
-  async handleWebhook(@Req() req: RawBodyRequest<Request>, @Headers('stripe-signature') sig: string) {
+  async handleWebhook(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers('stripe-signature') sig: string,
+  ) {
     if (!req.rawBody) {
-      throw new BadRequestException('Webhook requires raw body buffer for signature validation');
+      throw new BadRequestException(
+        'Webhook requires raw body buffer for signature validation',
+      );
     }
     return this.stripeService.handleWebhook(sig, req.rawBody);
   }

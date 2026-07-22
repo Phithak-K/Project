@@ -18,7 +18,10 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: { sign: jest.fn() } },
         { provide: MailerService, useValue: { sendMail: jest.fn() } },
         { provide: HttpService, useValue: { get: jest.fn() } },
-        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('test') } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('test') },
+        },
       ],
     }).compile();
 
