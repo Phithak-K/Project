@@ -21,7 +21,7 @@ const mockPrismaService = {
   },
   customer: { updateMany: jest.fn() },
   merchant: { findUnique: jest.fn(), update: jest.fn() },
-  driver: { findMany: jest.fn(), update: jest.fn() },
+  driver: { findMany: jest.fn(), update: jest.fn(), findUnique: jest.fn() },
   transaction: { create: jest.fn() },
   trackingLog: { create: jest.fn() },
   rating: { findUnique: jest.fn(), create: jest.fn() },
@@ -204,14 +204,14 @@ describe('OrdersService', () => {
     });
 
     it('[Race Condition] ควร throw BadRequestException ถ้าออเดอร์ถูกรับไปแล้ว (Prisma P2025)', async () => {
-      const prismaError = { code: 'P2025' };
-      mockPrismaService.order.update.mockRejectedValue(prismaError);
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 0 });
 
       await expect(service.acceptOrder(1, 10)).rejects.toThrow(
         BadRequestException,
       );
       await expect(service.acceptOrder(1, 10)).rejects.toThrow(
-        'ออเดอร์นี้ถูกรับไปแล้ว หรือออเดอร์ถูกยกเลิก',
+        'ออเดอร์นี้ถูกรับไปแล้ว ออเดอร์ถูกยกเลิก หรือคุณไม่มีสิทธิ์รับงานข้ามร้าน',
       );
     });
   });
