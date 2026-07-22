@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ ok: true, redirectUrl });
 
     const cookieOptions = {
-      httpOnly: false,              // Reverted to false: Client-side JS needs to read token for direct API calls to NestJS
+      httpOnly: true,              // [SEC-01 FIX] Set to true so client-side JS CANNOT read it. We now use Next.js Proxy.
       secure: !isLocalhost,         // ← HTTPS-only in production
       sameSite: 'lax' as const,
       maxAge: 86400,                // 24 hours

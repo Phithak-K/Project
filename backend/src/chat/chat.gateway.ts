@@ -64,6 +64,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       (client as any).user = payload;
       (client as any).isPublic = false;
       this.logger.log(`Client ${client.id} connected (userId: ${payload.sub}, role: ${payload.role})`);
+
+      // [P0 FIX] Drivers join their merchant's specific room to receive only relevant new_available_order broadcasts
+      if (payload.role === 'Driver') {
+        this.prisma.driver.findUnique({ where: { id: payload.sub } }).then(driver => {
+          if (driver?.merchantId) {
+            client.join(`merchant_${driver.merchantId}_drivers`);
+          }
+        }).catch(err => this.logger.error('Failed to fetch driver for room join', err));
+      }
     } catch (error) {
       this.logger.warn(`Client ${client.id} disconnected: invalid token`);
       client.emit('error', { message: 'Authentication failed: Token ไม่ถูกต้องหรือหมดอายุ' });
@@ -245,10 +254,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       driverId: user.sub,
     };
 
+    const fuzzyLocationPayload = {
+      ...locationPayload,
+      lat: Math.round(data.lat * 100) / 100,
+      lng: Math.round(data.lng * 100) / 100,
+    };
+
     // [REALTIME-FIX] Broadcast พิกัดไปทั้ง 2 ห้องพร้อมกัน:
     // - order_<id>              → Merchant/Customer ที่ล็อกอินอยู่ในหน้าออเดอร์
     // - tracking_<trackingNo>  → Public Tracking Page (ไม่ต้อง Auth)
     this.server.to(`order_${data.orderId}`).emit('location_updated', locationPayload);
-    this.server.to(`tracking_${order.trackingNumber}`).emit('location_updated', locationPayload);
+    this.server.to(`tracking_${order.trackingNumber}`).emit('location_updated', fuzzyLocationPayload);
   }
 }

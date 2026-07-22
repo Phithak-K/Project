@@ -27,6 +27,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
   const simulatorRef = useRef<NodeJS.Timeout | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
   const getAuthToken = () => {
@@ -55,7 +56,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
     const token = getAuthToken();
     if (!token) return;
 
-    const socket = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    const socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
     socketRef.current = socket;
     socket.emit('join_order', { orderId: Number(orderId) });
     socket.on('order_status_update', () => fetchOrder());

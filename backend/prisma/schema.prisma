@@ -23,6 +23,19 @@ enum PaymentStatus {
   Paid
 }
 
+enum UserRole {
+  Customer
+  Merchant
+  Driver
+  Platform
+  Admin
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+}
+
 model Customer {
   id               Int      @id @default(autoincrement())
   email            String   @unique
@@ -229,9 +242,9 @@ model Message {
   orderId    Int?
   order      Order?   @relation(fields: [orderId], references: [id])
 
-  senderRole String
+  senderRole UserRole
   senderId   Int
-  receiverRole String
+  receiverRole UserRole
   receiverId Int
   
   createdAt  DateTime @default(now())
@@ -241,12 +254,12 @@ model Message {
 model Transaction {
   id        Int      @id @default(autoincrement())
   amount    Decimal
-  type      String   // "DEBIT", "CREDIT"
+  type      TransactionType   // "DEBIT", "CREDIT"
   note      String?  // e.g. "Payment for Order #123"
   referenceId String? @unique // Stripe payment intent ID
   
   userId    Int
-  userRole  String   // "Customer", "Merchant", "Driver"
+  userRole  UserRole   // "Customer", "Merchant", "Driver"
   
   orderId   Int?
   order     Order?   @relation(fields: [orderId], references: [id])
@@ -263,7 +276,7 @@ model Rating {
   order       Order    @relation(fields: [orderId], references: [id])
   
   raterId     Int
-  raterRole   String   // "Customer" or "Merchant"
+  raterRole   UserRole   // "Customer" or "Merchant"
   
   driverId    Int?     // Target of rating
   

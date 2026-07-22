@@ -39,8 +39,8 @@ export class OrdersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
   @Get('available')
-  findAllAvailable() {
-    return this.ordersService.findAllAvailable();
+  findAllAvailable(@Req() req: any) {
+    return this.ordersService.findAllAvailable(Number(req.user.userId));
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

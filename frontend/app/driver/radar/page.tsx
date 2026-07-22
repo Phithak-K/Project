@@ -30,6 +30,7 @@ export default function DriverRadarPage() {
   const [mapReady, setMapReady] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
   const getToken = () => {
     const v = `; ${document.cookie}`;
@@ -167,7 +168,7 @@ export default function DriverRadarPage() {
     if (!token) return;
     fetchOrders();
     const interval = setInterval(fetchOrders, 60_000);
-    const sock: Socket = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    const sock: Socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
     sock.on('new_available_order', (order: any) => {
       setOrders(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]);
     });

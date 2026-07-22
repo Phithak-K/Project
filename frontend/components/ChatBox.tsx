@@ -24,6 +24,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
   const getAuthToken = () => {
     const value = `; ${document.cookie}`;
@@ -49,7 +50,10 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
         setLoading(false);
       });
 
-    const newSocket = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    const newSocket = io(SOCKET_URL, { 
+      auth: { token: `Bearer ${token}` },
+      withCredentials: true 
+    });
     newSocket.emit('join_order', { orderId });
 
     newSocket.on('receive_message', (msg: any) => {

@@ -21,6 +21,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
   const [hasRated, setHasRated] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
   const getAuthToken = () => {
@@ -48,7 +49,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
     const token = getAuthToken();
     if (!token) return;
 
-    const newSocket = io(API_URL, { auth: { token: `Bearer ${token}` } });
+    const newSocket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
     newSocket.emit('join_order', { orderId: Number(orderId) });
     newSocket.on('order_status_update', () => fetchOrder());
     return () => { newSocket.disconnect(); };

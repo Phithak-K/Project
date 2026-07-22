@@ -22,6 +22,7 @@ export default function TrackingDetailPage() {
   const socketRef = useRef<any>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -129,8 +130,9 @@ export default function TrackingDetailPage() {
 
     // [REALTIME-FIX] เชื่อมต่อ Socket.io แบบ Public (ไม่ต้อง Auth)
     // Subscribe รับพิกัดสดจากคนขับผ่าน tracking room
-    const socket = io(API_URL, {
+    const socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
+      withCredentials: true
     });
     socketRef.current = socket;
 

@@ -69,8 +69,9 @@ export default function OrderMap({ lat, lng, label = 'ปลายทาง', or
     const token = getCookie('token');
     if (!token) return;
 
-    const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000', {
-      auth: { token }
+    const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000', {
+      auth: { token },
+      withCredentials: true
     });
 
     socket.on('connect', () => {

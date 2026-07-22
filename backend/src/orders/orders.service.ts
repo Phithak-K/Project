@@ -138,11 +138,24 @@ export class OrdersService {
       const insuranceFee = data.hasInsurance ? 50 : 0;
       finalTotalPrice += insuranceFee;
 
+      // 4.5 [P0 FIX] Auto-assign customerId if receiverPhone matches an existing customer
+      const receiverPhoneStr = (data as any).recipientPhone || data.receiverPhone;
+      let linkedCustomerId: number | null = null;
+      if (receiverPhoneStr) {
+        const existingCustomer = await this.prisma.customer.findUnique({
+          where: { phone: receiverPhoneStr },
+        });
+        if (existingCustomer) {
+          linkedCustomerId = existingCustomer.id;
+        }
+      }
+
       // 5. Create Order, OrderItems & Logs in Atomic Transaction
       const newOrder = await this.prisma.$transaction(async (tx) => {
         const order = await tx.order.create({
   data: {
     merchantId: Number(merchantId),
+    customerId: linkedCustomerId, // ผูกกับลูกค้าระบบอัตโนมัติ
     trackingNumber,
     productName: resolvedProductName,
     productDetail: data.productDetail || null,
@@ -202,10 +215,12 @@ export class OrdersService {
       });
 
       if (this.chatGateway && this.chatGateway.server) {
-        this.chatGateway.server.emit('new_available_order', {
-          ...newOrder,
-          message: 'มีออเดอร์ความต้องการสูงเข้ามาในพื้นที่!',
-        });
+        if (newOrder.merchantId) {
+          this.chatGateway.server.to(`merchant_${newOrder.merchantId}_drivers`).emit('new_available_order', {
+            ...newOrder,
+            message: 'มีออเดอร์ความต้องการสูงเข้ามาในพื้นที่!',
+          });
+        }
       }
 
       return newOrder;
@@ -359,10 +374,17 @@ export class OrdersService {
     if (!order) throw new BadRequestException('ไม่พบข้อมูลพัสดุสำหรับรหัสนี้');
 
     // ✅ MEDIUM-01 FIX: Fuzzy lat/lng — ลดความแม่นยำเหลือ ~1km (แสดงโซนบนแมปได้แต่ระบุบ้านไม่ได้)
+    const fuzzyLogs = order.trackingLogs.map(log => ({
+      ...log,
+      lat: log.lat != null ? Math.round(log.lat * 100) / 100 : null,
+      lng: log.lng != null ? Math.round(log.lng * 100) / 100 : null,
+    }));
+
     return {
       ...order,
       lat: order.lat != null ? Math.round(order.lat * 100) / 100 : null,
       lng: order.lng != null ? Math.round(order.lng * 100) / 100 : null,
+      trackingLogs: fuzzyLogs,
     };
   }
 
@@ -568,30 +590,43 @@ export class OrdersService {
   async acceptOrder(orderId: number, driverId: number) {
     if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
 
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new BadRequestException('Driver not found');
+
     try {
+      const whereClause: any = { 
+        id: orderId,
+        driverId: null,
+        status: OrderStatus.PENDING
+      };
+      if (driver.merchantId) {
+        whereClause.merchantId = driver.merchantId;
+      }
+
       // 1. Atomic Update: ฐานข้อมูลจะล็อคและอัปเดตบรรทัดนี้ได้ก็ต่อเมื่อยัง PENDING และ driverId เป็น null เท่านั้น
-      const updatedOrder = await this.prisma.order.update({
-        where: { 
-          id: orderId,
-          driverId: null,
-          status: OrderStatus.PENDING
-        },
+      const updateResult = await this.prisma.order.updateMany({
+        where: whereClause,
         data: { driverId, status: OrderStatus.ACCEPTED },
       });
       
+      if (updateResult.count === 0) {
+        throw new BadRequestException('ออเดอร์นี้ถูกรับไปแล้ว ออเดอร์ถูกยกเลิก หรือคุณไม่มีสิทธิ์รับงานข้ามร้าน');
+      }
+
+      const updatedOrder = await this.prisma.order.findUnique({ where: { id: orderId } });
+      
       await this.createTrackingLog(orderId, 'ACCEPTED', 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า');
       
-      if (this.chatGateway?.server) {
+      if (this.chatGateway?.server && updatedOrder) {
         this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', updatedOrder);
-        this.chatGateway.server.emit('order_taken', { orderId }); // ลบออกจาก Radar
+        
+        if (updatedOrder.merchantId) {
+          this.chatGateway.server.to(`merchant_${updatedOrder.merchantId}_drivers`).emit('order_taken', { orderId });
+        }
       }
       
       return updatedOrder;
     } catch (error: any) {
-      // P2025: Record to update not found (แปลว่าเงื่อนไข where 3 ข้อข้างบนไม่เป็นจริง)
-      if (error.code === 'P2025') {
-        throw new BadRequestException('ออเดอร์นี้ถูกรับไปแล้ว หรือออเดอร์ถูกยกเลิก');
-      }
       throw error;
     }
   }
@@ -678,8 +713,15 @@ export class OrdersService {
     // [DATA INTEGRITY] ใช้ Prisma.Decimal ป้องกัน Precision Loss
     const amountToPayDecimal = new Prisma.Decimal(order.totalPrice || order.price || 0);
     const amountToPay = amountToPayDecimal.toNumber();
+    
+    // [P0 FIX] สมการสมดุลการเงิน (Zero-Sum Game)
+    // 1. Customer จ่าย = amountToPay
+    // 2. Driver รับ = 20% ของ amountToPay (หรือสามารถปรับเป็นค่าจัดส่งตายตัวได้)
+    // 3. Platform รับ = insuranceFee
+    // 4. Merchant รับ = ส่วนที่เหลือ (amountToPay - driverCut - insuranceFee)
     const driverCut = amountToPayDecimal.mul(0.2).toNumber(); 
-    const merchantCut = new Prisma.Decimal(order.price || 0).toNumber(); 
+    const insuranceFeeNum = Number(order.insuranceFee);
+    const merchantCut = amountToPayDecimal.minus(driverCut).minus(insuranceFeeNum).toNumber(); 
 
     // เริ่ม Transaction พร้อม ป้องกัน Race Condition
     await this.prisma.$transaction(async (tx) => {
@@ -693,8 +735,8 @@ export class OrdersService {
         throw new BadRequestException('ออเดอร์นี้ชำระเงินไปแล้ว หรืออยู่ระหว่างทำรายการ');
       }
 
-      // 1. [H-02] FIX: Native Atomic Update with condition to prevent negative balance
-      if (order.customerId) {
+      // 1. หักเงินลูกค้า (ถ้าจ่ายผ่าน Wallet) หรือ หักเงินคนขับ (ถ้าเป็น Cash on Delivery)
+      if (order.customerId && order.paymentMethod !== 'COD') {
         const updateResult = await tx.customer.updateMany({
           where: { 
             id: order.customerId,
@@ -704,15 +746,29 @@ export class OrdersService {
         });
 
         if (updateResult.count === 0) {
-          throw new BadRequestException(`ยอดเงินไม่เพียงพอ (ต้องการ ฿${amountToPay.toFixed(2)}) หรือไม่พบบัญชีลูกค้า`);
+          throw new BadRequestException(`ยอดเงินลูกค้าไม่เพียงพอ (ต้องการ ฿${amountToPay.toFixed(2)})`);
         }
         await tx.transaction.create({
           data: { amount: amountToPay, type: 'DEBIT', note: `ชำระค่าออเดอร์ #${order.trackingNumber}`, userId: order.customerId!, userRole: 'Customer', orderId: order.id }
         });
+      } else {
+        // [Cash on Delivery] ลูกค้าไม่ได้ลงทะเบียน / เลือกจ่ายเงินสดตอนรับของ
+        // คนขับรับเงินสดมาจากลูกค้าเต็มจำนวน แล้วนำไปหักล้างในระบบ Wallet
+        // คนขับมีเงินสดในมือเพิ่มขึ้น แต่เงินในแอปจะลดลงเท่ากับส่วนที่ต้องนำส่งให้ร้านและแพลตฟอร์ม
+        const driverOwed = merchantCut + insuranceFeeNum;
+        if (driverOwed > 0) {
+          const updateResult = await tx.driver.updateMany({
+            where: { id: driverId, balance: { gte: driverOwed } },
+            data: { balance: { decrement: driverOwed } }
+          });
+          if (updateResult.count === 0) throw new BadRequestException(`ยอดเงินเครดิตคนขับไม่เพียงพอสำหรับการหักเงินสด (COD) ต้องมีขั้นต่ำ ฿${driverOwed.toFixed(2)}`);
+          
+          await tx.transaction.create({ data: { amount: driverOwed, type: 'DEBIT', note: `นำส่งเงินสด COD เข้าสู่ระบบ #${order.trackingNumber}`, userId: driverId, userRole: 'Driver', orderId: order.id } });
+        }
       }
 
       // 2. เพิ่มเงินให้ร้านค้า
-      if (order.merchantId) {
+      if (order.merchantId && merchantCut > 0) {
         await tx.merchant.update({
           where: { id: order.merchantId },
           data: { balance: { increment: merchantCut } }
@@ -722,27 +778,27 @@ export class OrdersService {
         });
       }
 
-      // 3. เพิ่มเงินให้คนขับ
-      await tx.driver.update({
-        where: { id: driverId },
-        data: { balance: { increment: driverCut } }
-      });
-      await tx.transaction.create({
-        data: { amount: driverCut, type: 'CREDIT', note: `ค่ารอบจัดส่ง #${order.trackingNumber}`, userId: driverId, userRole: 'Driver', orderId: order.id }
-      });
+      // 3. เพิ่มเงินให้คนขับ (เฉพาะกรณี Wallet) เพราะถ้า COD เงินสดอยู่กับคนขับแล้ว 
+      if (order.customerId && order.paymentMethod !== 'COD' && driverCut > 0) {
+        await tx.driver.update({
+          where: { id: driverId },
+          data: { balance: { increment: driverCut } }
+        });
+        await tx.transaction.create({
+          data: { amount: driverCut, type: 'CREDIT', note: `ค่ารอบจัดส่ง #${order.trackingNumber}`, userId: driverId, userRole: 'Driver', orderId: order.id }
+        });
+      }
 
       // 4. หักค่าประกัน (Platform Revenue)
-      const insuranceFeeNum = Number(order.insuranceFee);
       if (order.hasInsurance && insuranceFeeNum > 0) {
-        // ในระบบจริง เราอาจจะโอนให้ SwiftPath Insurance Wallet
         await tx.transaction.create({
-          data: { amount: insuranceFeeNum, type: 'DEBIT', note: `ค่าเบี้ยประกันสินค้า #${order.trackingNumber}`, userId: order.customerId || 0, userRole: 'Platform', orderId: order.id }
+          data: { amount: insuranceFeeNum, type: 'CREDIT', note: `รายได้ค่าเบี้ยประกันสินค้า #${order.trackingNumber}`, userId: 0, userRole: 'Platform', orderId: order.id }
         });
       }
     });
 
     const refreshedOrder = await this.prisma.order.findUnique({ where: { id: orderId } });
-    if (this.chatGateway?.server) {
+    if (this.chatGateway?.server && refreshedOrder) {
       this.chatGateway.server.to(`order_${orderId}`).emit('order_status_update', refreshedOrder);
     }
     
