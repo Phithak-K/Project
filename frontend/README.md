@@ -46,7 +46,7 @@ frontend/
 │   ├── merchant/        # หน้าสำหรับ Merchant (rewrite จาก store.localhost)
 │   │   ├── page.tsx     # Dashboard, สถิติยอดขาย และปุ่มเมนูด่วน
 │   │   ├── orders/      # จัดการออเดอร์ (สร้าง, กำหนดคนขับ)
-│   │   ├── catalog/     # จัดการคลังสินค้า
+│   │   ├── catalog/     # จัดการแคตตาล็อกสินค้า
 │   │   ├── drivers/     # จัดการพนักงานขับรถของร้าน
 │   │   └── register/    # ลงทะเบียนร้านค้า
 │   ├── driver/          # หน้าสำหรับ Driver (rewrite จาก fleet.localhost)
