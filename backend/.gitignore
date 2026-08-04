@@ -58,3 +58,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /generated/prisma
 
 firebase-adminsdk.json
+
+api_seed.js
+test_seed.ts
+check_accounts.sql

@@ -8,8 +8,33 @@ import {
 
 export class RegisterDto {
   @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
   @IsNotEmpty()
-  name!: string; // ใส่ ! เข้าไปแบบนี้ครับ
+  firstName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(13)
+  nationalId!: string;
+
+  @IsString()
+  @IsOptional()
+  storeName?: string;
+
+  @IsString()
+  @IsOptional()
+  storeAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  driverLicense?: string;
 
   @IsString()
   @IsNotEmpty()

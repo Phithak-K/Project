@@ -40,6 +40,9 @@ model Customer {
   id               Int      @id @default(autoincrement())
   email            String   @unique
   name             String?
+  firstName        String?
+  lastName         String?
+  nationalId       String?
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique
@@ -64,6 +67,9 @@ model Merchant {
   id               Int      @id @default(autoincrement())
   email            String   @unique
   name             String?
+  firstName        String?
+  lastName         String?
+  nationalId       String?
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique
@@ -96,6 +102,10 @@ model Driver {
   id               Int      @id @default(autoincrement())
   email            String   @unique
   name             String?
+  firstName        String?
+  lastName         String?
+  nationalId       String?
+  driverLicense    String?
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique

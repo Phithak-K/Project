@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function MerchantRegisterPage() {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ storeName: '', storeAddress: '', firstName: '', lastName: '', nationalId: '', phone: '', email: '', password: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +26,17 @@ export default function MerchantRegisterPage() {
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, phone: form.phone, email: form.email, password: form.password, role: 'Merchant' }),
+        body: JSON.stringify({ 
+          storeName: form.storeName, 
+          storeAddress: form.storeAddress,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          nationalId: form.nationalId,
+          phone: form.phone, 
+          email: form.email, 
+          password: form.password, 
+          role: 'Merchant' 
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -61,8 +71,29 @@ export default function MerchantRegisterPage() {
 
           <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="sp-field">
-              <label className="sp-label">ชื่อร้านค้า / ชื่อผู้ติดต่อ</label>
-              <input id="merchant-name" type="text" required value={form.name} onChange={set('name')} className="sp-input" placeholder="ร้านสมใจ ขนส่ง" />
+              <label className="sp-label">ชื่อร้านค้า</label>
+              <input id="merchant-store-name" type="text" required value={form.storeName} onChange={set('storeName')} className="sp-input" placeholder="ร้านสมใจ ขนส่ง" />
+            </div>
+            
+            <div className="sp-field">
+              <label className="sp-label">ที่อยู่ร้านค้า</label>
+              <input id="merchant-store-address" type="text" required value={form.storeAddress} onChange={set('storeAddress')} className="sp-input" placeholder="123 ถ.สุขุมวิท กรุงเทพฯ" />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ชื่อผู้ติดต่อ</label>
+                <input id="merchant-first-name" type="text" required value={form.firstName} onChange={set('firstName')} className="sp-input" placeholder="สมชาย" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">นามสกุล</label>
+                <input id="merchant-last-name" type="text" required value={form.lastName} onChange={set('lastName')} className="sp-input" placeholder="ใจดี" />
+              </div>
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">เลขบัตรประชาชน</label>
+              <input id="merchant-national-id" type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="เลขบัตรประชาชน 13 หลัก" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

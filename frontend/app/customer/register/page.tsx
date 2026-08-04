@@ -7,7 +7,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { FaFacebook, FaLine } from 'react-icons/fa';
 
 export default function CustomerRegisterPage() {
-  const [form, setForm] = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', nationalId: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,8 +31,10 @@ export default function CustomerRegisterPage() {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: form.name, 
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          nationalId: form.nationalId,
           email: form.email, 
           phone: form.phone, 
           password: form.password, 
@@ -121,9 +123,20 @@ export default function CustomerRegisterPage() {
           )}
 
           <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ชื่อจริง</label>
+                <input type="text" required value={form.firstName} onChange={set('firstName')} className="sp-input" placeholder="สมชาย" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">นามสกุล</label>
+                <input type="text" required value={form.lastName} onChange={set('lastName')} className="sp-input" placeholder="ใจดี" />
+              </div>
+            </div>
+
             <div className="sp-field">
-              <label className="sp-label">ชื่อ - นามสกุล</label>
-              <input type="text" required value={form.name} onChange={set('name')} className="sp-input" placeholder="สมชาย ใจดี" />
+              <label className="sp-label">เลขบัตรประชาชน</label>
+              <input type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="เลขบัตรประชาชน 13 หลัก" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

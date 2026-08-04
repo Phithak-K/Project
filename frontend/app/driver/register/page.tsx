@@ -6,7 +6,7 @@ import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function DriverRegisterPage() {
   const [form, setForm] = useState({
-    name: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
+    firstName: '', lastName: '', nationalId: '', driverLicense: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
   });
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +27,9 @@ export default function DriverRegisterPage() {
         method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: form.name, phone: form.phone, email: form.email,
+          firstName: form.firstName, lastName: form.lastName,
+          nationalId: form.nationalId, driverLicense: form.driverLicense,
+          phone: form.phone, email: form.email,
           password: form.password, role: 'Driver',
           vehiclePlate: form.vehiclePlate, vehicleType: form.vehicleType
         }),
@@ -64,9 +66,26 @@ export default function DriverRegisterPage() {
           {error && <div className="sp-alert sp-alert-error sp-animate" style={{ marginBottom: '1.25rem' }}>{error}</div>}
 
           <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div className="sp-field">
-              <label className="sp-label">ชื่อ - นามสกุล</label>
-              <input id="driver-name" type="text" required value={form.name} onChange={set('name')} className="sp-input" placeholder="สมชาย ใจดี" />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">ชื่อจริง</label>
+                <input id="driver-first-name" type="text" required value={form.firstName} onChange={set('firstName')} className="sp-input" placeholder="สมชาย" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">นามสกุล</label>
+                <input id="driver-last-name" type="text" required value={form.lastName} onChange={set('lastName')} className="sp-input" placeholder="ใจดี" />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div className="sp-field">
+                <label className="sp-label">เลขบัตรประชาชน</label>
+                <input id="driver-national-id" type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="13 หลัก" />
+              </div>
+              <div className="sp-field">
+                <label className="sp-label">เลขที่ใบขับขี่</label>
+                <input id="driver-license" type="text" required value={form.driverLicense} onChange={set('driverLicense')} className="sp-input" placeholder="เลขที่ใบอนุญาต" />
+              </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

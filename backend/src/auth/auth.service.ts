@@ -99,7 +99,7 @@ export class AuthService implements OnModuleInit {
         `เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
       );
 
-    if (roleStr === 'Merchant' && !dto.name) {
+    if (roleStr === 'Merchant' && !dto.storeName) {
       throw new BadRequestException(
         'กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant',
       );
@@ -109,6 +109,7 @@ export class AuthService implements OnModuleInit {
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
     const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const fullName = `${dto.firstName} ${dto.lastName}`;
 
     let user;
     try {
@@ -116,14 +117,22 @@ export class AuthService implements OnModuleInit {
         data: {
           email: dto.email,
           password: hashedPassword,
-          name: dto.name,
+          name: fullName,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          nationalId: dto.nationalId,
           phone: dto.phone,
           otpCode: hashOtp(otp), // [M-01] เซฟแบบ Hash
           otpExpires: expiry,
           isVerified: false,
+          ...(roleStr === 'Merchant' && {
+            storeName: dto.storeName,
+            storeAddress: dto.storeAddress,
+          }),
           ...(roleStr === 'Driver' && {
             vehiclePlate: dto.vehiclePlate,
             vehicleType: dto.vehicleType,
+            driverLicense: dto.driverLicense,
           }),
         },
       });
