@@ -44,7 +44,6 @@ model Customer {
   firstName        String?
   lastName         String?
   nationalId       String?
-  username         String?  @unique
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique
@@ -73,7 +72,6 @@ model Merchant {
   firstName        String?
   lastName         String?
   nationalId       String?
-  username         String?  @unique
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique
@@ -111,7 +109,6 @@ model Driver {
   lastName         String?
   nationalId       String?
   driverLicense    String?
-  username         String?  @unique
   password         String?
   googleId         String?  @unique
   facebookId       String?  @unique
