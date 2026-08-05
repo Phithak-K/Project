@@ -4,6 +4,7 @@ import {
   IsString,
   MinLength,
   IsOptional,
+  Matches,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -23,6 +24,12 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(13)
   nationalId!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  @Matches(/^[a-zA-Z0-9_]+$/, { message: 'username ใช้ได้เฉพาะตัวอักษร ตัวเลข และ _ เท่านั้น' })
+  username!: string;
 
   @IsString()
   @IsOptional()

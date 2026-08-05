@@ -2,3 +2,4 @@
 *.ps1
 check_accounts.sql
 verify_users.sql
+get_users.sql

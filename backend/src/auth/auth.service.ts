@@ -105,6 +105,12 @@ export class AuthService implements OnModuleInit {
       );
     }
 
+    const usernameExists = await (model as any).findUnique({
+      where: { username: dto.username },
+    });
+    if (usernameExists)
+      throw new BadRequestException(`Username "${dto.username}" ถูกใช้งานแล้ว กรุณาเลือก Username ใหม่`);
+
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
     expiry.setMinutes(expiry.getMinutes() + 10);
@@ -121,6 +127,7 @@ export class AuthService implements OnModuleInit {
           firstName: dto.firstName,
           lastName: dto.lastName,
           nationalId: dto.nationalId,
+          username: dto.username,
           phone: dto.phone,
           otpCode: hashOtp(otp), // [M-01] เซฟแบบ Hash
           otpExpires: expiry,
@@ -322,9 +329,19 @@ export class AuthService implements OnModuleInit {
     }
 
     const model = this.getModel(roleStr);
-    const user = await (model as any).findUnique({
-      where: { email: loginDto.email },
-    });
+
+    // รองรับ Login ทั้ง email และ username
+    let user: any = null;
+    if (loginDto.email) {
+      user = await (model as any).findUnique({
+        where: { email: loginDto.email },
+      });
+    } else if (loginDto.username) {
+      user = await (model as any).findUnique({
+        where: { username: loginDto.username },
+      });
+    }
+
     if (!user)
       throw new BadRequestException(
         `ไม่พบบัญชีนี้ในระบบ ${roleStr} (คุณอาจสมัครไว้ในระบบอื่น)`,
@@ -341,7 +358,7 @@ export class AuthService implements OnModuleInit {
       user.password,
     );
     if (!isPasswordValid)
-      throw new BadRequestException('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      throw new BadRequestException('อีเมล/Username หรือรหัสผ่านไม่ถูกต้อง');
 
     user.role = roleStr;
     return this.generateToken(user);

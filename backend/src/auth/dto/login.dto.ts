@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsNotEmpty,
   IsString,
   MinLength,
@@ -7,9 +6,13 @@ import {
 } from 'class-validator';
 
 export class LoginDto {
-  @IsEmail({}, { message: 'กรุณากรอกอีเมลให้ถูกต้อง' })
-  @IsNotEmpty({ message: 'ต้องระบุอีเมล' })
-  email: string;
+  @IsString()
+  @IsOptional()
+  email?: string;
+
+  @IsString()
+  @IsOptional()
+  username?: string;
 
   @IsString()
   @MinLength(6, { message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' })

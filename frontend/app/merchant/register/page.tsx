@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function MerchantRegisterPage() {
-  const [form, setForm] = useState({ storeName: '', storeAddress: '', firstName: '', lastName: '', nationalId: '', phone: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ storeName: '', storeAddress: '', firstName: '', lastName: '', nationalId: '', username: '', phone: '', email: '', password: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +32,7 @@ export default function MerchantRegisterPage() {
           firstName: form.firstName,
           lastName: form.lastName,
           nationalId: form.nationalId,
+          username: form.username,
           phone: form.phone, 
           email: form.email, 
           password: form.password, 
@@ -94,6 +95,11 @@ export default function MerchantRegisterPage() {
             <div className="sp-field">
               <label className="sp-label">เลขบัตรประชาชน</label>
               <input id="merchant-national-id" type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="เลขบัตรประชาชน 13 หลัก" />
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
+              <input id="merchant-username" type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น myshop_123 (ตัวอักษร ตัวเลข _)" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

@@ -6,7 +6,7 @@ import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function DriverRegisterPage() {
   const [form, setForm] = useState({
-    firstName: '', lastName: '', nationalId: '', driverLicense: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
+    firstName: '', lastName: '', nationalId: '', driverLicense: '', username: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
   });
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +29,7 @@ export default function DriverRegisterPage() {
         body: JSON.stringify({
           firstName: form.firstName, lastName: form.lastName,
           nationalId: form.nationalId, driverLicense: form.driverLicense,
+          username: form.username,
           phone: form.phone, email: form.email,
           password: form.password, role: 'Driver',
           vehiclePlate: form.vehiclePlate, vehicleType: form.vehicleType
@@ -86,6 +87,11 @@ export default function DriverRegisterPage() {
                 <label className="sp-label">เลขที่ใบขับขี่</label>
                 <input id="driver-license" type="text" required value={form.driverLicense} onChange={set('driverLicense')} className="sp-input" placeholder="เลขที่ใบอนุญาต" />
               </div>
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
+              <input id="driver-username" type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น driver_thai_01 (ตัวอักษร ตัวเลข _)" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

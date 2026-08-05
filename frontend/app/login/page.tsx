@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email หรือ username
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -18,11 +18,16 @@ export default function LoginPage() {
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const isEmail = identifier.includes('@');
+      const loginBody = isEmail
+        ? { email: identifier, password, role: 'Customer' }
+        : { username: identifier, password, role: 'Customer' };
+
       const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role: 'Customer' }),
+        body: JSON.stringify(loginBody),
       });
 
       const data = await response.json();
@@ -105,15 +110,15 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="sp-field">
-              <label className="sp-label">อีเมล</label>
+              <label className="sp-label">อีเมล หรือ Username</label>
               <input
                 id="email"
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
+                value={identifier}
+                onChange={e => setIdentifier(e.target.value)}
                 className="sp-input"
-                placeholder="name@example.com"
+                placeholder="name@example.com หรือ username_ของคุณ"
               />
             </div>
 

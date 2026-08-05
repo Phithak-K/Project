@@ -7,7 +7,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { FaFacebook, FaLine } from 'react-icons/fa';
 
 export default function CustomerRegisterPage() {
-  const [form, setForm] = useState({ firstName: '', lastName: '', nationalId: '', email: '', phone: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', nationalId: '', username: '', email: '', phone: '', password: '', confirmPassword: '' });
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,6 +35,7 @@ export default function CustomerRegisterPage() {
           firstName: form.firstName,
           lastName: form.lastName,
           nationalId: form.nationalId,
+          username: form.username,
           email: form.email, 
           phone: form.phone, 
           password: form.password, 
@@ -137,6 +138,11 @@ export default function CustomerRegisterPage() {
             <div className="sp-field">
               <label className="sp-label">เลขบัตรประชาชน</label>
               <input type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="เลขบัตรประชาชน 13 หลัก" />
+            </div>
+
+            <div className="sp-field">
+              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
+              <input type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น somchai_123 (ตัวอักษร ตัวเลข _)" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
