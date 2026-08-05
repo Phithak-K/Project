@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'react-hot-toast';
+import OrderMap from '@/components/OrderMap';
+import ChatBox from '@/components/ChatBox';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -19,6 +21,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
   const [ratingScore, setRatingScore] = useState(0);
   const [ratingComment, setRatingComment] = useState('');
   const [hasRated, setHasRated] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -127,9 +130,34 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
               <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>{order.trackingNumber}</h1>
               <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{order.productName}</p>
             </div>
-            <StatusBadge status={order.status} />
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {order.driverId && (
+                <button 
+                  onClick={() => setIsChatOpen(true)}
+                  className="sp-btn-ghost" 
+                  style={{ padding: '0.5rem', color: 'var(--brand-500)', borderColor: 'var(--brand-200)' }}
+                  aria-label="แชทกับคนขับ"
+                >
+                  <MessageSquare size={18} />
+                </button>
+              )}
+              <StatusBadge status={order.status} />
+            </div>
           </div>
         </div>
+
+        {/* Map unit */}
+        {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
+          <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', padding: 0, overflow: 'hidden' }}>
+            <OrderMap 
+              lat={order.lat || 13.7563} 
+              lng={order.lng || 100.5018} 
+              label={order.address || 'ที่อยู่จัดส่ง'} 
+              orderId={order.id}
+              height="260px"
+            />
+          </div>
+        )}
 
         {/* Timeline unit */}
         <div className="sp-card sp-animate-d1" style={{ marginBottom: '1.5rem' }}>
@@ -233,6 +261,18 @@ export default function CustomerOrderTrackingPage({ params }: { params: { id: st
         </button>
 
       </main>
+
+      {/* ChatBox Widget */}
+      {order.driverId && (
+        <ChatBox 
+          orderId={order.id}
+          currentRole="Customer"
+          receiverRole="Driver"
+          receiverId={order.driverId}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   );
 }

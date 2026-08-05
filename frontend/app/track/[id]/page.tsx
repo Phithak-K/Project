@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { io } from 'socket.io-client';
-import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search, Radio } from 'lucide-react';
+import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search } from 'lucide-react';
+import OrderMap from '@/components/OrderMap';
 
 export default function TrackingDetailPage() {
   const params = useParams();
@@ -13,16 +13,9 @@ export default function TrackingDetailPage() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [mapReady, setMapReady] = useState(false);
-  const [isLive, setIsLive] = useState(false); // true เมื่อได้รับพิกัดสดจากคนขับ
-  
-  const mapRef = useRef<any>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const socketRef = useRef<any>(null);
+  const [isLive, setIsLive] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -46,118 +39,6 @@ export default function TrackingDetailPage() {
       fetchOrder();
     }
   }, [trackingNumber, API_URL]);
-
-  // Load Leaflet dynamically
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    if (!document.getElementById('leaflet-js')) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = () => setMapReady(true);
-      document.head.appendChild(script);
-    } else {
-      setMapReady(true);
-    }
-  }, []);
-
-  // Initialize Map
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || mapInstanceRef.current || !order) return;
-    
-    const L = (window as any).L;
-    if (!L) return;
-
-    // Determine initial location: Latest log with lat/lng OR destination lat/lng OR Bangkok default
-    let centerLat = 13.7563;
-    let centerLng = 100.5018;
-    
-    const logWithLocation = order.trackingLogs?.find((l: any) => l.lat && l.lng);
-    if (logWithLocation) {
-      centerLat = logWithLocation.lat;
-      centerLng = logWithLocation.lng;
-    } else if (order.lat && order.lng) {
-      centerLat = order.lat;
-      centerLng = order.lng;
-    }
-
-    const map = L.map(mapRef.current, {
-      center: [centerLat, centerLng],
-      zoom: 13,
-      zoomControl: true,
-      attributionControl: false,
-    });
-
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-    }).addTo(map);
-
-    mapInstanceRef.current = map;
-
-    // Add driver truck marker
-    const iconHtml = `
-      <div style="
-        width: 44px; height: 44px; border-radius: 50%;
-        background: oklch(65% 0.18 30 / 0.15); border: 2px solid oklch(65% 0.18 30);
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
-        transition: all 0.3s ease;
-      ">
-        <span style="font-size: 20px;">🚛</span>
-      </div>
-    `;
-    const icon = L.divIcon({ html: iconHtml, className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
-    
-    markerRef.current = L.marker([centerLat, centerLng], { icon })
-      .addTo(map)
-      .bindPopup(`
-        <div style="font-family: 'Inter', sans-serif; padding: 4px; text-align: center;">
-          <strong style="color: oklch(65% 0.18 30); font-size: 0.9rem;">SwiftPath Delivery</strong><br/>
-          <span style="font-size: 0.8rem; color: #52525b;">ตำแหน่งคนขับ</span>
-        </div>
-      `);
-      
-    map.panBy([0, -50]);
-
-    // [REALTIME-FIX] เชื่อมต่อ Socket.io แบบ Public (ไม่ต้อง Auth)
-    // Subscribe รับพิกัดสดจากคนขับผ่าน tracking room
-    const socket = io(SOCKET_URL, {
-      transports: ['websocket', 'polling'],
-      withCredentials: true
-    });
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      // บอก Server ว่าต้องการรับพิกัดของ Tracking Number นี้
-      socket.emit('subscribe_tracking', { trackingNumber: order.trackingNumber });
-    });
-
-    // เมื่อได้รับพิกัดจากคนขับ → ขยับหมุดบนแผนที่ทันที
-    socket.on('location_updated', (data: { lat: number; lng: number; heading?: number }) => {
-      if (!markerRef.current || !mapInstanceRef.current) return;
-      const newLatLng = (window as any).L.latLng(data.lat, data.lng);
-      markerRef.current.setLatLng(newLatLng);
-      // Pan แผนที่ตามรถแบบ smooth
-      mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
-      setIsLive(true);
-    });
-
-    socket.on('disconnect', () => setIsLive(false));
-
-    return () => {
-      socket.disconnect();
-    };
-
-  }, [mapReady, order, API_URL, trackingNumber]);
 
   if (loading) {
     return (
@@ -293,12 +174,14 @@ export default function TrackingDetailPage() {
               )}
             </div>
             <div style={{ height: '300px', width: '100%', position: 'relative', background: '#f4f4f5' }}>
-              <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }} />
-              {!mapReady && (
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ width: '30px', height: '30px', border: '2px solid #d4d4d8', borderTopColor: 'oklch(65% 0.18 30)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                </div>
-              )}
+              <OrderMap 
+                lat={order.lat || 13.7563} 
+                lng={order.lng || 100.5018} 
+                label={order.address || 'ปลายทาง'} 
+                trackingNumber={order.trackingNumber}
+                onLiveStatusChange={setIsLive}
+                height="300px"
+              />
             </div>
             {order.driver && (
               <div style={{ padding: '1rem 1.5rem', background: '#fafafa', borderTop: '1px solid #e4e4e7', display: 'flex', alignItems: 'center', gap: '1rem' }}>

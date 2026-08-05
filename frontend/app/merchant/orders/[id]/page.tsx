@@ -8,6 +8,8 @@ import {
   MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import OrderMap from '@/components/OrderMap';
+import ChatBox from '@/components/ChatBox';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -16,6 +18,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
@@ -163,7 +166,8 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
             {/* [BUG-04 FIX] ปุ่มแชทเปิดหน้า messages แทนไม่ทำอะไร */}
             <button
               className="sp-btn-ghost"
-              onClick={() => router.push(`/merchant/orders/${orderId}/messages`)}
+              onClick={() => setIsChatOpen(true)}
+              disabled={!order.driverId}
             >
               <MessageSquare size={16} /> แชทกับคนขับ
             </button>
@@ -225,6 +229,19 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
                 </div>
               </div>
             </div>
+
+            {/* Map Card */}
+            {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
+              <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <OrderMap 
+                  lat={order.lat || 13.7563} 
+                  lng={order.lng || 100.5018} 
+                  label={order.receiverName || 'ที่อยู่จัดส่ง'} 
+                  orderId={order.id}
+                  height="260px"
+                />
+              </div>
+            )}
           </div>
 
           <aside className="sp-stagger" style={{ animationDelay: '100ms' }}>
@@ -291,6 +308,18 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
         </div>
 
       </main>
+
+      {/* ChatBox Widget */}
+      {order.driverId && (
+        <ChatBox 
+          orderId={order.id}
+          currentRole="Merchant"
+          receiverRole="Driver"
+          receiverId={order.driverId}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   );
 }

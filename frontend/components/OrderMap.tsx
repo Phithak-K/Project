@@ -1,120 +1,224 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
-import dynamic from 'next/dynamic';
-import 'leaflet/dist/leaflet.css';
-
-// Dynamic import of MapContainer to prevent Next.js SSR "window is not defined" error
-const MapContainer = dynamic(() => import('react-leaflet').then(m => m.MapContainer), { ssr: false });
-const TileLayer = dynamic(() => import('react-leaflet').then(m => m.TileLayer), { ssr: false });
-const Marker = dynamic(() => import('react-leaflet').then(m => m.Marker), { ssr: false });
-const Popup = dynamic(() => import('react-leaflet').then(m => m.Popup), { ssr: false });
+import { useEffect, useState, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 interface OrderMapProps {
   lat: number;
   lng: number;
   label?: string;
-  orderId?: string | number; // 🆕 Added to identify room
+  orderId?: string | number;
+  trackingNumber?: string;
+  driverLat?: number;
+  driverLng?: number;
+  onLiveStatusChange?: (isLive: boolean) => void;
+  height?: string;
 }
 
-export default function OrderMap({ lat, lng, label = 'ปลายทาง', orderId }: OrderMapProps) {
-  const [mounted, setMounted] = useState(false);
-  const [icon, setIcon] = useState<any>(null);
-  const [driverIcon, setDriverIcon] = useState<any>(null);
-  const [driverPos, setDriverPos] = useState<{lat: number, lng: number} | null>(null);
+export default function OrderMap({ 
+  lat, 
+  lng, 
+  label = 'ปลายทาง', 
+  orderId, 
+  trackingNumber,
+  driverLat,
+  driverLng,
+  onLiveStatusChange,
+  height = '280px'
+}: OrderMapProps) {
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<any>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const destMarkerRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const socketRef = useRef<Socket | null>(null);
 
+  // Load Leaflet dynamically
   useEffect(() => {
-    // Leaflet icons need to be imported dynamically on client side as well
-    const L = require('leaflet');
-    
-    // Fix default icon issue with Leaflet in React
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
+    if (typeof window === 'undefined') return;
 
-    const customIcon = new L.Icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
+    const checkAndLoad = () => {
+      let cssLoaded = !!document.getElementById('leaflet-css');
+      let jsLoaded = !!document.getElementById('leaflet-js');
 
-    const customDriverIcon = new L.Icon({
-      iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
-    });
+      if (!cssLoaded) {
+        const link = document.createElement('link');
+        link.id = 'leaflet-css';
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+      }
+
+      if (!jsLoaded) {
+        const script = document.createElement('script');
+        script.id = 'leaflet-js';
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => setMapReady(true);
+        document.head.appendChild(script);
+      } else {
+        // If JS tag exists, check if L is available
+        if ((window as any).L) {
+          setMapReady(true);
+        } else {
+          // Wait for it to load
+          const interval = setInterval(() => {
+            if ((window as any).L) {
+              clearInterval(interval);
+              setMapReady(true);
+            }
+          }, 100);
+        }
+      }
+    };
     
-    setIcon(customIcon);
-    setDriverIcon(customDriverIcon);
-    setMounted(true);
+    checkAndLoad();
   }, []);
 
-  // 🆕 Listen to WebSocket for Driver Location
+  // Initialize Map
   useEffect(() => {
-    if (!orderId) return;
+    if (!mapReady || !mapRef.current) return;
+    
+    const L = (window as any).L;
+    if (!L) return;
+
+    if (!mapInstanceRef.current) {
+      // Determine initial center
+      const centerLat = driverLat || lat;
+      const centerLng = driverLng || lng;
+
+      const map = L.map(mapRef.current, {
+        center: [centerLat, centerLng],
+        zoom: 14,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapInstanceRef.current = map;
+
+      // Add Destination Marker
+      const destIconHtml = `
+        <div style="
+          width: 32px; height: 32px; border-radius: 50%;
+          background: var(--brand-500); border: 3px solid #fff;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        ">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+        </div>
+      `;
+      const destIcon = L.divIcon({ html: destIconHtml, className: '', iconSize: [32, 32], iconAnchor: [16, 32] });
+      
+      destMarkerRef.current = L.marker([lat, lng], { icon: destIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-family: 'Inter', sans-serif; padding: 4px; text-align: center;">
+            <strong style="color: var(--n-800); font-size: 0.9rem;">${label}</strong>
+          </div>
+        `);
+
+      // Add Driver Marker (if we have initial pos)
+      const driverIconHtml = `
+        <div style="
+          width: 44px; height: 44px; border-radius: 50%;
+          background: oklch(65% 0.18 30 / 0.15); border: 2px solid oklch(65% 0.18 30);
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+          transition: all 0.3s ease;
+        ">
+          <span style="font-size: 20px;">🚛</span>
+        </div>
+      `;
+      const driverIcon = L.divIcon({ html: driverIconHtml, className: '', iconSize: [44, 44], iconAnchor: [22, 22] });
+      
+      if (driverLat && driverLng) {
+        driverMarkerRef.current = L.marker([driverLat, driverLng], { icon: driverIcon })
+          .addTo(map);
+      } else {
+        // Create it anyway but place it far or wait for socket
+        driverMarkerRef.current = L.marker([0, 0], { icon: driverIcon });
+      }
+
+      // Adjust bounds if both exist and are valid
+      if (driverLat && driverLng && (driverLat !== lat || driverLng !== lng)) {
+        const bounds = L.latLngBounds([[lat, lng], [driverLat, driverLng]]);
+        map.fitBounds(bounds, { padding: [50, 50] });
+      }
+    }
+  }, [mapReady, lat, lng, driverLat, driverLng, label]);
+
+  // Handle Socket
+  useEffect(() => {
+    if (!orderId && !trackingNumber) return;
+    
+    const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    
+    // Auth token needed for joining order room, but not for tracking room if public
     const getCookie = (name: string) => {
       const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
       return match ? match[2] : null;
     };
     const token = getCookie('token');
-    if (!token) return;
-
-    const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000', {
-      auth: { token },
-      withCredentials: true
-    });
+    
+    const socketOptions: any = { transports: ['websocket', 'polling'], withCredentials: true };
+    if (token) {
+      socketOptions.auth = { token: `Bearer ${token}` };
+    }
+    
+    const socket = io(SOCKET_URL, socketOptions);
+    socketRef.current = socket;
 
     socket.on('connect', () => {
-      socket.emit('join_order', { orderId: Number(orderId) });
+      if (trackingNumber) {
+        // Public tracking
+        socket.emit('subscribe_tracking', { trackingNumber });
+      } else if (orderId && token) {
+        // Private order room
+        socket.emit('join_order', { orderId: Number(orderId) });
+      }
     });
 
-    socket.on('location_updated', (data: { lat: number, lng: number }) => {
-      setDriverPos({ lat: data.lat, lng: data.lng });
+    socket.on('location_updated', (data: { lat: number; lng: number; heading?: number }) => {
+      if (!driverMarkerRef.current || !mapInstanceRef.current) return;
+      const L = (window as any).L;
+      
+      const newLatLng = L.latLng(data.lat, data.lng);
+      
+      // Ensure marker is on map
+      if (!mapInstanceRef.current.hasLayer(driverMarkerRef.current)) {
+        driverMarkerRef.current.addTo(mapInstanceRef.current);
+      }
+      
+      driverMarkerRef.current.setLatLng(newLatLng);
+      mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
+      
+      if (onLiveStatusChange) onLiveStatusChange(true);
+    });
+
+    socket.on('disconnect', () => {
+      if (onLiveStatusChange) onLiveStatusChange(false);
     });
 
     return () => {
       socket.disconnect();
     };
-  }, [orderId]);
+  }, [orderId, trackingNumber, onLiveStatusChange]);
 
-  if (!mounted || !icon) return <div className="h-64 w-full bg-slate-100 flex items-center justify-center rounded-2xl animate-pulse">กำลังโหลดแผนที่...</div>;
+  if (!mapReady) {
+    return (
+      <div className="sp-card" style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+        <span className="sp-spinner sp-spinner-lg" />
+        <span className="sp-caps" style={{ color: 'var(--n-400)' }}>กำลังโหลดแผนที่...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="h-64 w-full rounded-2xl overflow-hidden shadow-sm border border-slate-200 z-0">
-      <MapContainer 
-        center={[lat, lng]} 
-        zoom={15} 
-        style={{ height: '100%', width: '100%', zIndex: 0 }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={[lat, lng]} icon={icon}>
-          <Popup>
-            <div className="font-bold text-slate-800">{label}</div>
-            <div className="text-xs text-slate-500">LAT: {lat.toFixed(4)}, LNG: {lng.toFixed(4)}</div>
-          </Popup>
-        </Marker>
-        {driverPos && driverIcon && (
-          <Marker position={[driverPos.lat, driverPos.lng]} icon={driverIcon}>
-            <Popup>
-              <div className="font-bold text-blue-600">ตำแหน่งคนขับปัจจุบัน</div>
-              <div className="text-xs text-slate-500">LIVE</div>
-            </Popup>
-          </Marker>
-        )}
-      </MapContainer>
+    <div style={{ height, width: '100%', borderRadius: '1rem', overflow: 'hidden', border: '1px solid var(--n-150)', position: 'relative', background: '#f4f4f5' }}>
+      <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', inset: 0, zIndex: 0 }} />
     </div>
   );
 }

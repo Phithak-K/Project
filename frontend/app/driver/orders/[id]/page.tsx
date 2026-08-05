@@ -10,6 +10,7 @@ import {
 import QRScanner from '@/components/QRScanner';
 import { toast } from 'react-hot-toast';
 import OrderSkeleton from '@/components/OrderSkeleton';
+import ChatBox from '@/components/ChatBox';
 
 export default function DriverOrderWorkflowPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
   const [loading, setLoading] = useState(true);
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // ─── Real-time GPS State ────────────────────────────────────────────────────
   const [isTracking, setIsTracking] = useState(false);
@@ -236,7 +238,11 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
           <p className="sp-caps" style={{ color: 'var(--n-600)', fontSize: '0.6rem' }}>รหัสพัสดุ</p>
           <span className="sp-logo-dark" style={{ fontSize: '1rem' }}>{order.trackingNumber}</span>
         </div>
-        <button className="sp-btn-brand" style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }}>
+        <button 
+          onClick={() => setIsChatOpen(true)}
+          className="sp-btn-brand" 
+          style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }}
+        >
           <MessageSquare size={18} />
         </button>
       </nav>
@@ -438,6 +444,18 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
         </div>
 
       </main>
+
+      {/* ChatBox Widget */}
+      {order.userId && (
+        <ChatBox 
+          orderId={order.id}
+          currentRole="Driver"
+          receiverRole="Customer"
+          receiverId={order.userId}
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+        />
+      )}
     </div>
   );
 }
