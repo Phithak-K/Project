@@ -155,55 +155,64 @@ export default function OrderMap({
     if (!orderId && !trackingNumber) return;
     
     const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    let socket: any = null;
     
-    // Auth token needed for joining order room, but not for tracking room if public
-    const getCookie = (name: string) => {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? match[2] : null;
-    };
-    const token = getCookie('token');
-    
-    const socketOptions: any = { transports: ['websocket', 'polling'], withCredentials: true };
-    if (token) {
-      socketOptions.auth = { token: `Bearer ${token}` };
+    async function initSocket() {
+      let token = '';
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token;
+        }
+      } catch (err) {
+        console.error("Failed to fetch client token for socket", err);
+      }
+
+      const socketOptions: any = { transports: ['websocket', 'polling'], withCredentials: true };
+      if (token) {
+        socketOptions.auth = { token: `Bearer ${token}` };
+      }
+      
+      socket = io(SOCKET_URL, socketOptions);
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        if (trackingNumber) {
+          // Public tracking
+          socket.emit('subscribe_tracking', { trackingNumber });
+        } else if (orderId && token) {
+          // Private order room
+          socket.emit('join_order', { orderId: Number(orderId) });
+        }
+      });
+
+      socket.on('location_updated', (data: { lat: number; lng: number; heading?: number }) => {
+        if (!driverMarkerRef.current || !mapInstanceRef.current) return;
+        const L = (window as any).L;
+        
+        const newLatLng = L.latLng(data.lat, data.lng);
+        
+        // Ensure marker is on map
+        if (!mapInstanceRef.current.hasLayer(driverMarkerRef.current)) {
+          driverMarkerRef.current.addTo(mapInstanceRef.current);
+        }
+        
+        driverMarkerRef.current.setLatLng(newLatLng);
+        mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
+        
+        if (onLiveStatusChange) onLiveStatusChange(true);
+      });
+
+      socket.on('disconnect', () => {
+        if (onLiveStatusChange) onLiveStatusChange(false);
+      });
     }
-    
-    const socket = io(SOCKET_URL, socketOptions);
-    socketRef.current = socket;
 
-    socket.on('connect', () => {
-      if (trackingNumber) {
-        // Public tracking
-        socket.emit('subscribe_tracking', { trackingNumber });
-      } else if (orderId && token) {
-        // Private order room
-        socket.emit('join_order', { orderId: Number(orderId) });
-      }
-    });
-
-    socket.on('location_updated', (data: { lat: number; lng: number; heading?: number }) => {
-      if (!driverMarkerRef.current || !mapInstanceRef.current) return;
-      const L = (window as any).L;
-      
-      const newLatLng = L.latLng(data.lat, data.lng);
-      
-      // Ensure marker is on map
-      if (!mapInstanceRef.current.hasLayer(driverMarkerRef.current)) {
-        driverMarkerRef.current.addTo(mapInstanceRef.current);
-      }
-      
-      driverMarkerRef.current.setLatLng(newLatLng);
-      mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
-      
-      if (onLiveStatusChange) onLiveStatusChange(true);
-    });
-
-    socket.on('disconnect', () => {
-      if (onLiveStatusChange) onLiveStatusChange(false);
-    });
+    initSocket();
 
     return () => {
-      socket.disconnect();
+      if (socket) socket.disconnect();
     };
   }, [orderId, trackingNumber, onLiveStatusChange]);
 

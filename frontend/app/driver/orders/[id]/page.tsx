@@ -31,45 +31,57 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
-
-  const getAuthToken = () => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
 
   const fetchOrder = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) { router.push('/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Driver') { router.push('/login'); return; }
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/${orderId}`);
       if (res.ok) setOrder(await res.json());
       else        router.push('/driver/radar');
     } catch { console.error('Error fetching order'); }
     finally { setLoading(false); }
-  }, [API_URL, orderId, router]);
+  }, [orderId, router]);
 
   // ─── เชื่อมต่อ Socket.io เมื่อโหลดหน้า ──────────────────────────────────────
   useEffect(() => {
     fetchOrder();
-    const token = getAuthToken();
-    if (!token) return;
+    
+    let socket: Socket | null = null;
+    async function initSocket() {
+      let token = '';
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token;
+        }
+      } catch (err) {
+        console.error("Failed to fetch token for socket", err);
+      }
 
-    const socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
-    socketRef.current = socket;
-    socket.emit('join_order', { orderId: Number(orderId) });
-    socket.on('order_status_update', () => fetchOrder());
+      if (token) {
+        socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
+        socketRef.current = socket;
+        socket.emit('join_order', { orderId: Number(orderId) });
+        socket.on('order_status_update', () => fetchOrder());
+      }
+    }
+    
+    initSocket();
 
     return () => {
       stopTracking();
-      socket.disconnect();
+      if (socket) socket.disconnect();
       socketRef.current = null;
     };
-  }, [API_URL, orderId, fetchOrder]);
-
+  }, [orderId, fetchOrder, SOCKET_URL]);
   // ─── ส่งพิกัดผ่าน Socket.io ─────────────────────────────────────────────────
   const emitLocation = useCallback((lat: number, lng: number, heading?: number) => {
     if (!socketRef.current) return;
@@ -173,14 +185,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
       step++;
     }, 1500);
   }, [order, emitLocation]);
-
   const updateStatus = async (endpoint: string, extraBody = {}) => {
-    const token = getAuthToken();
     setUpdating(true);
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/${endpoint}`, {
+      const res = await fetch(`/api/proxy/orders/${orderId}/${endpoint}`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(extraBody)
       });
       if (!res.ok) {

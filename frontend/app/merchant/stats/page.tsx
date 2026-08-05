@@ -26,15 +26,14 @@ export default function MerchantStatsPage() {
     return null;
   };
 
+
   const fetchData = useCallback(async () => {
-    const token = getCookie('token');
-    if (!token) { router.push('/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Merchant') { router.push('/login'); return; }
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      
       const [analyticsRes, profileRes] = await Promise.all([
-        fetch(`${API_URL}/orders/analytics`, { headers }),
-        fetch(`${API_URL}/users/me`, { headers })
+        fetch('/api/proxy/orders/analytics'),
+        fetch('/api/proxy/users/me')
       ]);
       
       if (profileRes.ok) {
@@ -46,26 +45,21 @@ export default function MerchantStatsPage() {
         const analytics = await analyticsRes.json();
         setData(analytics);
       }
-
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handlePrint = () => { window.print(); };
 
   const handleExportCsv = async () => {
-    const token = getCookie('token');
-    if (!token) return;
     setExportLoading(true);
     try {
       const params = new URLSearchParams();
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
-      const res = await fetch(`${API_URL}/orders/export/csv?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/export/csv?${params.toString()}`);
       if (!res.ok) { alert('ดาวน์โหลดไม่สำเร็จ'); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

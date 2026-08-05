@@ -15,47 +15,42 @@ export default function DriverDashboard() {
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const getAuthToken = () => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
 
-  const handleLogout = () => {
-    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-    document.cookie = `token=; path=/; expires=${past}`;
-    document.cookie = `role=; path=/; expires=${past}`;
-    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
-    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+  const handleLogout = async () => {
+    const { handleLogout: clearAuth } = await import('@/lib/auth');
+    await clearAuth();
     window.location.href = '/login';
   };
 
   const fetchData = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) { router.push('/driver/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Driver') { router.push('/login'); return; }
     try {
-      const headers = { Authorization: `Bearer ${token}` };
       const [ordersRes, statsRes, hotRes] = await Promise.all([
-        fetch(`${API_URL}/orders/driver/my-jobs`, { headers }), // Fetch active assigned jobs instead of available ones
-        fetch(`${API_URL}/orders/stats/driver`, { headers }),
-        fetch(`${API_URL}/weather/hotspots`, { headers }),
+        fetch('/api/proxy/orders/driver/my-jobs'),
+        fetch('/api/proxy/orders/stats/driver'),
+        fetch('/api/proxy/weather/hotspots'),
       ]);
       if (ordersRes.ok) setOrders(await ordersRes.json());
       if (statsRes.ok)  setStats(await statsRes.json());
       if (hotRes.ok)    setHotspots(await hotRes.json());
     } catch (err) { console.error(err); }
     finally { setIsLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleAccept = async (orderId: number) => {
-    const token = getAuthToken();
     setAccepting(orderId);
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
-        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
+      const res = await fetch(`/api/proxy/orders/${orderId}/accept`, {
+        method: 'PATCH'
       });
       if (res.ok) router.push(`/driver/orders/${orderId}`);
       else { const e = await res.json(); alert(e.message || 'ไม่สามารถรับงานได้'); fetchData(); }

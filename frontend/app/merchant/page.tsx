@@ -23,15 +23,14 @@ export default function MerchantDashboard() {
   };
 
   const fetchData = useCallback(async () => {
-    const token = getCookie('token');
-    if (!token) { window.location.href = '/login'; return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Merchant') { window.location.href = '/login'; return; }
     setIsRefreshing(true);
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
       const [statsRes, ordersRes, driversRes] = await Promise.all([
-        fetch(`${API_URL}/orders/stats`, { headers }),
-        fetch(`${API_URL}/orders/my-orders`, { headers }),
-        fetch(`${API_URL}/users/my-drivers`, { headers }),
+        fetch('/api/proxy/orders/stats'),
+        fetch('/api/proxy/orders/my-orders'),
+        fetch('/api/proxy/users/my-drivers'),
       ]);
       if (statsRes.ok && ordersRes.ok) {
         const s = await statsRes.json();
@@ -47,12 +46,9 @@ export default function MerchantDashboard() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleLogout = () => {
-    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-    document.cookie = `token=; path=/; expires=${past}`;
-    document.cookie = `role=; path=/; expires=${past}`;
-    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
-    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+  const handleLogout = async () => {
+    const { handleLogout: clearAuth } = await import('@/lib/auth');
+    await clearAuth();
     window.location.href = '/login';
   };
 
@@ -65,13 +61,11 @@ export default function MerchantDashboard() {
 
   const handleAssign = async (driverId: number) => {
     if (!assignModal) return;
-    const token = getCookie('token');
-    if (!token) return;
     setAssignLoading(true);
     try {
-      const res = await fetch(`${API_URL}/orders/${assignModal.orderId}/assign`, {
+      const res = await fetch(`/api/proxy/orders/${assignModal.orderId}/assign`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ driverId }),
       });
       if (res.ok) {

@@ -155,13 +155,12 @@ export default function CustomerDashboard() {
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
-
   useEffect(() => {
     // Guard: รันเฉพาะหลัง mount บน client เท่านั้น
     if (!isMounted) return;
 
-    const token = getCookie('token');
-    if (!token) {
+    const role = getCookie('role');
+    if (!role || role !== 'Customer') {
       setIsLoggedIn(false);
       setIsLoading(false);
       return;
@@ -171,12 +170,8 @@ export default function CustomerDashboard() {
     const fetchData = async () => {
       try {
         const [ordersRes, userRes] = await Promise.all([
-          fetch(`${API_URL}/orders/customer/my-orders`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${API_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          fetch('/api/proxy/orders/customer/my-orders'),
+          fetch('/api/proxy/users/me')
         ]);
         if (ordersRes.ok) {
           const oData = await ordersRes.json();
@@ -194,17 +189,13 @@ export default function CustomerDashboard() {
     };
 
     fetchData();
-  }, [isMounted, API_URL]);
+  }, [isMounted]);
 
-  const handleLogout = () => {
-    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-    document.cookie = `token=; path=/; expires=${past}`;
-    document.cookie = `role=; path=/; expires=${past}`;
-    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
-    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+  const handleLogout = async () => {
+    const { handleLogout: clearAuth } = await import('@/lib/auth');
+    await clearAuth();
     window.location.href = '/login';
   };
-
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
     if (trackingInput.trim()) {

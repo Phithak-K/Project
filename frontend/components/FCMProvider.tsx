@@ -12,8 +12,8 @@ export default function FCMProvider({ children }: { children: React.ReactNode })
       return match ? match[2] : null;
     };
     
-    const token = getCookie('token');
-    if (!token) return;
+    const role = getCookie('role');
+    if (!role) return;
 
     // Wait slightly to let page render
     const initFCM = setTimeout(async () => {
@@ -21,12 +21,11 @@ export default function FCMProvider({ children }: { children: React.ReactNode })
         const tokenStr = await requestFCMToken();
         if (tokenStr) {
           setFcmToken(tokenStr);
-          // Save to Backend
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/fcm-token`, {
+          // Save to Backend via Proxy
+          fetch('/api/proxy/auth/fcm-token', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              'Content-Type': 'application/json'
             },
             body: JSON.stringify({ fcmToken: tokenStr })
           }).catch(err => console.error('FCM sync error', err));

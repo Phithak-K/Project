@@ -27,17 +27,16 @@ export default function OrderHistoryPage() {
   const limit = 10;
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-  const getAuthToken = useCallback(() => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
-  }, []);
+  };
 
   const fetchOrders = useCallback(async (currentPage: number, append: boolean = false) => {
-    const token = getAuthToken();
-    if (!token) {
+    const role = getCookie('role');
+    if (!role || role !== 'Customer') {
       router.push('/login');
       return;
     }
@@ -46,9 +45,7 @@ export default function OrderHistoryPage() {
     else setLoading(true);
 
     try {
-      const res = await fetch(`${API_URL}/orders/customer/my-orders?page=${currentPage}&limit=${limit}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/customer/my-orders?page=${currentPage}&limit=${limit}`);
       if (res.ok) {
         const data = await res.json();
         if (append) {
@@ -66,8 +63,7 @@ export default function OrderHistoryPage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [API_URL, router, getAuthToken]);
-
+  }, [router]);
   useEffect(() => {
     fetchOrders(1);
   }, [fetchOrders]);

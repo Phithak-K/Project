@@ -27,22 +27,20 @@ export default function DriverDashboard() {
   const [refreshing, setRefreshing] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-  const getAuthToken = () => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
 
   const fetchJobs = useCallback(async () => {
     setRefreshing(true);
-    const token = getAuthToken();
-    if (!token) return window.location.href = '/login';
+    const role = getCookie('role');
+    if (!role || role !== 'Driver') return window.location.href = '/login';
 
     try {
-      const headers = { 'Authorization': `Bearer ${token}` };
-      const res = await fetch(`${API_URL}/orders/available`, { headers });
+      const res = await fetch('/api/proxy/orders/available');
       if (res.ok) {
         const data = await res.json();
         setAvailableOrders(data);
@@ -53,16 +51,14 @@ export default function DriverDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => { fetchJobs(); }, [fetchJobs]);
 
   const handleAcceptOrder = async (orderId: number) => {
-    const token = getAuthToken();
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
+      const res = await fetch(`/api/proxy/orders/${orderId}/accept`, {
+        method: 'PATCH'
       });
       if (res.ok) {
         const updatedOrder = await res.json();
@@ -75,15 +71,11 @@ export default function DriverDashboard() {
     } catch (err) { alert('Network Error'); }
   };
 
-  const handleLogout = () => {
-    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-    document.cookie = `token=; path=/; expires=${past}`;
-    document.cookie = `role=; path=/; expires=${past}`;
-    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
-    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+  const handleLogout = async () => {
+    const { handleLogout: clearAuth } = await import('@/lib/auth');
+    await clearAuth();
     window.location.href = '/login';
   };
-
   if (loading) return (
     <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
       <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />

@@ -24,36 +24,51 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const orderId = params.id;
 
-  const getAuthToken = () => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
 
   const fetchOrder = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) { router.push('/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Merchant') { router.push('/login'); return; }
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/${orderId}`);
       if (res.ok) setOrder(await res.json());
       else        router.push('/merchant');
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, [API_URL, orderId, router]);
+  }, [orderId, router]);
 
   useEffect(() => {
     fetchOrder();
-    const token = getAuthToken();
-    if (!token) return;
+    
+    let socket: Socket | null = null;
+    async function initSocket() {
+      let token = '';
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token;
+        }
+      } catch (err) {
+        console.error("Failed to fetch token for socket", err);
+      }
 
-    const newSocket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
-    newSocket.emit('join_order', { orderId: Number(orderId) });
-    newSocket.on('order_status_update', () => fetchOrder());
-    return () => { newSocket.disconnect(); };
-  }, [API_URL, orderId, fetchOrder]);
+      if (token) {
+        socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
+        socket.emit('join_order', { orderId: Number(orderId) });
+        socket.on('order_status_update', () => fetchOrder());
+      }
+    }
+    
+    initSocket();
+    
+    return () => { if (socket) socket.disconnect(); };
+  }, [orderId, fetchOrder, SOCKET_URL]);
 
   if (loading) return (
     <div className="sp-page-loading">
@@ -81,17 +96,15 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
   };
 
   const handleDownloadPdf = async () => {
-    const token = getAuthToken();
-    if (!token) {
+    const role = getCookie('role');
+    if (!role) {
       toast.error('กรุณาเข้าสู่ระบบก่อน');
       return;
     }
     
     try {
       toast.loading('กำลังสร้างไฟล์ PDF...', { id: 'pdf' });
-      const res = await fetch(`${API_URL}/orders/${orderId}/pdf`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/${orderId}/pdf`);
       
       if (!res.ok) throw new Error('Failed to fetch PDF');
       
@@ -111,16 +124,12 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
     }
   };
 
-  // [BUG-04 FIX] เพิ่ม Handler สำหรับปุ่มยกเลิกออเดอร์
   const handleCancelOrder = async () => {
     if (!window.confirm(`ยืนยันการยกเลิกออเดอร์ ${order.trackingNumber} ใช่หรือไม่?`)) return;
-    const token = getAuthToken();
-    if (!token) return;
     setCancelling(true);
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`/api/proxy/orders/${orderId}/cancel`, {
+        method: 'PATCH'
       });
       if (res.ok) {
         toast.success('ยกเลิกออเดอร์เรียบร้อยแล้ว');

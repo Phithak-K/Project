@@ -17,26 +17,22 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-  const getAuthToken = useCallback(() => {
+  const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
+    const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
-  }, []);
+  };
 
   const fetchProfile = useCallback(async () => {
-    const token = getAuthToken();
-    if (!token) {
+    const role = getCookie('role');
+    if (!role || role !== 'Customer') {
       router.push('/login');
       return;
     }
     
     try {
-      const res = await fetch(`${API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch('/api/proxy/users/me');
       if (res.ok) {
         const data = await res.json();
         setProfile(data);
@@ -50,7 +46,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [API_URL, router, getAuthToken]);
+  }, [router]);
 
   useEffect(() => {
     fetchProfile();
@@ -58,16 +54,12 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = getAuthToken();
-    if (!token) return;
-
     setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/users/profile`, {
+      const res = await fetch('/api/proxy/users/profile', {
         method: 'PATCH',
         headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ name, phone }),
       });

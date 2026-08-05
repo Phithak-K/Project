@@ -37,39 +37,55 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
     if (!isOpen) return;
     
     let isMounted = true;
-    const token = getAuthToken();
-    if (!token) return;
+    let newSocket: Socket | null = null;
 
-    fetch(`${API_URL}/orders/${orderId}/messages`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (!isMounted) return;
-        if (Array.isArray(data)) setMessages(data);
-        setLoading(false);
-      });
+    async function initChat() {
+      let token = '';
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const tokenData = await tokenRes.json();
+          token = tokenData.token;
+        }
+      } catch (err) {
+        console.error("Failed to fetch client token for chat", err);
+      }
 
-    const newSocket = io(SOCKET_URL, { 
-      auth: { token: `Bearer ${token}` },
-      withCredentials: true 
-    });
-    newSocket.emit('join_order', { orderId });
+      // Fetch messages via Next.js Proxy (no Authorization header required as proxy handles it)
+      fetch(`/api/proxy/orders/${orderId}/messages`)
+        .then(res => res.json())
+        .then(data => {
+          if (!isMounted) return;
+          if (Array.isArray(data)) setMessages(data);
+          setLoading(false);
+        })
+        .catch(err => console.error("Failed to load messages", err));
 
-    newSocket.on('receive_message', (msg: any) => {
-      setMessages(prev => {
-        if (prev.find(m => m.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-    });
+      if (token) {
+        newSocket = io(SOCKET_URL, { 
+          auth: { token: `Bearer ${token}` },
+          withCredentials: true 
+        });
+        newSocket.emit('join_order', { orderId });
 
-    setSocket(newSocket);
+        newSocket.on('receive_message', (msg: any) => {
+          setMessages(prev => {
+            if (prev.find(m => m.id === msg.id)) return prev;
+            return [...prev, msg];
+          });
+        });
+
+        setSocket(newSocket);
+      }
+    }
+
+    initChat();
 
     return () => {
       isMounted = false;
-      newSocket.disconnect();
+      if (newSocket) newSocket.disconnect();
     };
-  }, [isOpen, orderId, API_URL]);
+  }, [isOpen, orderId, SOCKET_URL]);
 
   useEffect(() => {
     if (bottomRef.current) {
