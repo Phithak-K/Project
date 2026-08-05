@@ -31,7 +31,7 @@ export default function MerchantDashboardPage() {
           setStats(await res.json());
         }
       } catch (err) {
-        console.error(err);
+        console.warn(err);
       } finally {
         setLoading(false);
       }

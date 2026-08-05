@@ -11,6 +11,12 @@ export async function uploadBase64ToStorage(
   }
 
   try {
+    if (admin.apps.length === 0 || !process.env.FIREBASE_STORAGE_BUCKET) {
+      // Local/demo mode: keep the data URL in the database so proof of delivery
+      // still works without exposing Firebase configuration errors to users.
+      return base64Data;
+    }
+
     const bucket = admin
       .storage()
       .bucket(process.env.FIREBASE_STORAGE_BUCKET || undefined);
@@ -46,9 +52,6 @@ export async function uploadBase64ToStorage(
     console.error('Error uploading to Firebase Storage:', error);
     // กรณีที่ไม่ได้เซ็ต Storage Bucket ไว้ใน Env เราจะ return null หรือ throw ก็ได้
     // แต่เพื่อไม่ให้ระบบพังชั่วคราวเวลาพัฒนา จะ throw ทิ้ง
-    throw new Error(
-      'อัปโหลดไฟล์ไม่สำเร็จ กรุณาตรวจสอบการตั้งค่า Firebase Storage Bucket: ' +
-        error.message,
-    );
+    throw new Error('ไม่สามารถบันทึกรูปหลักฐานได้ กรุณาลองใหม่อีกครั้ง');
   }
 }

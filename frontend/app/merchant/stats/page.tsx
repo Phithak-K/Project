@@ -45,7 +45,7 @@ export default function MerchantStatsPage() {
         const analytics = await analyticsRes.json();
         setData(analytics);
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [router]);
 
@@ -178,7 +178,7 @@ export default function MerchantStatsPage() {
         </div>
 
         {/* Charts Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
           
           <div className="sp-card sp-animate-d3" style={{ padding: '2rem' }}>
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -28,7 +28,7 @@ export default function FCMProvider({ children }: { children: React.ReactNode })
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({ fcmToken: tokenStr })
-          }).catch(err => console.error('FCM sync error', err));
+          }).catch(err => console.warn('FCM sync skipped:', err));
         }
       } catch (err) {
         console.warn('FCM initialisation failed', err);

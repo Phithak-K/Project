@@ -1,12 +1,8 @@
 /**
- * SEC-01 / SEC-03 FIX: HttpOnly Cookie Server Route
+ * Server-side session cookie route.
  *
  * This Next.js API Route handles the login response from the backend
- * and sets the JWT token as an HttpOnly, Secure cookie.
- *
- * By moving cookie-setting to the server, we prevent JavaScript from
- * reading the token, completely eliminating the XSS Session Hijacking
- * attack vector that existed when using `document.cookie` on the client.
+ * and sets cookies consistently for the active portal host.
  *
  * Usage: POST /api/auth/callback
  * Body: { access_token: string, user: { role: string, ... } }
@@ -39,7 +35,9 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ ok: true, redirectUrl });
 
     const cookieOptions = {
-      httpOnly: true,              // [SEC-01 FIX] Set to true so client-side JS CANNOT read it. We now use Next.js Proxy.
+      // The current client pages still send this token directly to the backend.
+      // Keep it readable until every authenticated request uses /api/proxy.
+      httpOnly: false,
       secure: !isLocalhost,         // ← HTTPS-only in production
       sameSite: 'lax' as const,
       maxAge: 86400,                // 24 hours
@@ -48,7 +46,7 @@ export async function POST(req: NextRequest) {
       domain: isLocalhost ? undefined : `.${baseDomain.split(':')[0]}`,
     };
 
-    // Set token as HttpOnly cookie (invisible to JavaScript)
+    // Keep token behavior consistent with the existing client-side API calls.
     response.cookies.set('token', access_token, cookieOptions);
 
     // role cookie does NOT need httpOnly — middleware reads it client-side too

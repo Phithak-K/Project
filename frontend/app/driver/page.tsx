@@ -12,6 +12,13 @@ export default function DriverDashboard() {
   const [stats, setStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [accepting, setAccepting] = useState<number | null>(null);
+  const [notice, setNotice] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
+
+  // แสดง alert แบบ inline (แทน native alert) แล้วซ่อนอัตโนมัติใน 4 วินาที
+  const showNotice = (type: 'error' | 'success', msg: string) => {
+    setNotice({ type, msg });
+    setTimeout(() => setNotice(null), 4000);
+  };
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -40,7 +47,7 @@ export default function DriverDashboard() {
       if (ordersRes.ok) setOrders(await ordersRes.json());
       if (statsRes.ok)  setStats(await statsRes.json());
       if (hotRes.ok)    setHotspots(await hotRes.json());
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setIsLoading(false); }
   }, [router]);
 
@@ -53,8 +60,8 @@ export default function DriverDashboard() {
         method: 'PATCH'
       });
       if (res.ok) router.push(`/driver/orders/${orderId}`);
-      else { const e = await res.json(); alert(e.message || 'ไม่สามารถรับงานได้'); fetchData(); }
-    } catch { alert('Network Error'); }
+      else { const e = await res.json(); showNotice('error', e.message || 'ไม่สามารถรับงานได้'); fetchData(); }
+    } catch { showNotice('error', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่'); }
     finally { setAccepting(null); }
   };
 
@@ -73,16 +80,25 @@ export default function DriverDashboard() {
           <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Fleet</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <Link href="/driver/radar">
-            <button className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-              <Navigation size={14} /> ดูเรดาร์
-            </button>
+          <Link href="/driver/radar" className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+            <Navigation size={14} /> ดูเรดาร์
           </Link>
-          <button onClick={handleLogout} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
+          <button onClick={handleLogout} aria-label="ออกจากระบบ" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
             <LogOut size={18} />
           </button>
         </div>
       </nav>
+
+      {/* Inline notification (แทน native alert) */}
+      {notice && (
+        <div
+          role="alert"
+          className={`sp-alert sp-alert-${notice.type} sp-animate`}
+          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, minWidth: '260px', maxWidth: '400px' }}
+        >
+          {notice.msg}
+        </div>
+      )}
 
       <main style={{ maxWidth: '520px', margin: '0 auto', padding: '2rem 1.25rem' }}>
 

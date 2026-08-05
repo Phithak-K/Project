@@ -166,7 +166,7 @@ export default function OrderMap({
           token = tokenData.token;
         }
       } catch (err) {
-        console.error("Failed to fetch client token for socket", err);
+        console.warn("Failed to fetch client token for socket", err);
       }
 
       const socketOptions: any = { transports: ['websocket', 'polling'], withCredentials: true };

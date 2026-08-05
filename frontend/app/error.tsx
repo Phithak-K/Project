@@ -13,7 +13,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // สามารถเพิ่มระบบเก็บ Log ข้อผิดพลาดไว้บน Sentry หรือระบบอื่นๆ ได้ที่นี่
-    console.error('App Error:', error);
+    console.warn('App error captured:', error);
   }, [error]);
 
   return (

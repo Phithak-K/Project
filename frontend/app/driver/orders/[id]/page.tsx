@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { use, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast';
 import OrderSkeleton from '@/components/OrderSkeleton';
 import ChatBox from '@/components/ChatBox';
 
-export default function DriverOrderWorkflowPage({ params }: { params: { id: string } }) {
+export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,8 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-  const orderId = params.id;
+  const { id: orderId } = use(params);
+
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -45,7 +46,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
       const res = await fetch(`/api/proxy/orders/${orderId}`);
       if (res.ok) setOrder(await res.json());
       else        router.push('/driver/radar');
-    } catch { console.error('Error fetching order'); }
+    } catch { console.warn('Error fetching order'); }
     finally { setLoading(false); }
   }, [orderId, router]);
 
@@ -63,7 +64,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
           token = tokenData.token;
         }
       } catch (err) {
-        console.error("Failed to fetch token for socket", err);
+        console.warn("Failed to fetch token for socket", err);
       }
 
       if (token) {
@@ -111,8 +112,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
         emitLocation(latitude, longitude, heading ?? undefined);
       },
       (err) => {
-        console.error('GPS Error:', err);
-        toast.error('ไม่สามารถเข้าถึง GPS ได้: ' + err.message);
+        const gpsMessages: Record<number, string> = {
+          1: 'กรุณาอนุญาตให้เว็บไซต์เข้าถึงตำแหน่ง หรือใช้โหมด Demo',
+          2: 'ไม่พบสัญญาณ GPS กรุณาลองในพื้นที่เปิดหรือใช้โหมด Demo',
+          3: 'GPS ใช้เวลาตอบสนองนานเกินไป กรุณาลองใหม่หรือใช้โหมด Demo',
+        };
+        toast.error(gpsMessages[err.code] || 'ไม่สามารถเข้าถึง GPS ได้ กรุณาใช้โหมด Demo');
         setGpsStatus('error');
         setIsTracking(false);
       },
@@ -195,11 +200,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: { id: stri
       });
       if (!res.ok) {
         const err = await res.json();
-        toast.error(err.message || 'Error updating status');
+        const message = Array.isArray(err.message) ? err.message[0] : err.message;
+        toast.error(message || 'อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่');
       } else {
         toast.success('อัปเดตสถานะสำเร็จ');
       }
-    } catch { toast.error('Network error'); }
+    } catch { toast.error('เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'); }
     finally { setUpdating(false); }
   };
 

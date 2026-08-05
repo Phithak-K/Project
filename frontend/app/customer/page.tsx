@@ -182,7 +182,7 @@ export default function CustomerDashboard() {
           setBalance(Number(userData.balance || 0));
         }
       } catch (err) {
-        console.error(err);
+        console.warn(err);
       } finally {
         setIsLoading(false);
       }

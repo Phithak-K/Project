@@ -98,8 +98,8 @@ export default function MerchantRegisterPage() {
             </div>
 
             <div className="sp-field">
-              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
-              <input id="merchant-username" type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น myshop_123 (ตัวอักษร ตัวเลข _)" />
+              <label className="sp-label">Username (สำหรับล็อกอิน)</label>
+              <input id="merchant-username" type="text" required minLength={4} maxLength={20} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น mystore_shop (a-z, 0-9, _)" autoComplete="username" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

@@ -50,7 +50,7 @@ export default function DriverRadarPage() {
       ]);
       if (ordRes.ok) setOrders(await ordRes.json());
       if (hotRes.ok) setHotspots(await hotRes.json());
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [API_URL, router]);
 

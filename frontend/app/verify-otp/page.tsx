@@ -118,6 +118,7 @@ function VerifyOtpContent() {
               id="otp"
               type="text"
               inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
               required
               value={otp}

@@ -12,6 +12,14 @@ export class RegisterDto {
   @IsOptional()
   name?: string;
 
+  // ✅ Username สำหรับล็อกอิน (a-z, 0-9, _ ยาว 4-20 ตัว)
+  @IsString()
+  @IsNotEmpty({ message: 'กรุณาตั้ง Username' })
+  @Matches(/^[a-zA-Z0-9_]{4,20}$/, {
+    message: 'Username ต้องเป็น a-z, 0-9 หรือ _ ยาว 4-20 ตัว',
+  })
+  username!: string;
+
   @IsString()
   @IsNotEmpty()
   firstName!: string;
@@ -24,12 +32,6 @@ export class RegisterDto {
   @IsNotEmpty()
   @MinLength(13)
   nationalId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(3)
-  @Matches(/^[a-zA-Z0-9_]+$/, { message: 'username ใช้ได้เฉพาะตัวอักษร ตัวเลข และ _ เท่านั้น' })
-  username!: string;
 
   @IsString()
   @IsOptional()

@@ -29,7 +29,8 @@ function buildRedirectUrl(
   protocol: string,
   isLocalhost: boolean,
 ): string {
-  const baseHost = isLocalhost ? 'localhost:3000' : 'swiftpath.com:3000'
+  const baseHost = process.env.NEXT_PUBLIC_BASE_DOMAIN
+    || (isLocalhost ? 'localhost:3000' : 'swiftpath.com')
   const newHost  = subdomain ? `${subdomain}.${baseHost}` : baseHost
   return `${protocol}://${newHost}${path}`
 }
@@ -168,7 +169,7 @@ function checkDriverAccess(ctx: MiddlewareContext): NextResponse | null {
 // MAIN MIDDLEWARE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const url      = request.nextUrl.clone()
   const hostname = request.headers.get('host') || ''
   const pathname = url.pathname
@@ -201,11 +202,20 @@ export function middleware(request: NextRequest) {
   const getRedirectUrl = (path: string, subdomain: string = '') =>
     buildRedirectUrl(path, subdomain, protocol, isLocalhost)
 
-  const isAuthPage     = pathname.startsWith('/login')
-                      || pathname.startsWith('/register')
-                      || pathname.startsWith('/verify-otp')
-                      || pathname.startsWith('/track')
-  const isPublicAppPage = (currentHost === 'app' && pathname === '/') || (!currentHost && pathname === '/')
+  const matchesPath = (basePath: string) =>
+    pathname === basePath || pathname.startsWith(`${basePath}/`)
+  const isAuthPage = ['/login', '/register'].some(matchesPath)
+  const isSharedPublicPage = [
+    '/track',
+    '/verify-otp',
+    '/forgot-password',
+    '/reset-password',
+  ].some(matchesPath)
+  const isGuidePage = matchesPath('/guide')
+  const isPublicAppPage = isSharedPublicPage
+    || isGuidePage
+    || (currentHost === 'app' && pathname === '/')
+    || (!currentHost && pathname === '/')
 
   // ── สร้าง Context Object ส่งให้ทุก Helper ──────────────────────────────────
   const ctx: MiddlewareContext = {
@@ -214,6 +224,26 @@ export function middleware(request: NextRequest) {
     isAuthPage, isPublicAppPage,
     getRedirectUrl,
     clearBadCookies,
+  }
+
+  // Canonicalize role-prefixed URLs on the root domain before auth checks.
+  // Links and old bookmarks such as /merchant/login must reach the matching
+  // subdomain, otherwise the unauthenticated guard sends them to app/login.
+  if (!currentHost || currentHost === 'localhost') {
+    const portalRoutes = [
+      { prefix: '/merchant', host: 'store' },
+      { prefix: '/driver', host: 'fleet' },
+      { prefix: '/customer', host: 'app' },
+    ]
+
+    for (const { prefix, host } of portalRoutes) {
+      if (matchesPath(prefix)) {
+        const cleanPath = pathname.slice(prefix.length) || '/'
+        return NextResponse.redirect(
+          new URL(getRedirectUrl(cleanPath, host), request.url),
+        )
+      }
+    }
   }
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -257,10 +287,10 @@ export function middleware(request: NextRequest) {
   // STEP 5: Root Domain Handler (localhost:3000 ตรงๆ)
   // ════════════════════════════════════════════════════════════════════════════
   if (!currentHost || currentHost === 'localhost') {
-    if (pathname === '/') return NextResponse.next() // Landing Page
+    if (pathname === '/' || isGuidePage) return NextResponse.next() // Landing + Guide
 
     // Auth + Orders บน Root → เด้งไป app subdomain
-    if (isAuthPage || pathname.startsWith('/orders')) {
+    if (isAuthPage || isSharedPublicPage || pathname.startsWith('/orders')) {
       return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
     }
 
@@ -292,8 +322,7 @@ export function middleware(request: NextRequest) {
   // ════════════════════════════════════════════════════════════════════════════
   // STEP 7: Shared Root Pages (ห้าม Rewrite — เพราะไม่มีโฟลเดอร์ /customer/verify-otp)
   // ════════════════════════════════════════════════════════════════════════════
-  const sharedRootPaths = ['/verify-otp', '/track']
-  if (sharedRootPaths.some(p => pathname.startsWith(p))) {
+  if (isSharedPublicPage) {
     return NextResponse.next()
   }
 

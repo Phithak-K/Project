@@ -43,7 +43,7 @@ export default function AdminDashboard() {
         merchants: merRes.ok ? await merRes.json() : [],
         drivers: drvRes.ok ? await drvRes.json() : [],
       });
-    } catch (e) { console.error(e); }
+    } catch (e) { console.warn(e); }
     finally { setLoading(false); setRefreshing(false); }
   }, [API_URL, router]);
 

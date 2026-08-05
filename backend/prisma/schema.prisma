@@ -39,6 +39,7 @@ enum TransactionType {
 model Customer {
   id               Int      @id @default(autoincrement())
   email            String   @unique
+  username         String?  @unique // ✅ ใช้ล็อกอินได้ (คู่กับอีเมล)
   name             String?
   firstName        String?
   lastName         String?
@@ -67,6 +68,7 @@ model Customer {
 model Merchant {
   id               Int      @id @default(autoincrement())
   email            String   @unique
+  username         String?  @unique // ✅ ใช้ล็อกอินได้ (คู่กับอีเมล)
   name             String?
   firstName        String?
   lastName         String?
@@ -103,6 +105,7 @@ model Merchant {
 model Driver {
   id               Int      @id @default(autoincrement())
   email            String   @unique
+  username         String?  @unique // ✅ ใช้ล็อกอินได้ (คู่กับอีเมล)
   name             String?
   firstName        String?
   lastName         String?

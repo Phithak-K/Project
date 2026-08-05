@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
@@ -13,7 +13,7 @@ import ChatBox from '@/components/ChatBox';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
-export default function MerchantOrderDetailPage({ params }: { params: { id: string } }) {
+export default function MerchantOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-  const orderId = params.id;
+  const { id: orderId } = use(params);
 
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
@@ -38,7 +38,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
       const res = await fetch(`/api/proxy/orders/${orderId}`);
       if (res.ok) setOrder(await res.json());
       else        router.push('/merchant');
-    } catch (err) { console.error(err); }
+    } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [orderId, router]);
 
@@ -119,7 +119,7 @@ export default function MerchantOrderDetailPage({ params }: { params: { id: stri
       document.body.removeChild(a);
       toast.success('ดาวน์โหลดสำเร็จ', { id: 'pdf' });
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toast.error('ไม่สามารถดาวน์โหลดไฟล์ได้', { id: 'pdf' });
     }
   };

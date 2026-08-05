@@ -30,7 +30,7 @@ export default function DriverDashboardPage() {
           setStats(await res.json());
         }
       } catch (err) {
-        console.error(err);
+        console.warn(err);
       } finally {
         setLoading(false);
       }

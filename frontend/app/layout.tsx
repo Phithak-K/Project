@@ -1,23 +1,15 @@
 import type { Metadata } from "next";
-import { Fraunces, Onest } from "next/font/google";
+import { Kanit } from "next/font/google";
 import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import FCMProvider from '../components/FCMProvider';
 import { Toaster } from 'react-hot-toast';
 
-// Editorial display font — dramatic contrast, logistics gravitas
-const fraunces = Fraunces({
-  variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["300", "700", "900"],
-  style: ["normal", "italic"],
-});
-
-// Modern humanist body font — legible, purposeful
-const onest = Onest({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const kanit = Kanit({
+  variable: "--font-kanit",
+  subsets: ["thai", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -35,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="th"
-      className={`${fraunces.variable} ${onest.variable} h-full antialiased`}
+      className={`${kanit.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-body" suppressHydrationWarning>
         <GoogleOAuthProvider clientId={googleClientId}>

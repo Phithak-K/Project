@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { handleLogout as clearSession } from '@/lib/auth';
 import {
   ArrowLeft, Package, User, Phone, MapPin, Plus, Trash2,
   DollarSign, Shield, CloudRain, CheckCircle, BookOpen, ChevronDown
@@ -43,25 +44,17 @@ export default function CreateOrderPage() {
     hasInsurance: false,
   });
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-  const getToken = () => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return null;
-  };
-
   const fetchCatalog = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/products/my`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('/api/proxy/products/my');
+      if (res.status === 401) {
+        await clearSession();
+        window.location.replace('/login');
+        return;
+      }
       if (res.ok) setProducts(await res.json());
     } catch { /* catalog is optional */ }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
 
@@ -102,7 +95,7 @@ export default function CreateOrderPage() {
     if (!formData.city) return alert('กรุณาระบุเมือง/จังหวัดก่อน');
     setWeatherChecking(true);
     try {
-      const res = await fetch(`${API_URL}/weather/${formData.city.trim()}`);
+      const res = await fetch(`/api/proxy/weather/${encodeURIComponent(formData.city.trim())}`);
       const data = await res.json();
       if (data.weather?.[0]) {
         const main = data.weather[0].main;
@@ -122,17 +115,15 @@ export default function CreateOrderPage() {
   // ── Submit ──
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = getToken();
-    if (!token) { alert('เซสชันหมดอายุ'); router.push('/login'); return; }
 
     const invalidItems = items.filter(i => !i.productName.trim() || i.unitPrice <= 0);
     if (invalidItems.length > 0) { alert('กรุณากรอกชื่อสินค้าและราคาให้ครบทุกรายการ'); return; }
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/orders`, {
+      const res = await fetch('/api/proxy/orders', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: items.map(i => ({
             productName: i.productName,
@@ -151,7 +142,10 @@ export default function CreateOrderPage() {
         })
       });
 
-      if (res.ok) {
+      if (res.status === 401) {
+        await clearSession();
+        window.location.replace('/login');
+      } else if (res.ok) {
         router.push('/');
       } else {
         const err = await res.json();

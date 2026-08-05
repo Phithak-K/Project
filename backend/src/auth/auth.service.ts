@@ -9,6 +9,7 @@ import { OAuth2Client } from 'google-auth-library';
 import * as admin from 'firebase-admin';
 import * as crypto from 'crypto';
 import * as path from 'path';
+import { existsSync } from 'fs';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
@@ -41,11 +42,17 @@ export class AuthService implements OnModuleInit {
 
   onModuleInit() {
     if (admin.apps.length === 0) {
+      const credentialPath = path.join(process.cwd(), 'firebase-adminsdk.json');
+      if (!existsSync(credentialPath)) {
+        console.warn(
+          'Firebase Admin is not configured; notifications use local/demo mode.',
+        );
+        return;
+      }
       try {
         admin.initializeApp({
-          credential: admin.credential.cert(
-            path.join(process.cwd(), 'firebase-adminsdk.json'),
-          ),
+          credential: admin.credential.cert(credentialPath),
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
         });
         console.log('🔥 Firebase Admin Initialized');
       } catch (error: any) {
@@ -99,17 +106,20 @@ export class AuthService implements OnModuleInit {
         `เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
       );
 
+    // ✅ เช็ก Username ซ้ำ
+    const usernameExists = await (model as any).findUnique({
+      where: { username: dto.username },
+    });
+    if (usernameExists)
+      throw new BadRequestException(
+        `Username นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
+      );
+
     if (roleStr === 'Merchant' && !dto.storeName) {
       throw new BadRequestException(
         'กรุณาระบุชื่อร้านค้าสำหรับการสมัคร Merchant',
       );
     }
-
-    const usernameExists = await (model as any).findUnique({
-      where: { username: dto.username },
-    });
-    if (usernameExists)
-      throw new BadRequestException(`Username "${dto.username}" ถูกใช้งานแล้ว กรุณาเลือก Username ใหม่`);
 
     const otp = crypto.randomInt(100000, 1000000).toString();
     const expiry = new Date();
@@ -122,12 +132,12 @@ export class AuthService implements OnModuleInit {
       user = await (model as any).create({
         data: {
           email: dto.email,
+          username: dto.username,
           password: hashedPassword,
           name: fullName,
           firstName: dto.firstName,
           lastName: dto.lastName,
           nationalId: dto.nationalId,
-          username: dto.username,
           phone: dto.phone,
           otpCode: hashOtp(otp), // [M-01] เซฟแบบ Hash
           otpExpires: expiry,
@@ -332,7 +342,6 @@ export class AuthService implements OnModuleInit {
     }
 
     const model = this.getModel(roleStr);
-
     // รองรับ Login ทั้ง email และ username
     let user: any = null;
     if (loginDto.email) {

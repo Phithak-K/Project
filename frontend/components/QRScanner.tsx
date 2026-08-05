@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { FiCheckCircle, FiXCircle, FiLoader } from 'react-icons/fi';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 interface QRScannerProps {
   onScanSuccess: (decodedText: string) => void;
@@ -28,10 +28,10 @@ export default function QRScanner({ onScanSuccess, onScanFailure }: QRScannerPro
       scannerRef.current.render(
         async (decodedText) => {
           if (isProcessing || scanResult) return; // Prevent double trigger
-          
+
           setIsProcessing(true);
           setScanResult(decodedText);
-          
+
           try {
             await onScanSuccess(decodedText);
           } finally {
@@ -50,48 +50,54 @@ export default function QRScanner({ onScanSuccess, onScanFailure }: QRScannerPro
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(error => console.error("Failed to clear scanner.", error));
+        scannerRef.current.clear().catch(error => console.warn("Scanner cleanup skipped.", error));
         scannerRef.current = null;
       }
     };
   }, [isScanning, isProcessing, scanResult, onScanSuccess, onScanFailure]);
 
   return (
-    <div className="w-full">
+    <div style={{ width: '100%' }}>
       {!isScanning && !scanResult && !isProcessing && (
-        <button 
+        <button
           onClick={() => setIsScanning(true)}
-          className="w-full bg-slate-800 text-white font-bold py-4 rounded-xl shadow-lg border border-slate-700 hover:bg-slate-700 transition-colors"
+          className="sp-btn-primary sp-btn-full"
+          style={{ padding: '1rem' }}
         >
-          📷 เปิดกล้องสแกน QR รับเงิน
+          เปิดกล้องสแกน QR รับเงิน
         </button>
       )}
 
       {isScanning && !isProcessing && (
-        <div className="bg-white rounded-2xl overflow-hidden shadow-xl border border-slate-200 animate-fade-in">
-          <div className="p-3 bg-slate-800 text-white flex justify-between items-center">
-            <span className="font-bold">เล็งไปที่ QR Code ของลูกค้า</span>
-            <button onClick={() => {
-               if (scannerRef.current) scannerRef.current.clear();
-               setIsScanning(false);
-            }} className="text-rose-400 hover:text-rose-300">
-               <FiXCircle size={24} />
+        <div className="sp-card sp-animate" style={{ overflow: 'hidden', padding: 0 }}>
+          <div style={{ padding: '0.75rem 1rem', background: 'var(--n-800)', color: 'var(--n-50)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontWeight: 700 }}>เล็งไปที่ QR Code ของลูกค้า</span>
+            <button
+              type="button"
+              aria-label="ปิดกล้องสแกน"
+              onClick={() => {
+                if (scannerRef.current) scannerRef.current.clear();
+                setIsScanning(false);
+              }}
+              style={{ background: 'none', border: 'none', color: 'var(--danger-500, #f43f5e)', cursor: 'pointer' }}
+            >
+               <XCircle size={24} />
             </button>
           </div>
-          <div id="qr-reader" className="w-full"></div>
+          <div id="qr-reader" style={{ width: '100%' }}></div>
         </div>
       )}
 
       {isProcessing && (
-        <div className="w-full bg-indigo-50 text-indigo-700 font-bold py-4 rounded-xl shadow-sm border border-indigo-200 flex items-center justify-center gap-2 animate-pulse">
-          <FiLoader size={24} className="animate-spin" />
-          กำลังตรวจสอบช้อมูล...
+        <div className="sp-alert sp-animate" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <span className="sp-spinner" />
+          กำลังตรวจสอบข้อมูล...
         </div>
       )}
 
       {scanResult && !isProcessing && (
-        <div className="w-full bg-emerald-50 text-emerald-700 font-bold py-4 rounded-xl shadow-sm border border-emerald-200 flex items-center justify-center gap-2">
-          <FiCheckCircle size={24} />
+        <div className="sp-alert sp-alert-success sp-animate" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+          <CheckCircle size={24} />
           ตรวจสอบข้อมูลสำเร็จ!
         </div>
       )}

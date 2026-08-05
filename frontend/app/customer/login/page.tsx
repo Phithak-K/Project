@@ -46,7 +46,7 @@ export default function CustomerLoginPage() {
         }
       }
     } catch (error) {
-      console.error('Catch Error:', error);
+      console.warn('Login request failed:', error);
       setErrorMsg('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
@@ -120,12 +120,12 @@ export default function CustomerLoginPage() {
 
           <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="sp-field">
-              <label className="sp-label">อีเมลผู้ใช้งาน</label>
+              <label className="sp-label">อีเมล หรือ Username</label>
               <input
-                type="email" required value={email}
+                type="text" required value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="sp-input"
-                placeholder="customer@example.com"
+                placeholder="อีเมล หรือ Username"
               />
             </div>
             <div className="sp-field">

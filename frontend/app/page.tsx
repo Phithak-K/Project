@@ -1,129 +1,197 @@
 'use client';
 
 import Link from 'next/link';
-import { Truck, Store, User, ArrowRight, Shield, Zap, Globe } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  CheckCircle2,
+  CloudSun,
+  MapPinned,
+  PackageCheck,
+  Radar,
+  ShieldCheck,
+  Store,
+  Truck,
+  UserRound,
+  WalletCards,
+} from 'lucide-react';
+
+const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+
+const portals = [
+  {
+    label: 'สำหรับลูกค้า',
+    title: 'ส่งง่าย ติดตามได้ทุกจังหวะ',
+    description: 'สร้างรายการจัดส่ง ตรวจสอบสถานะแบบเรียลไทม์ และจัดการค่าใช้จ่ายในที่เดียว',
+    href: '/login',
+    icon: UserRound,
+    action: 'เข้าสู่ระบบลูกค้า',
+    tone: 'customer',
+  },
+  {
+    label: 'สำหรับร้านค้า',
+    title: 'จัดการออเดอร์ให้ธุรกิจเดินไว',
+    description: 'รวมออเดอร์ สินค้า คนขับ และยอดขายไว้บนแดชบอร์ดที่เห็นภาพทันที',
+    href: `//store.${baseDomain}/login`,
+    icon: Store,
+    action: 'เปิด Store Portal',
+    tone: 'merchant',
+  },
+  {
+    label: 'สำหรับคนขับ',
+    title: 'เห็นงานใกล้ตัว รับงานได้ทันที',
+    description: 'ค้นหางานผ่าน Fleet Radar พร้อมเส้นทาง สถานะงาน และรายได้แบบเรียลไทม์',
+    href: `//fleet.${baseDomain}/login`,
+    icon: Truck,
+    action: 'เปิด Fleet Portal',
+    tone: 'driver',
+  },
+];
 
 export default function SwiftPathLanding() {
   return (
-    <div className="sp-page" style={{ background: 'var(--n-50)' }}>
-      {/* ── Navigation ── */}
-      <nav className="sp-nav" style={{ borderBottom: 'none', background: 'transparent' }}>
-        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-          <Link href="/login" className="sp-link-muted" style={{ fontSize: '0.875rem' }}>ทีมพัฒนาระบบ</Link>
-          <Link href="/login">
-            <button className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}>Log In</button>
+    <div className="landing-shell">
+      <nav className="landing-nav">
+        <Link href="/" className="landing-brand" aria-label="SwiftPath หน้าแรก">
+          <span className="landing-brand-mark"><PackageCheck size={19} /></span>
+          <span>Swift<strong>Path</strong></span>
+        </Link>
+        <div className="landing-nav-actions">
+          <Link href="/guide" className="landing-nav-link">วิธีใช้งาน</Link>
+          <Link href="/track" className="landing-nav-link">ติดตามพัสดุ</Link>
+          <Link href="/login" className="landing-nav-cta">
+            เข้าสู่ระบบ <ArrowUpRight size={15} />
           </Link>
         </div>
       </nav>
 
-      {/* ── Hero Unit ── */}
       <main>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '6rem 1.5rem 4rem' }}>
-          <div className="sp-animate" style={{ maxWidth: '800px' }}>
-            <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>Elite Logistics Network</span>
-            <h1 className="sp-font-display" style={{ fontSize: 'clamp(3rem, 10vw, 6rem)', lineHeight: 0.9, fontWeight: 900, letterSpacing: '-0.04em' }}>
-              FAST. <br />
-              <span style={{ color: 'var(--brand-500)' }}>PRECISE.</span> <br />
-              POWERFUL.
+        <section className="landing-hero">
+          <div className="landing-glow landing-glow-one" />
+          <div className="landing-glow landing-glow-two" />
+
+          <div className="landing-hero-copy sp-animate">
+            <div className="landing-kicker">
+              <span className="landing-live-dot" />
+              Logistics operating system
+            </div>
+            <h1>
+              ส่งทุกออเดอร์<br />
+              <span>ไปถึงอย่างมั่นใจ</span>
             </h1>
-            <p style={{ marginTop: '2rem', fontSize: '1.25rem', color: 'var(--n-600)', maxWidth: '500px', lineHeight: 1.5 }}>
-              Precision logistics for the modern world. One platform, three portals, total control.
+            <p>
+              แพลตฟอร์มขนส่งที่เชื่อมลูกค้า ร้านค้า และคนขับไว้ด้วยกัน
+              ตั้งแต่สร้างออเดอร์จนถึงส่งสำเร็จ—รวดเร็ว โปร่งใส และติดตามได้
             </p>
+            <div className="landing-hero-actions">
+              <a href={`//store.${baseDomain}/register`} className="landing-primary-action">
+                เริ่มต้นสำหรับร้านค้า <ArrowRight size={18} />
+              </a>
+              <Link href="/track" className="landing-secondary-action">
+                <Radar size={17} /> ติดตามพัสดุ
+              </Link>
+            </div>
+            <div className="landing-proof-row">
+              <span><CheckCircle2 size={15} /> ติดตามแบบ Real-time</span>
+              <span><CheckCircle2 size={15} /> แยก Portal ตามบทบาท</span>
+              <span><CheckCircle2 size={15} /> รองรับทุกอุปกรณ์</span>
+            </div>
           </div>
 
-          {/* ── Role Selection Unit ── */}
-          <div className="sp-stagger" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginTop: '5rem' }}>
-            
-            {/* Customer Card */}
-            <Link href="/login" style={{ textDecoration: 'none' }}>
-              <div className="sp-card role-card" style={{ padding: '3rem', cursor: 'pointer', transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                <div style={{ background: 'var(--n-900)', color: '#fff', width: '56px', height: '56px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
-                  <User size={28} />
-                </div>
-                <h3 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.75rem', color: 'var(--n-900)' }}>Customer</h3>
-                <p style={{ color: 'var(--n-500)', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.6 }}>ส่งพัสดุส่วนตัว ติดตามสถานะแบบ Real-time และชำระเงินง่ายผ่าน Wallet.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--brand-600)', fontWeight: 700, fontSize: '0.875rem' }}>
-                  Get Started <ArrowRight size={16} />
-                </div>
+          <div className="landing-visual sp-animate-d2" aria-label="ตัวอย่างภาพรวมระบบขนส่ง">
+            <div className="landing-visual-topbar">
+              <span><i /> Live operations</span>
+              <span>Today, 10:42</span>
+            </div>
+            <div className="landing-visual-map">
+              <div className="route-line route-line-one" />
+              <div className="route-line route-line-two" />
+              <span className="map-point map-point-a"><Store size={15} /></span>
+              <span className="map-point map-point-b"><Truck size={15} /></span>
+              <span className="map-point map-point-c"><MapPinned size={15} /></span>
+              <div className="delivery-pill">
+                <span className="delivery-icon"><Truck size={17} /></span>
+                <span><small>กำลังจัดส่ง</small><strong>SP-2048-TH</strong></span>
+                <em>12 นาที</em>
               </div>
-            </Link>
-
-            {/* Merchant Card */}
-            <Link href="/merchant/login" style={{ textDecoration: 'none' }}>
-              <div className="sp-card role-card" style={{ padding: '3rem', border: '1.5px solid var(--brand-200)', cursor: 'pointer' }}>
-                 <div style={{ background: 'var(--brand-500)', color: '#fff', width: '56px', height: '56px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
-                  <Store size={28} />
-                </div>
-                <h3 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.75rem', color: 'var(--n-900)' }}>Partner Store</h3>
-                <p style={{ color: 'var(--n-500)', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.6 }}>แดชบอร์ดจัดการคำสั่งซื้อ สถิติยอดขาย และระบบเรียกคนขับอัตโนมัติ.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--brand-600)', fontWeight: 700, fontSize: '0.875rem' }}>
-                  Join Network <ArrowRight size={16} />
-                </div>
-              </div>
-            </Link>
-
-            {/* Driver Card */}
-            <Link href="/driver/login" style={{ textDecoration: 'none' }}>
-              <div className="sp-card role-card sp-card-dark" style={{ padding: '3rem', cursor: 'pointer' }}>
-                 <div style={{ background: 'var(--n-50)', color: 'var(--n-900)', width: '56px', height: '56px', borderRadius: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2rem' }}>
-                  <Truck size={28} />
-                </div>
-                <h3 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginBottom: '0.75rem', color: 'var(--n-50)' }}>Fleet Driver</h3>
-                <p style={{ color: 'var(--n-500)', fontSize: '0.95rem', marginBottom: '2rem', lineHeight: 1.6 }}>รับงานส่งของอิสระ ถอนเงินไว พร้อมโบนัสพิเศษช่วงสภาพอากาศเปลี่ยนแปลง.</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--brand-400)', fontWeight: 700, fontSize: '0.875rem' }}>
-                  Earn Now <ArrowRight size={16} />
-                </div>
-              </div>
-            </Link>
-
+            </div>
+            <div className="landing-visual-stats">
+              <div><span>ส่งสำเร็จ</span><strong>98.7%</strong><small>+4.2%</small></div>
+              <div><span>งานวันนี้</span><strong>248</strong><small>Live</small></div>
+              <div><span>เวลาเฉลี่ย</span><strong>34m</strong><small>-8m</small></div>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* ── Feature Highlight ── */}
-        <section style={{ borderTop: '1px solid var(--n-200)', marginTop: '4rem', padding: '6rem 0' }}>
-           <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '4rem' }}>
-             <div>
-               <Shield size={32} style={{ color: 'oklch(65% 0.12 270)', marginBottom: '1.5rem' }} />
-               <h4 style={{ fontWeight: 900, marginBottom: '1rem' }}>Enterprise Security</h4>
-               <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', lineHeight: 1.6 }}>ระบบ Transaction แบบ Atomic Lock และประกันภัยสินค้าทุกรายการเพื่อความสบายใจสูงสุด.</p>
-             </div>
-             <div>
-               <Zap size={32} style={{ color: 'var(--brand-500)', marginBottom: '1.5rem' }} />
-               <h4 style={{ fontWeight: 900, marginBottom: '1rem' }}>Smart Surge</h4>
-               <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', lineHeight: 1.6 }}>คำนวณราคาตามสภาพอากาศและระยะทางแบบ Real-time เพื่อรายได้ที่เป็นธรรมของคนขับ.</p>
-             </div>
-             <div>
-               <Globe size={32} style={{ color: 'var(--info-text)', marginBottom: '1.5rem' }} />
-               <h4 style={{ fontWeight: 900, marginBottom: '1rem' }}>Fleet Radar</h4>
-               <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', lineHeight: 1.6 }}>มองเห็นออเดอร์ในพื้นที่ผ่านระบบเรดาร์ และ Chat คุยกับร้านค้าได้ทันทีผ่าน Socket.io.</p>
-             </div>
-           </div>
+        <section className="landing-portals">
+          <div className="landing-section-heading">
+            <div>
+              <span>One network, three experiences</span>
+              <h2>พื้นที่ทำงานที่ออกแบบมาเพื่อคุณ</h2>
+            </div>
+            <p>แต่ละบทบาทเห็นเฉพาะเครื่องมือที่จำเป็น จึงเริ่มงานได้เร็วและใช้งานได้โดยไม่ซับซ้อน</p>
+          </div>
+
+          <div className="landing-portal-grid sp-stagger">
+            {portals.map(({ label, title, description, href, icon: Icon, action, tone }) => (
+              <a key={tone} href={href} className={`landing-portal-card landing-portal-${tone}`}>
+                <div className="landing-portal-head">
+                  <span className="landing-portal-icon"><Icon size={22} /></span>
+                  <span className="landing-portal-label">{label}</span>
+                </div>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <span className="landing-portal-action">{action} <ArrowUpRight size={16} /></span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section className="landing-capabilities">
+          <div className="landing-capability-copy">
+            <span className="landing-section-tag">Built for daily operations</span>
+            <h2>ข้อมูลที่ต้องใช้<br />อยู่ตรงที่ต้องเห็น</h2>
+            <p>ลดงานซ้ำและการสลับหน้าจอ ด้วย workflow ที่พาทุกฝ่ายไปในทิศทางเดียวกัน</p>
+            <Link href="/register">สร้างบัญชีลูกค้า <ArrowRight size={16} /></Link>
+          </div>
+          <div className="landing-feature-list">
+            {[
+              [BarChart3, 'แดชบอร์ดธุรกิจ', 'ดูยอดขาย สถานะออเดอร์ และประสิทธิภาพการจัดส่งแบบสรุป'],
+              [Radar, 'Fleet Radar', 'กระจายงานให้คนขับและเห็นงานที่พร้อมรับในพื้นที่ได้ทันที'],
+              [CloudSun, 'Smart weather pricing', 'คำนวณผลกระทบจากสภาพอากาศเพื่อราคาและ ETA ที่แม่นยำขึ้น'],
+              [WalletCards, 'Wallet & payment', 'จัดการยอดคงเหลือและประวัติรายการทางการเงินอย่างเป็นระบบ'],
+            ].map(([Icon, title, description]) => {
+              const FeatureIcon = Icon as typeof BarChart3;
+              return (
+                <div className="landing-feature" key={title as string}>
+                  <span><FeatureIcon size={20} /></span>
+                  <div><h3>{title as string}</h3><p>{description as string}</p></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="landing-cta">
+          <div>
+            <span><ShieldCheck size={17} /> SwiftPath Network</span>
+            <h2>พร้อมเปลี่ยนทุกการจัดส่ง<br />ให้จัดการง่ายขึ้นหรือยัง?</h2>
+          </div>
+          <a href={`//store.${baseDomain}/register`}>
+            สมัครเป็นร้านค้า <ArrowRight size={18} />
+          </a>
         </section>
       </main>
 
-      {/* ── Footer ── */}
-      <footer style={{ background: 'var(--n-900)', color: 'var(--n-500)', padding: '4rem 1.5rem' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
-          <div>
-            <span className="sp-logo" style={{ color: '#fff' }}>Swift<span className="sp-logo-accent">Path</span></span>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}> 2026 SwiftPath Logistics. All rights reserved.</p>
-          </div>
-          <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.75rem' }}>
-             <Link href="#" style={{ color: 'white', textDecoration: 'none' }}>Privacy Policy</Link>
-             <Link href="#" style={{ color: 'white', textDecoration: 'none' }}>Terms of Service</Link>
-             <Link href="#" style={{ color: 'white', textDecoration: 'none' }}>API Document</Link>
-          </div>
+      <footer className="landing-footer">
+        <div className="landing-brand">
+          <span className="landing-brand-mark"><PackageCheck size={18} /></span>
+          <span>Swift<strong>Path</strong></span>
         </div>
+        <p><Link href="/guide">คู่มือเริ่มต้นใช้งาน</Link> · ระบบจัดการขนส่งสำหรับธุรกิจและชีวิตประจำวัน</p>
+        <span>© 2026 SwiftPath Logistics</span>
       </footer>
-
-      <style jsx>{`
-        .role-card:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 40px 80px rgba(0,0,0,0.1) !important;
-          border-color: var(--brand-500) !important;
-        }
-      `}</style>
     </div>
   );
 }

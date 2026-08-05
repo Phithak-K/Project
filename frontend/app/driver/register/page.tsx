@@ -6,7 +6,7 @@ import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function DriverRegisterPage() {
   const [form, setForm] = useState({
-    firstName: '', lastName: '', nationalId: '', driverLicense: '', username: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
+    firstName: '', lastName: '', nationalId: '', username: '', driverLicense: '', phone: '', email: '', password: '', confirmPassword: '', vehiclePlate: '', vehicleType: ''
   });
   const [showPw, setShowPw] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,8 +28,7 @@ export default function DriverRegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName: form.firstName, lastName: form.lastName,
-          nationalId: form.nationalId, driverLicense: form.driverLicense,
-          username: form.username,
+          nationalId: form.nationalId, username: form.username, driverLicense: form.driverLicense,
           phone: form.phone, email: form.email,
           password: form.password, role: 'Driver',
           vehiclePlate: form.vehiclePlate, vehicleType: form.vehicleType
@@ -90,8 +89,8 @@ export default function DriverRegisterPage() {
             </div>
 
             <div className="sp-field">
-              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
-              <input id="driver-username" type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น driver_thai_01 (ตัวอักษร ตัวเลข _)" />
+              <label className="sp-label">Username (สำหรับล็อกอิน)</label>
+              <input id="driver-username" type="text" required minLength={4} maxLength={20} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น driver_somchai (a-z, 0-9, _)" autoComplete="username" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>

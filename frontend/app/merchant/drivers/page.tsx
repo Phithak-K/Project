@@ -32,7 +32,7 @@ export default function DriversPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) setDrivers(await res.json());
-    } catch (e) { console.error(e); }
+    } catch (e) { console.warn(e); }
     finally { setLoading(false); }
   }, [API_URL, router]);
 

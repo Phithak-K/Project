@@ -98,7 +98,7 @@ export default function CustomerWalletPage() {
         const data = await res.json();
         setBalance(Number(data.balance || 0));
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.warn(e); }
     finally { setPageLoading(false); }
   }, [API_URL, router]);
 

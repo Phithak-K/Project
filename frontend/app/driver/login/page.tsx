@@ -60,8 +60,8 @@ export default function DriverLoginPage() {
 
           <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div className="sp-field">
-              <label className="sp-label">อีเมล</label>
-              <input id="driver-email" type="email" required value={email} onChange={e => setEmail(e.target.value)} className="sp-input" placeholder="driver@example.com" />
+              <label className="sp-label">อีเมล หรือ Username</label>
+              <input id="driver-email" type="text" required value={email} onChange={e => setEmail(e.target.value)} className="sp-input" placeholder="อีเมล หรือ Username" />
             </div>
             <div className="sp-field">
               <label className="sp-label">รหัสผ่าน</label>

@@ -46,7 +46,7 @@ export default function DriverDashboard() {
         setAvailableOrders(data);
       }
     } catch (error) {
-      console.error("Fetch jobs error:", error);
+      console.warn("Fetch jobs error:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);

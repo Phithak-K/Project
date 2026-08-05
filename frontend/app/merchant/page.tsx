@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Package, Plus, Truck, CheckCircle, Clock, LogOut, ChevronRight, RefreshCcw, Shield, UserCheck, X, BookOpen, Users } from 'lucide-react';
+import { handleLogout as clearSession } from '@/lib/auth';
 
 export default function MerchantDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -12,26 +13,27 @@ export default function MerchantDashboard() {
   const [assignModal, setAssignModal] = useState<{ orderId: number; trackingNumber: string } | null>(null);
   const [myDrivers, setMyDrivers] = useState<any[]>([]);
   const [assignLoading, setAssignLoading] = useState(false);
+  const [notice, setNotice] = useState<{ type: 'error' | 'success'; msg: string } | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return null;
+  // แสดง alert แบบ inline (แทน native alert) แล้วซ่อนอัตโนมัติใน 4 วินาที
+  const showNotice = (type: 'error' | 'success', msg: string) => {
+    setNotice({ type, msg });
+    setTimeout(() => setNotice(null), 4000);
   };
 
   const fetchData = useCallback(async () => {
-    const role = getCookie('role');
-    if (!role || role !== 'Merchant') { window.location.href = '/login'; return; }
     setIsRefreshing(true);
     try {
       const [statsRes, ordersRes, driversRes] = await Promise.all([
-        fetch('/api/proxy/orders/stats'),
-        fetch('/api/proxy/orders/my-orders'),
-        fetch('/api/proxy/users/my-drivers'),
+        fetch('/api/proxy/orders/stats', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/proxy/orders/my-orders', { signal: AbortSignal.timeout(10000) }),
+        fetch('/api/proxy/users/my-drivers', { signal: AbortSignal.timeout(10000) }),
       ]);
+      if ([statsRes, ordersRes, driversRes].some(res => res.status === 401)) {
+        await clearSession();
+        window.location.replace('/login');
+        return;
+      }
       if (statsRes.ok && ordersRes.ok) {
         const s = await statsRes.json();
         setStats({ pending: s.pendingOrders || 0, shipping: s.shippingOrders || 0, delivered: s.deliveredOrders || 0, todaySales: s.todaySales || 0 });
@@ -40,16 +42,18 @@ export default function MerchantDashboard() {
         setOrders(oData.data || oData || []);
       }
       if (driversRes.ok) setMyDrivers(await driversRes.json());
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.warn(err);
+      showNotice('error', 'ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่');
+    }
     finally { setIsLoading(false); setIsRefreshing(false); }
-  }, [API_URL]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleLogout = async () => {
-    const { handleLogout: clearAuth } = await import('@/lib/auth');
-    await clearAuth();
-    window.location.href = '/login';
+    await clearSession();
+    window.location.replace('/login');
   };
 
   if (isLoading) return (
@@ -73,9 +77,9 @@ export default function MerchantDashboard() {
         fetchData();
       } else {
         const err = await res.json();
-        alert(err.message || 'มอบหมายไม่สำเร็จ');
+        showNotice('error', err.message || 'มอบหมายไม่สำเร็จ');
       }
-    } catch { alert('Network Error'); }
+    } catch { showNotice('error', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่'); }
     finally { setAssignLoading(false); }
   };
 
@@ -87,14 +91,25 @@ export default function MerchantDashboard() {
           <span className="sp-caps" style={{ color: 'var(--n-400)', marginLeft: '0.5rem' }}>Merchant</span>
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button id="btn-refresh" onClick={fetchData} title="รีเฟรช" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', display: 'flex' }}>
+          <button id="btn-refresh" onClick={fetchData} title="รีเฟรช" aria-label="รีเฟรชข้อมูล" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', display: 'flex' }}>
             <RefreshCcw size={17} className={isRefreshing ? 'sp-spinner' : ''} />
           </button>
-          <button id="btn-logout" onClick={handleLogout} className="sp-btn-danger">
+          <button id="btn-logout" onClick={handleLogout} aria-label="ออกจากระบบ" className="sp-btn-danger">
             <LogOut size={16} /> <span style={{ display: 'none' }}>ออกจากระบบ</span>
           </button>
         </div>
       </nav>
+
+      {/* Inline notification (แทน native alert) */}
+      {notice && (
+        <div
+          role="alert"
+          className={`sp-alert sp-alert-${notice.type} sp-animate`}
+          style={{ position: 'fixed', top: '1rem', right: '1rem', zIndex: 9999, minWidth: '260px', maxWidth: '400px' }}
+        >
+          {notice.msg}
+        </div>
+      )}
 
       <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
 
@@ -198,7 +213,7 @@ export default function MerchantDashboard() {
                             <UserCheck size={12} /> มอบหมายคนขับ
                           </button>
                         )}
-                        <Link href={`/order/${order.id}`}>
+                        <Link href={`/orders/${order.id}`}>
                           <ChevronRight size={16} style={{ color: 'var(--n-300)' }} />
                         </Link>
                       </td>

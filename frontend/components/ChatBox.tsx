@@ -48,7 +48,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
           token = tokenData.token;
         }
       } catch (err) {
-        console.error("Failed to fetch client token for chat", err);
+        console.warn("Failed to fetch client token for chat", err);
       }
 
       // Fetch messages via Next.js Proxy (no Authorization header required as proxy handles it)
@@ -59,7 +59,11 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
           if (Array.isArray(data)) setMessages(data);
           setLoading(false);
         })
-        .catch(err => console.error("Failed to load messages", err));
+        .catch(err => {
+          if (!isMounted) return;
+          console.warn("Failed to load messages", err);
+          setLoading(false);
+        });
 
       if (token) {
         newSocket = io(SOCKET_URL, { 
@@ -113,6 +117,14 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // จำกัดขนาดรูปไม่เกิน 5MB กันรูปใหญ่เกินทำให้ WebSocket เด้ง
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      alert('รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดไม่เกิน 5MB');
+      e.target.value = '';
+      return;
+    }
+
     setSendingImage(true);
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -145,7 +157,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
             </p>
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--n-400)', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={onClose} aria-label="ปิดหน้าต่างแชท" style={{ background: 'none', border: 'none', color: 'var(--n-400)', cursor: 'pointer', padding: '4px' }}>
           <X size={18} />
         </button>
       </div>

@@ -1,10 +1,10 @@
 /**
- * SEC-01 / SEC-03 FIX: Shared Login Helper
+ * Shared Login Helper
  *
  * This utility function standardises the login flow across all portals
  * (Merchant, Driver, Customer). Instead of calling `document.cookie` directly,
  * it posts the JWT to our own /api/auth/callback route which sets an
- * HttpOnly cookie on the server-side, completely eliminating the XSS risk.
+ * session cookies on the server-side.
  *
  * Usage:
  *   import { handleLoginCallback } from '@/lib/auth';
@@ -31,7 +31,6 @@ export async function handleLoginCallback(data: {
 
 /**
  * Clears auth cookies by calling the server-side logout endpoint.
- * Used in logout handlers across all portals.
  */
 export async function handleLogout(): Promise<void> {
   await fetch('/api/auth/logout', { method: 'POST' });

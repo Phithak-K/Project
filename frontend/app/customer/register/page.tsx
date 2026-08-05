@@ -141,8 +141,8 @@ export default function CustomerRegisterPage() {
             </div>
 
             <div className="sp-field">
-              <label className="sp-label">Username (ID สำหรับเข้าสู่ระบบ)</label>
-              <input type="text" required minLength={3} value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น somchai_123 (ตัวอักษร ตัวเลข _)" />
+              <label className="sp-label">Username (สำหรับล็อกอิน)</label>
+              <input type="text" required minLength={4} maxLength={20} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น somchai_99 (a-z, 0-9, _)" autoComplete="username" />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
