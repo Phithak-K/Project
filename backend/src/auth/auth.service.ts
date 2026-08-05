@@ -311,6 +311,9 @@ export class AuthService implements OnModuleInit {
 
     // Admin Login: ค้นหาใน Customer table แต่ override JWT role เป็น 'Admin'
     if (roleStr === 'Admin') {
+      if (!loginDto.email) {
+        throw new BadRequestException('Admin ต้องเข้าสู่ระบบด้วยอีเมลเท่านั้น');
+      }
       const adminEmails = (process.env.ADMIN_EMAILS || '')
         .split(',')
         .map((e) => e.trim());
