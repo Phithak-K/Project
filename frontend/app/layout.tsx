@@ -37,7 +37,7 @@ export default function RootLayout({
       lang="th"
       className={`${fraunces.variable} ${onest.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-body">
+      <body className="min-h-full flex flex-col font-body" suppressHydrationWarning>
         <GoogleOAuthProvider clientId={googleClientId}>
           <FCMProvider>
             {children}
