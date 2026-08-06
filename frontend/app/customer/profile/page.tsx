@@ -78,8 +78,8 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = () => {
-    document.cookie = 'token=; Max-Age=0; path=/;';
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/login');
   };
 

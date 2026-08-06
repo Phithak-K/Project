@@ -33,24 +33,18 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (response.ok) {
-        const expires = new Date(Date.now() + 86400 * 1000).toUTCString();
-        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        const isLocalhost = baseDomain.includes('localhost');
-        const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
-        const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
-
-        if (data.access_token) {
-          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
-        }
-        const userRole = data.user?.role || 'Customer';
-        document.cookie = `role=${userRole}; ${cookieOptions}`;
-
-        let targetSubdomain = 'app';
-        if (userRole === 'Merchant') targetSubdomain = 'store';
-        if (userRole === 'Driver')   targetSubdomain = 'fleet';
+        // ✅ ส่งโทเค็นให้ Server-side Next.js จัดการคุกกี้ (HttpOnly) แทนการเขียนลง document.cookie
+        const callbackRes = await fetch('/api/auth/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: data.access_token, user: data.user }),
+        });
+        const callbackData = await callbackRes.json();
 
         const params = new URLSearchParams(window.location.search);
         const callbackUrl = params.get('callbackUrl');
+        const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+        const isLocalhost = baseDomain.includes('localhost');
 
         // ✅ MEDIUM-03 FIX: Domain Allowlist — ป้องกัน Open Redirect
         const isAllowedCallback = (url: string): boolean => {
@@ -64,8 +58,7 @@ export default function LoginPage() {
         if (callbackUrl && isAllowedCallback(callbackUrl)) {
           window.location.href = decodeURIComponent(callbackUrl);
         } else {
-          const proto = isLocalhost ? 'http' : 'https';
-          window.location.href = `${proto}://${targetSubdomain}.${baseDomain}/`;
+          window.location.href = callbackData.redirectUrl || (isLocalhost ? `http://app.${baseDomain}/` : `https://app.${baseDomain}/`);
         }
       } else {
         setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');

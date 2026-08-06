@@ -23,15 +23,8 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
 
-  const getAuthToken = () => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return null;
-  };
 
   useEffect(() => {
     if (!isOpen) return;

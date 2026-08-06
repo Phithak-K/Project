@@ -32,27 +32,26 @@ export default function DriverRadarPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
-  const getToken = () => {
+  const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
-    const p = v.split(`; token=`);
+    const p = v.split(`; ${name}=`);
     if (p.length === 2) return p.pop()?.split(';').shift();
     return null;
   };
 
   const fetchOrders = useCallback(async () => {
-    const token = getToken();
-    if (!token) { router.push('/driver/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Driver') { router.push('/driver/login'); return; }
     try {
-      const h = { Authorization: `Bearer ${token}` };
       const [ordRes, hotRes] = await Promise.all([
-        fetch(`${API_URL}/orders/available`, { headers: h }),
-        fetch(`${API_URL}/weather/hotspots`, { headers: h }),
+        fetch('/api/proxy/orders/available'),
+        fetch('/api/proxy/weather/hotspots'),
       ]);
       if (ordRes.ok) setOrders(await ordRes.json());
       if (hotRes.ok) setHotspots(await hotRes.json());
     } catch (err) { console.warn(err); }
     finally { setLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   // โหลด Leaflet แบบ Dynamic (ป้องกัน SSR Error)
   useEffect(() => {
@@ -164,27 +163,37 @@ export default function DriverRadarPage() {
 
   // WebSocket + Polling
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
+    const role = getCookie('role');
+    if (!role || role !== 'Driver') return;
     fetchOrders();
     const interval = setInterval(fetchOrders, 60_000);
-    const sock: Socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
-    sock.on('new_available_order', (order: any) => {
-      setOrders(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]);
-    });
-    sock.on('order_taken', (data: { orderId: number }) => {
-      setOrders(prev => prev.filter(o => o.id !== data.orderId));
-    });
-    return () => { sock.disconnect(); clearInterval(interval); };
-  }, [API_URL, fetchOrders]);
+
+    let sock: Socket | null = null;
+    async function initSocket() {
+      try {
+        const tokenRes = await fetch('/api/auth/token');
+        if (tokenRes.ok) {
+          const { token } = await tokenRes.json();
+          if (token) {
+            sock = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
+            sock.on('new_available_order', (order: any) => {
+              setOrders(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]);
+            });
+            sock.on('order_taken', (data: { orderId: number }) => {
+              setOrders(prev => prev.filter(o => o.id !== data.orderId));
+            });
+          }
+        }
+      } catch (err) { console.warn(err); }
+    }
+    initSocket();
+    return () => { if (sock) sock.disconnect(); clearInterval(interval); };
+  }, [fetchOrders, SOCKET_URL]);
 
   const handleAccept = async (orderId: number) => {
-    const token = getToken();
     setAccepting(orderId);
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/accept`, {
-        method: 'PATCH', headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
       if (res.ok) router.push(`/driver/orders/${orderId}`);
       else {
         const e = await res.json();
@@ -216,11 +225,8 @@ export default function DriverRadarPage() {
             Live
           </span>
           <button
-            onClick={() => {
-              const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-              document.cookie = `token=; path=/; expires=${past}`;
-              document.cookie = `role=; path=/; expires=${past}`;
-              document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
               window.location.href = '/login';
             }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>

@@ -16,25 +16,22 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-  const getToken = () => {
+  const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
-    const p = v.split(`; token=`);
+    const p = v.split(`; ${name}=`);
     return p.length === 2 ? p.pop()?.split(';').shift() ?? null : null;
   };
 
   const fetchAll = useCallback(async () => {
-    const token = getToken();
-    if (!token) { router.push('/admin/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Admin') { router.push('/admin/login'); return; }
     setRefreshing(true);
     try {
-      const h = { Authorization: `Bearer ${token}` };
       const [statsRes, custRes, merRes, drvRes] = await Promise.all([
-        fetch(`${API_URL}/orders/admin/stats`, { headers: h }),
-        fetch(`${API_URL}/users?role=Customer`, { headers: h }),
-        fetch(`${API_URL}/users?role=Merchant`, { headers: h }),
-        fetch(`${API_URL}/users?role=Driver`, { headers: h }),
+        fetch('/api/proxy/orders/admin/stats'),
+        fetch('/api/proxy/users?role=Customer'),
+        fetch('/api/proxy/users?role=Merchant'),
+        fetch('/api/proxy/users?role=Driver'),
       ]);
       if (statsRes.status === 401 || statsRes.status === 403) { router.push('/admin/login'); return; }
       if (statsRes.ok) setStats(await statsRes.json());
@@ -45,16 +42,12 @@ export default function AdminDashboard() {
       });
     } catch (e) { console.warn(e); }
     finally { setLoading(false); setRefreshing(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const handleLogout = () => {
-    const past = 'Thu, 01 Jan 1970 00:00:00 UTC';
-    document.cookie = `token=; path=/; expires=${past}`;
-    document.cookie = `role=; path=/; expires=${past}`;
-    document.cookie = `token=; path=/; domain=localhost; expires=${past}`;
-    document.cookie = `role=; path=/; domain=localhost; expires=${past}`;
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/admin/login');
   };
 

@@ -14,40 +14,32 @@ export default function DriversPage() {
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState<number | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-  const getToken = () => {
+  const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
-    const p = v.split(`; token=`);
+    const p = v.split(`; ${name}=`);
     if (p.length === 2) return p.pop()?.split(';').shift();
     return null;
   };
 
   const fetchDrivers = useCallback(async () => {
-    const token = getToken();
-    if (!token) { router.push('/merchant/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Merchant') { router.push('/merchant/login'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/users/my-drivers`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('/api/proxy/users/my-drivers');
       if (res.ok) setDrivers(await res.json());
     } catch (e) { console.warn(e); }
     finally { setLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchDrivers(); }, [fetchDrivers]);
 
   const handleSearch = async () => {
     if (!searchContact.trim()) return;
-    const token = getToken();
-    if (!token) return;
     setSearching(true);
     setSearchResult(null);
     try {
-      const res = await fetch(`${API_URL}/users/find-driver?contact=${encodeURIComponent(searchContact.trim())}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/users/find-driver?contact=${encodeURIComponent(searchContact.trim())}`);
       if (res.ok) {
         setSearchResult(await res.json());
       } else {
@@ -60,14 +52,9 @@ export default function DriversPage() {
 
   const handleLink = async () => {
     if (!searchResult) return;
-    const token = getToken();
-    if (!token) return;
     setLinking(true);
     try {
-      const res = await fetch(`${API_URL}/users/drivers/${searchResult.id}/link`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/users/drivers/${searchResult.id}/link`, { method: 'PATCH' });
       if (res.ok) {
         alert(`เพิ่มคนขับ "${searchResult.name}" เข้าร้านเรียบร้อย`);
         setSearchResult(null);
@@ -83,14 +70,9 @@ export default function DriversPage() {
 
   const handleUnlink = async (driverId: number, driverName: string) => {
     if (!confirm(`ยืนยันการยกเลิกความสัมพันธ์กับ "${driverName}"?`)) return;
-    const token = getToken();
-    if (!token) return;
     setUnlinking(driverId);
     try {
-      const res = await fetch(`${API_URL}/users/drivers/${driverId}/unlink`, {
-        method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/users/drivers/${driverId}/unlink`, { method: 'PATCH' });
       if (res.ok) {
         fetchDrivers();
       } else {

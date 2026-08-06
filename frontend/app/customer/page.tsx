@@ -221,7 +221,7 @@ export default function CustomerDashboard() {
 
   // 🖴 Phase 2: Mount แล้วแต่กำลังโหลด → ✅ CRITICAL-02: เลือก Skeleton ตาม Auth State ลด CLS
   if (isLoading) {
-    const hasToken = document.cookie.includes('token=');
+    const hasToken = document.cookie.includes('role=');
     return (
       <>
         <style>{`

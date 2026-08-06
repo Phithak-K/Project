@@ -9,23 +9,19 @@ export default function DriverDashboardPage() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
   useEffect(() => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; token=`);
-    const token = parts.length === 2 ? parts.pop()?.split(';').shift() : null;
+    const v = `; ${document.cookie}`;
+    const p = v.split(`; role=`);
+    const role = p.length === 2 ? p.pop()?.split(';').shift() : null;
 
-    if (!token) {
+    if (!role || role !== 'Driver') {
       router.push('/driver/login');
       return;
     }
 
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${API_URL}/orders/stats/driver`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await fetch('/api/proxy/orders/stats/driver');
         if (res.ok) {
           setStats(await res.json());
         }
@@ -37,7 +33,7 @@ export default function DriverDashboardPage() {
     };
 
     fetchStats();
-  }, [API_URL, router]);
+  }, [router]);
 
   if (loading) return (
     <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>

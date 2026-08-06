@@ -23,27 +23,23 @@ export default function CatalogPage() {
   const [editingId, setEditingId] = useState<number | 'new' | null>(null);
   const [form, setForm] = useState(emptyForm());
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-  const getToken = () => {
+  const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
-    const p = v.split(`; token=`);
+    const p = v.split(`; ${name}=`);
     if (p.length === 2) return p.pop()?.split(';').shift();
     return null;
   };
 
   const fetchProducts = useCallback(async () => {
-    const token = getToken();
-    if (!token) { router.push('/merchant/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Merchant') { router.push('/merchant/login'); return; }
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/products/my/all`, { // all = รวมที่ปิดใช้งานด้วย
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch('/api/proxy/products/my/all');
       if (res.ok) setProducts(await res.json());
     } catch (e) { console.warn(e); }
     finally { setLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
@@ -64,18 +60,16 @@ export default function CatalogPage() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { alert('กรุณาระบุชื่อสินค้า'); return; }
-    const token = getToken();
-    if (!token) return;
     setSaving(true);
     try {
       const payload = { name: form.name.trim(), unit: form.unit.trim() || null, defaultPrice: parseFloat(form.defaultPrice) || 0 };
       const isNew = editingId === 'new';
-      const url = isNew ? `${API_URL}/products` : `${API_URL}/products/${editingId}`;
+      const url = isNew ? '/api/proxy/products' : `/api/proxy/products/${editingId}`;
       const method = isNew ? 'POST' : 'PATCH';
 
       const res = await fetch(url, {
         method,
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -92,17 +86,11 @@ export default function CatalogPage() {
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`ลบสินค้า "${name}" ออกจาก catalog?`)) return;
-    const token = getToken();
-    if (!token) return;
     setDeleting(id);
     try {
-      const res = await fetch(`${API_URL}/products/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const res = await fetch(`/api/proxy/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         const result = await res.json();
-        // แสดง message ถ้าระบบ Soft Delete แทนการลบจริง
         if (!result.deleted) alert(result.message);
         fetchProducts();
       } else {
@@ -114,12 +102,10 @@ export default function CatalogPage() {
   };
 
   const handleToggleActive = async (product: Product) => {
-    const token = getToken();
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/products/${product.id}`, {
+      const res = await fetch(`/api/proxy/products/${product.id}`, {
         method: 'PATCH',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !product.isActive }),
       });
       if (res.ok) fetchProducts();

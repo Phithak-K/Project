@@ -17,7 +17,8 @@ export default function AdminLoginPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const res = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, role: 'Admin' }),
@@ -25,10 +26,12 @@ export default function AdminLoginPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ'); return; }
 
-      const { access_token, user } = data;
-      const past = new Date(Date.now() + 86400000 * 7).toUTCString();
-      document.cookie = `token=${access_token}; path=/; expires=${past}`;
-      document.cookie = `role=${user.role}; path=/; expires=${past}`;
+      // ✅ ส่งโทเค็นให้ Server-side Next.js จัดการคุกกี้ (HttpOnly) แทนการเขียนลง document.cookie
+      await fetch('/api/auth/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: data.access_token, user: data.user }),
+      });
       router.push('/admin');
     } catch {
       setError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');

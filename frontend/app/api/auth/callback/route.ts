@@ -35,9 +35,8 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({ ok: true, redirectUrl });
 
     const cookieOptions = {
-      // The current client pages still send this token directly to the backend.
-      // Keep it readable until every authenticated request uses /api/proxy.
-      httpOnly: false,
+      // ✅ SEC-01 FIX: Set HttpOnly to true since we have fully migrated to /api/proxy
+      httpOnly: true,
       secure: !isLocalhost,         // ← HTTPS-only in production
       sameSite: 'lax' as const,
       maxAge: 86400,                // 24 hours

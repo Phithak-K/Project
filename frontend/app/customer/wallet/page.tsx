@@ -79,28 +79,24 @@ export default function CustomerWalletPage() {
   const [clientSecret, setClientSecret] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-  const getToken = () => {
+  const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
-    const p = v.split(`; token=`);
+    const p = v.split(`; ${name}=`);
     return p.length === 2 ? p.pop()?.split(';').shift() ?? null : null;
   };
 
   const fetchBalance = useCallback(async () => {
-    const token = getToken();
-    if (!token) { router.push('/login'); return; }
+    const role = getCookie('role');
+    if (!role || role !== 'Customer') { router.push('/login'); return; }
     try {
-      const res = await fetch(`${API_URL}/users/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch('/api/proxy/users/me');
       if (res.ok) {
         const data = await res.json();
         setBalance(Number(data.balance || 0));
       }
     } catch (e) { console.warn(e); }
     finally { setPageLoading(false); }
-  }, [API_URL, router]);
+  }, [router]);
 
   useEffect(() => { fetchBalance(); }, [fetchBalance]);
 
@@ -117,11 +113,10 @@ export default function CustomerWalletPage() {
     isSubmitting.current = true;
     setErrorMsg('');
     setLoading(true);
-    const token = getToken();
     try {
-      const res = await fetch(`${API_URL}/stripe/create-topup`, {
+      const res = await fetch('/api/proxy/stripe/create-topup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: finalAmount }),
       });
       const data = await res.json();

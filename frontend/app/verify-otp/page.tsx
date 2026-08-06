@@ -36,17 +36,14 @@ function VerifyOtpContent() {
 
       if (response.ok) {
         if (data.access_token && data.user) {
-          const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-          const isLocalhost = baseDomain.includes('localhost');
-          const domainStr = isLocalhost ? '' : `domain=.${baseDomain.split(':')[0]}; `;
-          const cookieOptions = `path=/; ${domainStr}max-age=86400; SameSite=Lax${isLocalhost ? '' : '; Secure'}`;
-          document.cookie = `token=${data.access_token}; ${cookieOptions}`;
-          document.cookie = `role=${data.user?.role || 'Customer'}; ${cookieOptions}`;
-
-          const proto = isLocalhost ? 'http' : 'https';
-          if (data.user.role === 'Merchant')     window.location.href = `${proto}://store.${baseDomain}/`;
-          else if (data.user.role === 'Driver')  window.location.href = `${proto}://fleet.${baseDomain}/`;
-          else                                   window.location.href = `${proto}://app.${baseDomain}/`;
+          // ✅ ส่งโทเค็นให้ Server-side Next.js จัดการคุกกี้ (HttpOnly) แทนการเขียนลง document.cookie
+          const callbackRes = await fetch('/api/auth/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: data.access_token, user: data.user }),
+          });
+          const callbackData = await callbackRes.json();
+          window.location.href = callbackData.redirectUrl;
         } else {
           router.push('/login');
         }

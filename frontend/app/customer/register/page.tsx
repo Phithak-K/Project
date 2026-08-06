@@ -69,15 +69,14 @@ export default function CustomerRegisterPage() {
       });
       const data = await response.json();
       if (response.ok) {
-        const baseDomainG = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-        const isLocalhostG = baseDomainG.includes('localhost');
-        const domainStrG = isLocalhostG ? '' : `domain=.${baseDomainG.split(':')[0]}; `;
-        const protoG = isLocalhostG ? 'http' : 'https';
-        const cookieOptionsG = `path=/; ${domainStrG}max-age=86400; SameSite=Lax${isLocalhostG ? '' : '; Secure'}`;
-        
-        document.cookie = `token=${data.access_token}; ${cookieOptionsG}`;
-        document.cookie = `role=${data.user?.role || 'Customer'}; ${cookieOptionsG}`;
-        window.location.href = `${protoG}://app.${baseDomainG}/`;
+        // ✅ ส่งโทเค็นให้ Server-side Next.js จัดการคุกกี้ (HttpOnly) แทนการเขียนลง document.cookie
+        const callbackRes = await fetch('/api/auth/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: data.access_token, user: data.user }),
+        });
+        const callbackData = await callbackRes.json();
+        window.location.href = callbackData.redirectUrl;
       } else {
         setError(data.message || 'Google Login Failed');
       }
