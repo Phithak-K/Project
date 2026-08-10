@@ -79,7 +79,7 @@ sequenceDiagram
 
 ### 4.1 ระบบจัดการสถานะออเดอร์และมอบหมายงาน (Order State Machine)
 - ฐานข้อมูลถูกออกแบบให้รองรับ `OrderItem` เพื่อจัดการบิลแบบหลายรายการ (Multi-item)
-- State Machine ขับเคลื่อนจาก: `PENDING` (สร้างบิล) -> `ACCEPTED` (ร้านมอบหมายงานให้คนขับ) -> `PICKED_UP` (ของขึ้นรถ) -> `SHIPPING` (กำลังไปส่ง) -> `DELIVERED`
+- State Machine ขับเคลื่อนจาก: `PENDING` (สร้างบิล) -> `ACCEPTED` (ร้านมอบหมายงานให้คนขับ) -> `PICKED_UP` (ของขึ้นรถ) -> `SHIPPING` (กำลังไปส่ง) -> `DELIVERED` (หรือ `CANCELLED`)
 - การตรวจสอบสิทธิ์ระดับ Resource: `OrdersService` จะตรวจสอบเสมอว่า `merchantId` หรือ `driverId` ตรงกับผู้ร้องขอหรือไม่ ป้องกันร้านค้าอื่นแอบดูข้อมูล
 
 ### 4.2 ระบบ Smart Soft Delete สำหรับ Catalog สินค้า
