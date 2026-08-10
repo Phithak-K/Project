@@ -42,7 +42,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
     try {
       const res = await fetch(`/api/proxy/orders/${orderId}`);
       if (res.ok) setOrder(await res.json());
-      else        router.push('/customer');
+      else        router.push('/');
     } catch (err) { console.warn(err); }
     finally { setLoading(false); }
   }, [orderId, router]);
@@ -127,7 +127,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <button onClick={() => router.push('/customer')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>
+        <button onClick={() => router.push('/')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>
           <ArrowLeft size={16} /> กลับไปยังรายการพัสดุ
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>

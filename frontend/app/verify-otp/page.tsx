@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 
-function VerifyOtpContent() {
-  const searchParams = useSearchParams();
+export default function VerifyOtpPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -16,9 +15,10 @@ function VerifyOtpContent() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const emailParam = searchParams.get('email');
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
     if (emailParam) setEmail(emailParam);
-  }, [searchParams]);
+  }, []);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,13 +166,5 @@ function VerifyOtpContent() {
         <div />
       </div>
     </div>
-  );
-}
-
-export default function VerifyOtpPage() {
-  return (
-    <Suspense fallback={<div className="sp-page-loading"><span className="sp-spinner sp-spinner-lg" /></div>}>
-      <VerifyOtpContent />
-    </Suspense>
   );
 }

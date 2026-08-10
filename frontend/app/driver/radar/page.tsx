@@ -194,7 +194,7 @@ export default function DriverRadarPage() {
     setAccepting(orderId);
     try {
       const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
-      if (res.ok) router.push(`/driver/orders/${orderId}`);
+      if (res.ok) router.push(`/orders/${orderId}`);
       else {
         const e = await res.json();
         alert(e.message || 'ไม่สามารถรับงานได้');

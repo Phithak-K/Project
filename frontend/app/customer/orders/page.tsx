@@ -83,7 +83,7 @@ export default function OrderHistoryPage() {
           ← หน้าหลัก
         </Link>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-        <button className="sp-btn-ghost" style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }} onClick={() => router.push('/customer/profile')}>
+        <button className="sp-btn-ghost" style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }} onClick={() => router.push('/profile')}>
           <User size={18} />
         </button>
       </nav>
@@ -119,7 +119,7 @@ export default function OrderHistoryPage() {
                   const StatusIcon = cfg.icon;
                   const totalAmount = Number(order.totalPrice || order.price);
                   return (
-                    <div key={order.id} className="sp-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/customer/orders/${order.id}`)}>
+                    <div key={order.id} className="sp-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/orders/${order.id}`)}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
                         <div>
                           <div style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--brand-600)', fontSize: '0.85rem' }}>

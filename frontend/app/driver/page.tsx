@@ -59,7 +59,7 @@ export default function DriverDashboard() {
       const res = await fetch(`/api/proxy/orders/${orderId}/accept`, {
         method: 'PATCH'
       });
-      if (res.ok) router.push(`/driver/orders/${orderId}`);
+      if (res.ok) router.push(`/orders/${orderId}`);
       else { const e = await res.json(); showNotice('error', e.message || 'ไม่สามารถรับงานได้'); fetchData(); }
     } catch { showNotice('error', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่'); }
     finally { setAccepting(null); }
@@ -203,7 +203,7 @@ export default function DriverDashboard() {
                   </div>
 
                   <button
-                    onClick={() => router.push(`/driver/orders/${order.id}`)}
+                    onClick={() => router.push(`/orders/${order.id}`)}
                     className="sp-btn-brand sp-btn-full"
                     style={{ padding: '0.75rem' }}
                   >
