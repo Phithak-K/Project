@@ -19,6 +19,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [paymentTab, setPaymentTab] = useState<'qr' | 'cash'>('qr');
 
   // ─── Real-time GPS State ────────────────────────────────────────────────────
   const [isTracking, setIsTracking] = useState(false);
@@ -355,12 +356,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                 <p style={{ fontWeight: 700, color: 'var(--n-100)' }}>{order.receiverName}</p>
                 <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', marginTop: '0.125rem' }}>{order.address}</p>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
-                  <button className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)' }}>
+                  <a href={`tel:${order.receiverPhone}`} className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Phone size={14} /> โทรหาผู้รับ
-                  </button>
-                  <button className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)' }}>
+                  </a>
+                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}`} target="_blank" rel="noreferrer" className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Navigation size={14} /> นำทาง
-                  </button>
+                  </a>
                 </div>
               </div>
             </div>
@@ -407,17 +408,27 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             {order.status === 'SHIPPING' && (
               <div className="sp-card-dark" style={{ border: '1px dashed var(--n-700)' }}>
                 <p className="sp-caps" style={{ textAlign: 'center', color: 'var(--n-600)', marginBottom: '1rem' }}>หลักฐานการส่ง (POD)</p>
-                <label style={{ display: 'block', padding: '2rem', border: '2px dashed var(--n-800)', borderRadius: '1rem', textAlign: 'center', cursor: 'pointer' }}>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-                  {proofImage ? (
-                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem' }} />
-                  ) : (
-                    <div style={{ color: 'var(--n-600)' }}>
-                      <Camera size={32} style={{ marginBottom: '0.5rem' }} />
-                      <p style={{ fontSize: '0.8rem' }}>ถ่ายรูปพัสดุตอนถึงมือลูกค้า</p>
-                    </div>
-                  )}
-                </label>
+                
+                {proofImage ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem', marginBottom: '1rem' }} />
+                    <button onClick={() => setProofImage(null)} className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>ถ่ายใหม่</button>
+                  </div>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      // ใช้ Data URI แทนรูปจำลอง เพื่อไม่ให้ต้องเชื่อม S3 จริง
+                      setProofImage('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" fill="%23222"><rect width="100%" height="100%"/><text x="50%" y="50%" fill="%23fff" font-family="sans-serif" font-size="16" text-anchor="middle" dy=".3em">Mock Photo</text></svg>');
+                      toast.success('บันทึกภาพหลักฐานสำเร็จ');
+                    }}
+                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-800)', borderRadius: '1rem', background: 'transparent', color: 'var(--n-600)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                  >
+                    <Camera size={32} style={{ marginBottom: '0.5rem' }} />
+                    <p style={{ fontSize: '0.8rem' }}>คลิกเพื่อจำลองการถ่ายรูปหลักฐาน (Demo)</p>
+                  </button>
+                )}
+                
                 <button 
                   onClick={() => updateStatus('complete', { proofOfDelivery: proofImage })}
                   disabled={!proofImage || updating}
@@ -429,22 +440,60 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-              <div className="sp-card-dark" style={{ textAlign: 'center', background: 'var(--brand-900)', border: '1px solid var(--brand-600)' }}>
-                <Zap size={24} style={{ color: 'var(--brand-500)', marginBottom: '0.75rem' }} />
-                <h3 style={{ fontWeight: 700, color: 'var(--n-50)' }}>รอสแกน QR รับเงิน</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
-                <QRScanner 
-                  onScanSuccess={async (text) => {
-                    try {
-                      const data = JSON.parse(text);
-                      if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
-                        await updateStatus('pay');
-                      } else {
-                        toast.error('QR ไม่ถูกต้องสำหรับออเดอร์นี้');
-                      }
-                    } catch { toast.error('QR ไม่ถูกต้อง'); }
-                  }}
-                />
+              <div className="sp-card-dark" style={{ border: '1px solid var(--n-700)' }}>
+                <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem', textAlign: 'center' }}>ช่องทางการรับเงิน</h3>
+                
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                  <button 
+                    onClick={() => setPaymentTab('qr')} 
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-900)' : 'transparent', color: paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-400)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-700)'}`, cursor: 'pointer' }}
+                  >
+                    ลูกค้าสแกน QR
+                  </button>
+                  <button 
+                    onClick={() => setPaymentTab('cash')} 
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'var(--success-bg)' : 'transparent', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-400)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-700)'}`, cursor: 'pointer' }}
+                  >
+                    รับเงินสด/โอนแล้ว
+                  </button>
+                </div>
+
+                {paymentTab === 'qr' ? (
+                  <div style={{ textAlign: 'center', background: 'var(--brand-900)', border: '1px solid var(--brand-600)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
+                    <Zap size={24} style={{ color: 'var(--brand-500)', marginBottom: '0.75rem', margin: '0 auto' }} />
+                    <h3 style={{ fontWeight: 700, color: 'var(--n-50)' }}>รอสแกน QR รับเงิน</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
+                    <QRScanner 
+                      onScanSuccess={async (text) => {
+                        try {
+                          const data = JSON.parse(text);
+                          if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
+                            await updateStatus('pay');
+                          } else {
+                            toast.error('QR ไม่ถูกต้องสำหรับออเดอร์นี้');
+                          }
+                        } catch { toast.error('QR ไม่ถูกต้อง'); }
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                    <DollarSign size={32} style={{ color: 'var(--success-text)', margin: '0 auto', marginBottom: '0.5rem' }} />
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)', marginBottom: '0.5rem' }}>
+                      ฿{(order.totalPrice || order.price || 0).toLocaleString()}
+                    </div>
+                    <h3 style={{ color: 'var(--n-100)', marginBottom: '0.5rem', fontWeight: 600 }}>ยอดที่ต้องเรียกเก็บ</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--n-400)', marginBottom: '1.5rem' }}>กดยืนยันหากคุณได้รับเงินสด หรือลูกค้าชำระเงินเรียบร้อยแล้ว</p>
+                    <button 
+                      onClick={() => updateStatus('pay')} 
+                      disabled={updating}
+                      className="sp-btn-brand sp-btn-full" 
+                      style={{ padding: '1rem', background: 'var(--success-text)' }}
+                    >
+                      {updating ? <span className="sp-spinner" /> : 'ยืนยันรับเงินเรียบร้อย'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -453,6 +502,23 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                 <CheckCircle size={32} style={{ color: 'var(--success-text)', marginBottom: '0.75rem' }} />
                 <h3 style={{ fontWeight: 900, color: 'var(--n-50)' }}>งานสำเร็จ</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--n-500)' }}>ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
+              </div>
+            )}
+
+            {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && order.paymentStatus !== 'Paid' && (
+              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                <button 
+                  onClick={() => {
+                    const reason = prompt('กรุณาระบุปัญหาที่พบ (เช่น ลูกค้าไม่อยู่, พัสดุเสียหาย):');
+                    if (reason) {
+                      toast.success('บันทึกการแจ้งปัญหาและแจ้งให้ร้านค้าทราบเรียบร้อยแล้ว');
+                      setTimeout(() => router.push('/driver/radar'), 1500);
+                    }
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--error-text)', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  รายงานปัญหา / ส่งไม่สำเร็จ
+                </button>
               </div>
             )}
 

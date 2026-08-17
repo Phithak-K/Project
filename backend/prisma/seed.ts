@@ -4,59 +4,183 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding database...');
-  const passwordHash = await bcrypt.hash('password123', 10);
+  console.log('🌱 Starting Seed Data for SwiftPath Demo...');
 
-  // 1. Create Customer
-  const customer = await prisma.customer.upsert({
-    where: { email: 'customer@demo.com' },
-    update: {},
-    create: {
-      email: 'customer@demo.com',
-      name: 'Demo Customer',
-      password: passwordHash,
-      phone: '0811111111',
-      isVerified: true,
-      balance: 1000,
-    },
-  });
-
-  // 2. Create Merchant
+  // 1. สร้าง Merchant (ร้านค้า: เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์)
+  const hashedPassword = await bcrypt.hash('password123', 10);
+  
   const merchant = await prisma.merchant.upsert({
-    where: { email: 'merchant@demo.com' },
+    where: { email: 'jaeporn@swiftpath.demo' },
     update: {},
     create: {
-      email: 'merchant@demo.com',
-      name: 'Demo Merchant',
-      storeName: 'SME Logistics Shop',
-      password: passwordHash,
-      phone: '0822222222',
-      isVerified: true,
-      balance: 0,
-      lat: 13.7563,
-      lng: 100.5018,
-    },
+      email: 'jaeporn@swiftpath.demo',
+      username: 'jaeporn_store',
+      password: hashedPassword,
+      name: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์',
+      storeName: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์',
+      phone: '0812345678',
+      storeAddress: '123 ถ.รามอินทรา แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220',
+      lat: 13.8653,
+      lng: 100.6052,
+      isActive: true,
+      isVerified: true
+    }
   });
+  console.log('✅ Merchant Created:', merchant.storeName);
 
-  // 3. Create Driver
+  // 2. สร้าง Driver (คนขับรถ: สมชาย ขับกระบะส่งของ)
   const driver = await prisma.driver.upsert({
-    where: { email: 'driver@demo.com' },
+    where: { email: 'somchai@swiftpath.demo' },
     update: {},
     create: {
-      email: 'driver@demo.com',
-      name: 'Demo Driver',
-      vehiclePlate: 'กข 1234',
-      vehicleType: 'Motorcycle',
-      password: passwordHash,
-      phone: '0833333333',
-      isVerified: true,
-      balance: 500,
-      merchantId: merchant.id, // In-house driver
-    },
+      email: 'somchai@swiftpath.demo',
+      username: 'somchai_driver',
+      password: hashedPassword,
+      name: 'สมชาย ขับกระบะส่งของ',
+      phone: '0898765432',
+      vehiclePlate: '1ฒฒ-4589 กทม.',
+      vehicleType: 'Pickup Truck',
+      merchantId: merchant.id, // สังกัดร้านเจ๊พร
+      isActive: true,
+      isVerified: true
+    }
   });
+  console.log('✅ Driver Created:', driver.name);
 
-  console.log('Seed completed successfully!');
-  console.log({ customer, merchant, driver });
+  // 3. สร้าง Products (แคตตาล็อกสินค้า 5-6 รายการ)
+  const productsData = [
+    { name: 'ปูนซีเมนต์ปอร์ตแลนด์', unit: 'ถุง 50 กก.', defaultPrice: 150 },
+    { name: 'ท่อ PVC 2 นิ้ว ชั้น 8.5', unit: 'เส้น', defaultPrice: 85 },
+    { name: 'กระเบื้องปูพื้น 60x60', unit: 'กล่อง', defaultPrice: 220 },
+    { name: 'สีทาภายนอก', unit: 'ถัง 5 แกลลอน', defaultPrice: 1200 },
+    { name: 'ทรายหยาบ', unit: 'คิว', defaultPrice: 450 },
+    { name: 'เหล็กเส้นกลม SR24', unit: 'เส้น', defaultPrice: 135 }
+  ];
+
+  const products: { id: number; name: string; unit: string | null; defaultPrice: any; merchantId: number; isActive: boolean; createdAt: Date; updatedAt: Date; }[] = [];
+  for (const p of productsData) {
+    let product = await prisma.product.findFirst({
+      where: { merchantId: merchant.id, name: p.name }
+    });
+    if (!product) {
+      product = await prisma.product.create({
+        data: {
+          merchantId: merchant.id,
+          name: p.name,
+          unit: p.unit,
+          defaultPrice: p.defaultPrice,
+          isActive: true
+        }
+      });
+    }
+    products.push(product);
+  }
+  console.log(`✅ Products Created: ${products.length} items`);
+
+  // 4. สร้างออเดอร์จำลอง (Sample Orders)
+  // ออเดอร์ 1: IN_TRANSIT (SHIPPING)
+  const order1 = await prisma.order.upsert({
+    where: { trackingNumber: 'SP-DEMO-001' },
+    update: {},
+    create: {
+      trackingNumber: 'SP-DEMO-001',
+      merchantId: merchant.id,
+      driverId: driver.id,
+      receiverName: 'คุณสมเกียรติ รับเหมาสร้างบ้าน',
+      receiverPhone: '0881112222',
+      address: 'ไซต์งานก่อสร้าง หมู่บ้านฟ้าใส ซอย 5 จ.ปทุมธานี',
+      lat: 13.9808,
+      lng: 100.5954,
+      status: 'SHIPPING', // กำลังเดินทาง
+      paymentStatus: 'Unpaid',
+      price: 150 * 20 + 85 * 10,
+      totalPrice: 150 * 20 + 85 * 10,
+      items: {
+        create: [
+          {
+            productName: products[0].name,
+            productId: products[0].id,
+            quantity: 20,
+            unitPrice: products[0].defaultPrice,
+            totalPrice: Number(products[0].defaultPrice) * 20
+          },
+          {
+            productName: products[1].name,
+            productId: products[1].id,
+            quantity: 10,
+            unitPrice: products[1].defaultPrice,
+            totalPrice: Number(products[1].defaultPrice) * 10
+          }
+        ]
+      }
+    }
+  });
+  console.log('✅ Order 1 Created (SHIPPING):', order1.trackingNumber);
+
+  const existingLog1 = await prisma.trackingLog.findFirst({ where: { orderId: order1.id }});
+  if (!existingLog1) {
+    await prisma.trackingLog.createMany({
+      data: [
+        { orderId: order1.id, status: 'ACCEPTED', location: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์', note: '✅ คนขับรับงานแล้ว' },
+        { orderId: order1.id, status: 'PICKED_UP', location: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์', note: '📦 รับพัสดุเข้าระบบแล้ว' },
+        { orderId: order1.id, status: 'SHIPPING', location: 'กำลังออกเดินทางไปส่งพัสดุ', note: '🚛 กำลังจัดส่งไปยังปลายทาง ปทุมธานี' }
+      ]
+    });
+  }
+
+  // ออเดอร์ 2: DELIVERED
+  const order2 = await prisma.order.upsert({
+    where: { trackingNumber: 'SP-DEMO-002' },
+    update: {},
+    create: {
+      trackingNumber: 'SP-DEMO-002',
+      merchantId: merchant.id,
+      driverId: driver.id,
+      receiverName: 'คุณนิดา ตกแต่งภายใน',
+      receiverPhone: '0883334444',
+      address: 'คอนโด LPN รังสิต',
+      lat: 13.9855,
+      lng: 100.6122,
+      status: 'DELIVERED', 
+      paymentStatus: 'Paid',
+      price: 220 * 15 + 1200 * 2,
+      totalPrice: 220 * 15 + 1200 * 2,
+      paymentMethod: 'PromptPay',
+      items: {
+        create: [
+          {
+            productName: products[2].name,
+            productId: products[2].id,
+            quantity: 15,
+            unitPrice: products[2].defaultPrice,
+            totalPrice: Number(products[2].defaultPrice) * 15
+          },
+          {
+            productName: products[3].name,
+            productId: products[3].id,
+            quantity: 2,
+            unitPrice: products[3].defaultPrice,
+            totalPrice: Number(products[3].defaultPrice) * 2
+          }
+        ]
+      }
+    }
+  });
+  console.log('✅ Order 2 Created (DELIVERED):', order2.trackingNumber);
+
+  const existingLog2 = await prisma.trackingLog.findFirst({ where: { orderId: order2.id }});
+  if (!existingLog2) {
+    await prisma.trackingLog.createMany({
+      data: [
+        { orderId: order2.id, status: 'ACCEPTED', location: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์', note: '✅ คนขับรับงานแล้ว' },
+        { orderId: order2.id, status: 'PICKED_UP', location: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์', note: '📦 รับพัสดุเข้าระบบแล้ว' },
+        { orderId: order2.id, status: 'SHIPPING', location: 'รังสิต ปทุมธานี', note: '🚛 กำลังจัดส่งสินค้า' },
+        { orderId: order2.id, status: 'DELIVERED', location: 'คอนโด LPN รังสิต (สำเร็จ)', note: '🎉 จัดส่งสำเร็จ ลูกค้าได้รับพัสดุแล้ว' }
+      ]
+    });
+  }
+
+  console.log('🎉 Seeding finished successfully!');
 }
 
 main()

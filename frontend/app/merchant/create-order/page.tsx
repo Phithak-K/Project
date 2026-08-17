@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { handleLogout as clearSession } from '@/lib/auth';
 import {
   ArrowLeft, Package, User, Phone, MapPin, Plus, Trash2,
-  DollarSign, Shield, CloudRain, CheckCircle, BookOpen, ChevronDown
+  DollarSign, Shield, CloudRain, CheckCircle
 } from 'lucide-react';
 
 interface OrderItem {
@@ -14,6 +14,7 @@ interface OrderItem {
   unitPrice: number;
   note: string;
   productId?: number;
+  isCustom?: boolean;
 }
 
 interface Product {
@@ -23,7 +24,7 @@ interface Product {
   defaultPrice: number;
 }
 
-const emptyItem = (): OrderItem => ({ productName: '', quantity: 1, unitPrice: 0, note: '' });
+const emptyItem = (): OrderItem => ({ productName: '', quantity: 1, unitPrice: 0, note: '', isCustom: false });
 
 export default function CreateOrderPage() {
   const router = useRouter();
@@ -32,7 +33,6 @@ export default function CreateOrderPage() {
   const [weatherData, setWeatherData] = useState<{ main: string; surge: number; eta: number } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [items, setItems] = useState<OrderItem[]>([emptyItem()]);
-  const [showCatalog, setShowCatalog] = useState<number | null>(null); // index ของ item ที่กำลังเลือก
 
   const [formData, setFormData] = useState({
     receiverName: '',
@@ -66,7 +66,7 @@ export default function CreateOrderPage() {
     setItems(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const updateItem = (idx: number, field: keyof OrderItem, value: string | number) => {
+  const updateItem = (idx: number, field: keyof OrderItem, value: string | number | boolean) => {
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
@@ -75,13 +75,6 @@ export default function CreateOrderPage() {
       }
       return updated;
     }));
-  };
-
-  const applyProductFromCatalog = (idx: number, product: Product) => {
-    setItems(prev => prev.map((item, i) =>
-      i !== idx ? item : { ...item, productName: product.name, unitPrice: product.defaultPrice, productId: product.id }
-    ));
-    setShowCatalog(null);
   };
 
   // ── Summary ──
@@ -191,38 +184,6 @@ export default function CreateOrderPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <span className="sp-caps" style={{ color: 'var(--n-500)', fontSize: '0.7rem' }}>รายการที่ {idx + 1}</span>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                      {products.length > 0 && (
-                        <div style={{ position: 'relative' }}>
-                          <button
-                            type="button"
-                            onClick={() => setShowCatalog(showCatalog === idx ? null : idx)}
-                            className="sp-btn-ghost"
-                            style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-                          >
-                            <BookOpen size={12} /> Catalog <ChevronDown size={12} />
-                          </button>
-                          {showCatalog === idx && (
-                            <div style={{
-                              position: 'absolute', right: 0, top: '100%', zIndex: 50, minWidth: '200px',
-                              background: 'white', border: '1px solid var(--n-150)', borderRadius: '0.75rem',
-                              boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden', marginTop: '0.25rem'
-                            }}>
-                              {products.map(p => (
-                                <button
-                                  key={p.id} type="button"
-                                  onClick={() => applyProductFromCatalog(idx, p)}
-                                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '0.75rem 1rem', border: 'none', background: 'none', cursor: 'pointer', borderBottom: '1px solid var(--n-100)' }}
-                                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--n-50)')}
-                                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                                >
-                                  <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.name}</div>
-                                  <div style={{ color: 'var(--n-400)', fontSize: '0.75rem' }}>฿{p.defaultPrice} / {p.unit || 'ชิ้น'}</div>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                       {items.length > 1 && (
                         <button type="button" onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-300)', padding: '0.25rem' }}>
                           <Trash2 size={15} />
@@ -234,11 +195,44 @@ export default function CreateOrderPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.5rem' }}>
                     <div className="sp-field">
                       <label className="sp-label">ชื่อสินค้า</label>
-                      <input
-                        type="text" required value={item.productName}
-                        onChange={e => updateItem(idx, 'productName', e.target.value)}
-                        className="sp-input" placeholder="เช่น ปูนซีเมนต์, เหล็กเส้น"
-                      />
+                      {item.isCustom ? (
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="text" required value={item.productName}
+                            onChange={e => updateItem(idx, 'productName', e.target.value)}
+                            className="sp-input" placeholder="พิมพ์ชื่อสินค้า..."
+                            style={{ flex: 1 }}
+                          />
+                          <button type="button" onClick={() => updateItem(idx, 'isCustom', false)} className="sp-btn-ghost" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>
+                            ยกเลิก
+                          </button>
+                        </div>
+                      ) : (
+                        <select
+                          className="sp-input"
+                          required
+                          value={item.productId || ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === 'CUSTOM') {
+                              setItems(prev => prev.map((it, i) => i !== idx ? it : { ...it, isCustom: true, productId: undefined, productName: '', unitPrice: 0 }));
+                            } else if (val) {
+                              const p = products.find(prod => prod.id === parseInt(val));
+                              if (p) {
+                                setItems(prev => prev.map((it, i) => i !== idx ? it : { ...it, isCustom: false, productId: p.id, productName: p.name, unitPrice: Number(p.defaultPrice) }));
+                              }
+                            } else {
+                               setItems(prev => prev.map((it, i) => i !== idx ? it : { ...it, isCustom: false, productId: undefined, productName: '', unitPrice: 0 }));
+                            }
+                          }}
+                        >
+                          <option value="">-- เลือกสินค้าจากแคตตาล็อก --</option>
+                          {products.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} (฿{Number(p.defaultPrice).toFixed(2)} / {p.unit || 'ชิ้น'})</option>
+                          ))}
+                          <option value="CUSTOM">+ พิมพ์รายการอื่นเอง (Custom Item)</option>
+                        </select>
+                      )}
                     </div>
                     <div className="sp-field">
                       <label className="sp-label">จำนวน</label>
@@ -316,6 +310,24 @@ export default function CreateOrderPage() {
                   {weatherChecking ? 'กำลังเช็ค...' : 'เช็คสภาพอากาศ'}
                 </button>
               </div>
+            </div>
+            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+              <label className="sp-label">ดึงพิกัดอัตโนมัติ (Google Maps / LINE)</label>
+              <input 
+                type="text" 
+                placeholder="วางลิงก์ Location ที่ลูกค้าส่งมาที่นี่..." 
+                className="sp-input" 
+                onChange={(e) => {
+                  const link = e.target.value;
+                  if (!link) return;
+                  const match = link.match(/@?(-?\d+\.\d+),(-?\d+\.\d+)/) || link.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+                  if (match) {
+                    setFormData({ ...formData, lat: match[1], lng: match[2] });
+                    e.target.value = '';
+                    alert("📍 ดึงพิกัดสำเร็จ!");
+                  }
+                }}
+              />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div className="sp-field">
