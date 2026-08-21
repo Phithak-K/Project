@@ -56,8 +56,8 @@ export default function TrackingDetailPage() {
         </div>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#18181b', marginBottom: '0.5rem' }}>{error || 'Order Not Found'}</h1>
         <p style={{ color: '#71717a', marginBottom: '2rem', textAlign: 'center' }}>The tracking number you entered might be incorrect or does not exist.</p>
-        <button onClick={() => router.push('/track')} style={{ background: '#18181b', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ArrowLeft size={16} /> Back to Search
+        <button onClick={() => router.push('/')} style={{ background: '#18181b', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ArrowLeft size={16} /> Back to Home
         </button>
       </div>
     );
@@ -84,8 +84,8 @@ export default function TrackingDetailPage() {
             Swift<span style={{ color: 'oklch(65% 0.18 30)' }}>Path</span>
           </span>
         </div>
-        <button onClick={() => router.push('/track')} style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#52525b', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
-          <Search size={16} /> New Search
+        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#52525b', fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
+          <Search size={16} /> กลับหน้าหลัก
         </button>
       </nav>
 
