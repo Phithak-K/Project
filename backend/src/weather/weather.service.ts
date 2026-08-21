@@ -42,7 +42,7 @@ export class WeatherService {
       'Phuket,TH',
       'Chonburi,TH',
       'Khon Kaen,TH',
-      'Korat,TH',
+      'Nakhon Ratchasima,TH', // OpenWeatherMap doesn't recognize 'Korat,TH' well
       'Surat Thani,TH',
       'Hat Yai,TH',
     ];
@@ -59,7 +59,7 @@ export class WeatherService {
             main === 'Drizzle'
           ) {
             hotspots.push({
-              city: city.replace(',TH', ''),
+              city: city === 'Nakhon Ratchasima,TH' ? 'Korat' : city.replace(',TH', ''),
               condition: main,
               temp: data.main.temp,
               description: data.weather[0].description,

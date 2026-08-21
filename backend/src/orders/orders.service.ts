@@ -426,9 +426,9 @@ export class OrdersService {
       throw new BadRequestException('Tracking number is required');
 
     // ✅ MEDIUM-02 FIX: Validate format — ป้องกันส่ง payload ยาวไม่จำกัด
-    if (!/^SP[A-Z0-9]{10}$/.test(trackingNumber)) {
+    if (!/^SP[A-Z0-9-]{8,15}$/.test(trackingNumber)) {
       throw new BadRequestException(
-        'รูปแบบหมายเลขพัสดุไม่ถูกต้อง (ตัวอย่าง: SP1A2B3C4D5E)',
+        'รูปแบบหมายเลขพัสดุไม่ถูกต้อง (ตัวอย่าง: SP1A2B3C4D5E, SP-DEMO-001)',
       );
     }
 

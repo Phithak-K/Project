@@ -194,7 +194,7 @@ export default function DriverRadarPage() {
     setAccepting(orderId);
     try {
       const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
-      if (res.ok) router.push(`/orders/${orderId}`);
+      if (res.ok) router.push(`/driver/orders/${orderId}`);
       else {
         const e = await res.json();
         alert(e.message || 'ไม่สามารถรับงานได้');
@@ -220,6 +220,11 @@ export default function DriverRadarPage() {
           <span className="sp-caps" style={{ color: 'var(--n-600)' }}>Radar</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button 
+            onClick={() => router.push('/driver')} 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', fontSize: '0.875rem', fontWeight: 600 }}>
+            งานของฉัน
+          </button>
           <span className="sp-caps" style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'sp-in 1.2s ease-in-out infinite alternate' }} />
             Live
@@ -227,7 +232,7 @@ export default function DriverRadarPage() {
           <button
             onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' });
-              window.location.href = '/login';
+              window.location.href = '/driver/login';
             }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
             <LogOut size={18} />
