@@ -71,7 +71,7 @@ sequenceDiagram
 - **Database:** PostgreSQL บริหารด้วย Prisma ORM
 - **Security:** Passport.js (JWT), OTP Authentication, NestJS Throttler ป้องกัน Brute-force
 - **Real-Time:** Socket.io Gateway สำหรับ Tracking
-- **Storage:** Firebase Storage สำหรับอัปโหลดรูปหลักฐานการส่งมอบ (Proof of Delivery)
+- **Storage:** Data URI / SVG (Mock POD) สำหรับจำลองการส่งรูปหลักฐานรวดเร็ว (Demo-Ready) หรือต่อยอดเป็น Firebase Storage ได้ในอนาคต
 
 ---
 
@@ -91,6 +91,13 @@ sequenceDiagram
 ### 4.4 Optimistic Concurrency Control (OCC)
 สำหรับป้องกัน Race Condition ในการอัปเดตข้อมูลทางการเงินของร้านค้า ใช้กลไกฟิลด์ `version` ใน Prisma เพื่อทำ Atomic Update ยืนยันว่า Data Consistency จะไม่พังเมื่อมีการ Request เข้ามาพร้อมกัน (เช่น การคำนวณยอดขายสรุปสิ้นวัน)
 
+### 4.5 ระบบ Auto-fill และสกัดพิกัด (Smart Form)
+- **Google Maps Parser:** สกัดพิกัด Lat/Lng อัตโนมัติจากลิงก์แผนที่ที่ลูกค้าระบุมา
+- **Catalog Dropdown:** ระบบเลือกสินค้าที่ดึงราคาจาก Master Data อัตโนมัติ พร้อมสลับเป็นโหมด Custom Item (พิมพ์เอง) ได้อย่างอิสระ
+
+### 4.6 Flexible Payment & Workflow
+- **ชำระเงินยืดหยุ่น:** คนขับเลือกได้ระหว่างรับชำระผ่าน PromptPay QR หรือ "รับเงินสด/ชำระล่วงหน้าแล้ว" ช่วยให้ปิดงานได้ทันทีไม่ติดขัด
+- **Mock POD:** ฟังก์ชันถ่ายภาพจำลองเพื่อความรวดเร็วในการนำเสนอ (Demo) โดยไม่ต้องพึ่งพา Cloud Storage
 ---
 
 ## 5. การติดตั้งสำหรับการพัฒนาในเครื่อง
