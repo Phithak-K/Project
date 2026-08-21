@@ -50,15 +50,12 @@ cd backend
    ```bash
    npx prisma db push
    ```
-2. **สร้างข้อมูล Admin เริ่มต้น (Seeding)**:
-   รันสคริปต์สำหรับการลงทะเบียนบัญชี Admin ตัวแรกเข้าฐานข้อมูล:
+2. **สร้างข้อมูลทดสอบ (Demo Seeding)**:
+   รันคำสั่งสำหรับการสร้างข้อมูลทดสอบทั้งหมด (รวมถึง Admin, ร้านค้า, คนขับ, และออเดอร์จำลอง) เพื่อให้พร้อมสำหรับการนำเสนอ (Demo-ready):
    ```bash
-   npx ts-node prisma/seed-admin.ts
+   npx prisma db seed
    ```
-    * **บัญชีผู้ดูแลระบบที่จะถูกสร้าง (อิงตามที่กำหนดใน .env)**:
-      * **Email**: `<ADMIN_SEED_EMAIL>` (เช่น `admin@swiftpath.com`)
-      * **Password**: `<ADMIN_SEED_PASSWORD>`
-
+   *(หมายเหตุ: รหัสผ่านของ Account ทดสอบทุก Role จะถูกกำหนดไว้ในไฟล์ `prisma/seed.ts`)*
 
 ---
 
