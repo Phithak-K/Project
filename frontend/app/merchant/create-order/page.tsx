@@ -139,7 +139,7 @@ export default function CreateOrderPage() {
         await clearSession();
         window.location.replace('/login');
       } else if (res.ok) {
-        router.push('/orders'); // [FIX-004] ไปหน้ารายการออเดอร์แทน Landing Page
+        router.push('/merchant'); // กลับไปหน้ารายการออเดอร์ (Dashboard)
       } else {
         const err = await res.json();
         alert(err.message || 'เกิดข้อผิดพลาดในการสร้างออเดอร์');

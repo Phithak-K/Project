@@ -213,7 +213,7 @@ export default function MerchantDashboard() {
                             <UserCheck size={12} /> มอบหมายคนขับ
                           </button>
                         )}
-                        <Link href={`/orders/${order.id}`}>
+                        <Link href={`/merchant/orders/${order.id}`}>
                           <ChevronRight size={16} style={{ color: 'var(--n-300)' }} />
                         </Link>
                       </td>
