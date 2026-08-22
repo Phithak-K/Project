@@ -59,7 +59,7 @@ export default function DriverDashboard() {
       const res = await fetch(`/api/proxy/orders/${orderId}/accept`, {
         method: 'PATCH'
       });
-      if (res.ok) router.push(`/orders/${orderId}`);
+      if (res.ok) router.push(`/driver/orders/${orderId}`); // [FIX-005] ใช้ full path ป้องกัน 404 บน fleet subdomain
       else { const e = await res.json(); showNotice('error', e.message || 'ไม่สามารถรับงานได้'); fetchData(); }
     } catch { showNotice('error', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่'); }
     finally { setAccepting(null); }

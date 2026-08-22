@@ -138,8 +138,8 @@ export default function OrderMap({
         driverMarkerRef.current = L.marker([driverLat, driverLng], { icon: driverIcon })
           .addTo(map);
       } else {
-        // Create it anyway but place it far or wait for socket
-        driverMarkerRef.current = L.marker([0, 0], { icon: driverIcon });
+        // [FIX-006] สร้าง marker แต่ซ่อนไว้ก่อน — จะแสดงเมื่อรับพิกัดจริงจาก Socket
+        driverMarkerRef.current = L.marker([0, 0], { icon: driverIcon, opacity: 0 });
       }
 
       // Adjust bounds if both exist and are valid
@@ -199,6 +199,7 @@ export default function OrderMap({
         }
         
         driverMarkerRef.current.setLatLng(newLatLng);
+        driverMarkerRef.current.setOpacity(1); // [FIX-006] แสดง marker เมื่อมีพิกัดจริง
         mapInstanceRef.current.panTo(newLatLng, { animate: true, duration: 1 });
         
         if (onLiveStatusChange) onLiveStatusChange(true);

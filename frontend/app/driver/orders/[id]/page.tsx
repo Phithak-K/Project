@@ -359,7 +359,11 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                   <a href={`tel:${order.receiverPhone}`} className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Phone size={14} /> โทรหาผู้รับ
                   </a>
-                  <a href={`https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}`} target="_blank" rel="noreferrer" className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <a href={
+                    order.lat && order.lng
+                      ? `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}`
+                      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`
+                  } target="_blank" rel="noreferrer" className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <Navigation size={14} /> นำทาง
                   </a>
                 </div>
@@ -528,12 +532,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
       </main>
 
       {/* ChatBox Widget */}
-      {order.userId && (
+      {order.customerId && (
         <ChatBox 
           orderId={order.id}
           currentRole="Driver"
           receiverRole="Customer"
-          receiverId={order.userId}
+          receiverId={order.customerId}
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
         />

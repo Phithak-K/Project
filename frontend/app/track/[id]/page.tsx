@@ -15,12 +15,12 @@ export default function TrackingDetailPage() {
   const [error, setError] = useState('');
   const [isLive, setIsLive] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+  // [FIX-003] ใช้ Next.js API Proxy แทน Direct URL เพื่อป้องกัน CORS บน Production
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`${API_URL}/orders/track/${trackingNumber}`);
+        const res = await fetch(`/api/proxy/orders/track/${trackingNumber}`);
         if (!res.ok) {
           const data = await res.json();
           setError(data.message || 'Tracking number not found');
@@ -38,7 +38,7 @@ export default function TrackingDetailPage() {
     if (trackingNumber) {
       fetchOrder();
     }
-  }, [trackingNumber, API_URL]);
+  }, [trackingNumber]);
 
   if (loading) {
     return (
