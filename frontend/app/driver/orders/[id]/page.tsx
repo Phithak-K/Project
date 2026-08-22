@@ -422,9 +422,9 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                   <button 
                     type="button" 
                     onClick={() => {
-                      // ใช้ Data URI แทนรูปจำลอง เพื่อไม่ให้ต้องเชื่อม S3 จริง
-                      setProofImage('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" fill="%23222"><rect width="100%" height="100%"/><text x="50%" y="50%" fill="%23fff" font-family="sans-serif" font-size="16" text-anchor="middle" dy=".3em">Mock Photo</text></svg>');
-                      toast.success('บันทึกภาพหลักฐานสำเร็จ');
+                      // ใช้ Base64 PNG ที่ถูกต้องเพื่อให้ Backend (firebase-storage.ts) อ่าน Regex ผ่าน
+                      setProofImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+                      toast.success('บันทึกภาพหลักฐานสำเร็จ (Mock PNG)');
                     }}
                     style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-800)', borderRadius: '1rem', background: 'transparent', color: 'var(--n-600)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                   >
