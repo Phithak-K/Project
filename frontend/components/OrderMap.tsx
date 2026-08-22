@@ -159,14 +159,16 @@ export default function OrderMap({
     
     async function initSocket() {
       let token = '';
-      try {
-        const tokenRes = await fetch('/api/auth/token');
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          token = tokenData.token;
+      if (orderId) {
+        try {
+          const tokenRes = await fetch('/api/auth/token');
+          if (tokenRes.ok) {
+            const tokenData = await tokenRes.json();
+            token = tokenData.token;
+          }
+        } catch (err) {
+          console.warn("Failed to fetch client token for socket", err);
         }
-      } catch (err) {
-        console.warn("Failed to fetch client token for socket", err);
       }
 
       const socketOptions: any = { transports: ['websocket', 'polling'], withCredentials: true };
