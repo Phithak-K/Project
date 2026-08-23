@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain } from 'lucide-react';
+import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain, User } from 'lucide-react';
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -82,6 +82,9 @@ export default function DriverDashboard() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Link href="/driver/radar" className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
             <Navigation size={14} /> ดูเรดาร์
+          </Link>
+          <Link href="/driver/profile" style={{ display: 'flex', color: 'var(--n-600)', opacity: 0.8 }} aria-label="โปรไฟล์">
+            <User size={18} />
           </Link>
           <button onClick={handleLogout} aria-label="ออกจากระบบ" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
             <LogOut size={18} />

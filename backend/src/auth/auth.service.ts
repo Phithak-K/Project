@@ -326,6 +326,43 @@ export class AuthService implements OnModuleInit {
     };
   }
 
+  // --- 🆕 ส่วนสำหรับ Change Password เมื่อเข้าสู่ระบบแล้ว ---
+  async changePassword(
+    userId: number,
+    roleStr: string,
+    oldPassword?: string,
+    newPassword?: string,
+  ) {
+    if (!oldPassword || !newPassword) {
+      throw new BadRequestException('กรุณาระบุรหัสผ่านเดิมและรหัสผ่านใหม่');
+    }
+
+    const model = this.getModel(roleStr);
+    const user = await (model as any).findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.password) {
+      throw new BadRequestException(
+        'ไม่สามารถเปลี่ยนรหัสผ่านได้ เนื่องจากบัญชีนี้อาจสมัครผ่านช่องทางอื่น',
+      );
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('รหัสผ่านเดิมไม่ถูกต้อง');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await (model as any).update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { message: 'เปลี่ยนรหัสผ่านสำเร็จ' };
+  }
+
   // 3. เข้าสู่ระบบแบบเฉพาะเจาะจงตาราง (Strict Isolation)
   async login(loginDto: LoginDto) {
     const roleStr = loginDto.role || 'Customer';

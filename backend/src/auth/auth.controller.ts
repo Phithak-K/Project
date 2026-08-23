@@ -6,6 +6,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
@@ -59,6 +60,19 @@ export class AuthController {
     return this.authService.resetPassword(
       body.email,
       body.otp,
+      body.newPassword,
+    );
+  }
+
+  // --- 🆕 ส่วนสำหรับ Change Password เมื่อเข้าสู่ระบบแล้ว ---
+  @UseGuards(JwtAuthGuard)
+  @Patch('change-password')
+  @HttpCode(HttpStatus.OK)
+  async changePassword(@Req() req: any, @Body() body: any) {
+    return this.authService.changePassword(
+      req.user.userId,
+      req.user.role,
+      body.oldPassword,
       body.newPassword,
     );
   }

@@ -98,17 +98,12 @@ export class UsersService {
     const delegate = this.getDelegate(role);
     const user = await delegate.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        phone: true,
-        balance: true,
-        isVerified: true,
-      },
     });
     if (!user)
       throw new NotFoundException(`User with ID ${id} not found in ${role}`);
+    
+    // Remove sensitive data
+    delete user.password;
     return user;
   }
 
@@ -123,11 +118,12 @@ export class UsersService {
     delete (safeUpdateDto as any).isVerified;
     delete (safeUpdateDto as any).role;
 
-    return delegate.update({
+    const updatedUser = await delegate.update({
       where: { id },
       data: safeUpdateDto,
-      select: { id: true, email: true, name: true, phone: true },
     });
+    delete updatedUser.password;
+    return updatedUser;
   }
 
   async update(id: number, updateUserDto: UpdateUserDto, role: string) {

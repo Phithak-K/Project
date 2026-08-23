@@ -17,6 +17,11 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
+  // Password state
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -75,6 +80,31 @@ export default function ProfilePage() {
       toast.error('Network Error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordSaving(true);
+    try {
+      const res = await fetch('/api/proxy/auth/change-password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('เปลี่ยนรหัสผ่านสำเร็จ');
+        setOldPassword('');
+        setNewPassword('');
+      } else {
+        toast.error(data.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้');
+      }
+    } catch {
+      toast.error('Network Error');
+    } finally {
+      setPasswordSaving(false);
     }
   };
 
@@ -168,12 +198,44 @@ export default function ProfilePage() {
                 <>บันทึกการเปลี่ยนแปลง <ArrowRight size={16} /></>
               )}
             </button>
+          </form>
+        )}
+
+        {!loading && (
+          <form onSubmit={handlePasswordSubmit} className="sp-card sp-animate" style={{ marginTop: '2rem' }}>
+            <h2 className="sp-font-display sp-text-md" style={{ marginBottom: '1.25rem' }}>เปลี่ยนรหัสผ่าน</h2>
             
-            <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-              <Link href="/forgot-password" className="sp-link-muted" style={{ fontSize: '0.875rem' }}>
-                ต้องการเปลี่ยนรหัสผ่าน?
-              </Link>
-            </div>
+            <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>รหัสผ่านเดิม</label>
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="sp-input"
+              style={{ width: '100%', marginBottom: '1.25rem' }}
+              placeholder="กรอกรหัสผ่านปัจจุบัน"
+              required
+            />
+
+            <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>รหัสผ่านใหม่</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="sp-input"
+              style={{ width: '100%', marginBottom: '2rem' }}
+              placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
+              required
+              minLength={6}
+            />
+
+            <button
+              type="submit"
+              disabled={passwordSaving || !oldPassword || !newPassword}
+              className="sp-btn-ghost sp-btn-full"
+              style={{ padding: '0.875rem', background: 'var(--n-100)' }}
+            >
+              {passwordSaving ? <span className="sp-spinner" /> : 'ยืนยันเปลี่ยนรหัสผ่าน'}
+            </button>
           </form>
         )}
       </main>

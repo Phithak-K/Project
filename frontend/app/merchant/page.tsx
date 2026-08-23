@@ -94,6 +94,9 @@ export default function MerchantDashboard() {
           <button id="btn-refresh" onClick={fetchData} title="รีเฟรช" aria-label="รีเฟรชข้อมูล" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', display: 'flex' }}>
             <RefreshCcw size={17} className={isRefreshing ? 'sp-spinner' : ''} />
           </button>
+          <Link href="/profile" className="sp-btn-ghost" style={{ padding: '0.4rem', color: 'var(--n-500)' }} aria-label="โปรไฟล์">
+            <UserCheck size={18} />
+          </Link>
           <button id="btn-logout" onClick={handleLogout} aria-label="ออกจากระบบ" className="sp-btn-danger">
             <LogOut size={16} /> <span style={{ display: 'none' }}>ออกจากระบบ</span>
           </button>
