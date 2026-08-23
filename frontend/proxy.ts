@@ -287,10 +287,10 @@ export function proxy(request: NextRequest) {
   // STEP 5: Root Domain Handler (localhost:3000 ตรงๆ)
   // ════════════════════════════════════════════════════════════════════════════
   if (!currentHost || currentHost === 'localhost') {
-    if (pathname === '/' || isGuidePage) return NextResponse.next() // Landing + Guide
+    if (pathname === '/' || isGuidePage || pathname.startsWith('/track')) return NextResponse.next() // Landing + Guide + Track
 
     // Auth + Orders บน Root → เด้งไป app subdomain
-    if (isAuthPage || isSharedPublicPage || pathname.startsWith('/orders')) {
+    if (isAuthPage || (isSharedPublicPage && !pathname.startsWith('/track')) || pathname.startsWith('/orders')) {
       return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
     }
 
