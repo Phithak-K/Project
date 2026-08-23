@@ -11,8 +11,8 @@ export class CreateOrderItemDto {
   @IsNotEmpty({ message: 'ต้องระบุชื่อสินค้า' })
   productName: string;
 
-  @IsNumber()
-  @Min(1, { message: 'จำนวนต้องอย่างน้อย 1' })
+  @IsNumber({ allowInfinity: false, allowNaN: false })
+  @Min(0.01, { message: 'จำนวนต้องมากกว่า 0 (รองรับทศนิยม เช่น 0.5 กก.)' })
   quantity: number;
 
   @IsNumber()

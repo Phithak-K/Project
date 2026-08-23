@@ -21,9 +21,9 @@ export class CreateOrderDto {
   @IsOptional()
   productDetail?: string;
 
-  @IsNumber()
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @IsOptional()
-  @Min(1, { message: 'จำนวนสินค้าต้องอย่างน้อย 1 ชิ้น' })
+  @Min(0.01, { message: 'จำนวนสินค้าต้องมากกว่า 0 (รองรับทศนิยม เช่น 0.5 กก.)' })
   quantity?: number;
 
   @IsNumber()

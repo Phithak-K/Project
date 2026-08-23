@@ -141,7 +141,7 @@ model Order {
   trackingNumber   String        @unique
   productName      String?       // ✅ Optional — ถ้ามี items[] จะ auto-generate
   productDetail    String?
-  quantity         Int           @default(1)
+  quantity         Decimal       @default(1) // ✅ รองรับทศนิยม เช่น 0.5 กก.
   
   // --- ระบบราคาและสภาพอากาศ ---
   price            Decimal       // ราคาต้นทุนสินค้า (รวมจาก items หรือกำหนดตรง)
@@ -199,7 +199,7 @@ model OrderItem {
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   productName  String
-  quantity     Int      @default(1)
+  quantity     Decimal  @default(1) // ✅ รองรับทศนิยม เช่น 1.5 กก. สำหรับสินค้าชั่งน้ำหนัก
   unitPrice    Decimal
   totalPrice   Decimal  // quantity * unitPrice
 

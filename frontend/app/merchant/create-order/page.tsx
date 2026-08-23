@@ -10,8 +10,8 @@ import {
 
 interface OrderItem {
   productName: string;
-  quantity: number;
-  unitPrice: number;
+  quantity: number | '';   // ✅ อนุญาตให้ว่างชั่วคราวขณะพิมพ์ได้
+  unitPrice: number | '';  // ✅ อนุญาตให้ว่างชั่วคราวขณะพิมพ์ได้
   note: string;
   productId?: number;
   isCustom?: boolean;
@@ -24,7 +24,7 @@ interface Product {
   defaultPrice: number;
 }
 
-const emptyItem = (): OrderItem => ({ productName: '', quantity: 1, unitPrice: 0, note: '', isCustom: false });
+const emptyItem = (): OrderItem => ({ productName: '', quantity: '', unitPrice: '', note: '', isCustom: false });
 
 export default function CreateOrderPage() {
   const router = useRouter();
@@ -69,16 +69,14 @@ export default function CreateOrderPage() {
   const updateItem = (idx: number, field: keyof OrderItem, value: string | number | boolean) => {
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
-      const updated = { ...item, [field]: value };
-      if (field === 'quantity' || field === 'unitPrice') {
-        // auto-compute อัตโนมัติ
-      }
-      return updated;
+      // ✅ อนุญาตให้ quantity/unitPrice ว่างชั่วคราวขณะพิมพ์ ไม่บังคับเด้งกลับเป็น 1
+      return { ...item, [field]: value };
     }));
   };
 
   // ── Summary ──
-  const itemsTotal = items.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+  // ✅ ป้องกัน NaN เมื่อช่องว่าง โดยใช้ Number() || 0 แทนการคูณตรงๆ
+  const itemsTotal = items.reduce((sum, item) => sum + ((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)), 0);
   const surgeAmount = weatherData?.surge || 0;
   const insuranceFee = formData.hasInsurance ? 50 : 0;
   const grandTotal = itemsTotal + surgeAmount + insuranceFee;
@@ -109,8 +107,8 @@ export default function CreateOrderPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const invalidItems = items.filter(i => !i.productName.trim() || i.unitPrice <= 0);
-    if (invalidItems.length > 0) { alert('กรุณากรอกชื่อสินค้าและราคาให้ครบทุกรายการ'); return; }
+    const invalidItems = items.filter(i => !i.productName.trim() || (Number(i.unitPrice) || 0) <= 0 || (Number(i.quantity) || 0) <= 0);
+    if (invalidItems.length > 0) { alert('กรุณากรอกชื่อสินค้า จำนวน และราคาให้ครบทุกรายการ'); return; }
 
     setLoading(true);
     try {
@@ -120,8 +118,8 @@ export default function CreateOrderPage() {
         body: JSON.stringify({
           items: items.map(i => ({
             productName: i.productName,
-            quantity: i.quantity,
-            unitPrice: i.unitPrice,
+            quantity: Number(i.quantity) || 1,   // ✅ แปลงเป็นตัวเลขก่อนส่ง API รองรับทศนิยม
+            unitPrice: Number(i.unitPrice) || 0,
             note: i.note || undefined,
             productId: i.productId || undefined,
           })),
@@ -235,10 +233,23 @@ export default function CreateOrderPage() {
                       )}
                     </div>
                     <div className="sp-field">
-                      <label className="sp-label">จำนวน</label>
+                      <label className="sp-label">
+                        จำนวน{item.productId && products.find(p => p.id === item.productId)?.unit ? ` (${products.find(p => p.id === item.productId)?.unit})` : ''}
+                      </label>
                       <input
-                        type="number" min="1" required value={item.quantity}
-                        onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)}
+                        type="number" min="0.01" step="any" required
+                        value={item.quantity}
+                        onChange={e => {
+                          const raw = e.target.value;
+                          // ✅ อนุญาตให้ว่างได้ขณะพิมพ์ ไม่บังคับเด้งกลับ 1
+                          updateItem(idx, 'quantity', raw === '' ? '' : parseFloat(raw));
+                        }}
+                        onBlur={e => {
+                          // ✅ ตอน blur: ถ้ายังว่างหรือ <= 0 ให้แจ้งเตือน
+                          const v = parseFloat(e.target.value);
+                          if (!v || v <= 0) updateItem(idx, 'quantity', '');
+                        }}
+                        placeholder="0.5"
                         className="sp-input"
                       />
                     </div>
@@ -260,7 +271,7 @@ export default function CreateOrderPage() {
                     />
                   </div>
                   <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--n-500)' }}>
-                    รวม: <strong style={{ color: 'var(--n-800)' }}>฿{(item.unitPrice * item.quantity).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong>
+                    รวม: <strong style={{ color: 'var(--n-800)' }}>฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 </div>
               ))}
@@ -383,7 +394,7 @@ export default function CreateOrderPage() {
                 {items.map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
                     <span style={{ color: 'var(--n-500)' }}>{item.productName || `รายการ ${idx + 1}`} ×{item.quantity}</span>
-                    <span style={{ color: 'var(--n-200)' }}>฿{(item.unitPrice * item.quantity).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                    <span style={{ color: 'var(--n-200)' }}>฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
                 <div style={{ height: '1px', background: 'var(--n-700)', margin: '0.25rem 0' }} />
