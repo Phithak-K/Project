@@ -16,6 +16,14 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; i
   CANCELLED: { label: 'ยกเลิก',     color: '#dc2626', bg: '#fef2f2', icon: XCircle },
 };
 
+// [FIX-PII] Mask เบอร์โทรผู้รับเพื่อป้องกันการเปิดเผยข้อมูลส่วนตัวบนหน้า Public
+const maskPhone = (p: string): string => {
+  if (!p) return '***';
+  const digits = p.replace(/\D/g, '');
+  if (digits.length < 4) return '***';
+  return digits.slice(0, 3) + '-XXX-' + digits.slice(-4);
+};
+
 export default function TrackByPhonePage() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
@@ -23,7 +31,7 @@ export default function TrackByPhonePage() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  // [FIX-003] ใช้ Next.js Proxy แทน Direct URL เพื่อป้องกัน CORS บน Production
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +40,7 @@ export default function TrackByPhonePage() {
     setOrders([]);
     setSearched(false);
     try {
-      const res = await fetch(`${API_URL}/orders/track-by-phone/${encodeURIComponent(phone.trim())}`);
+      const res = await fetch(`/api/proxy/orders/track-by-phone/${encodeURIComponent(phone.trim())}`);
       if (res.ok) {
         setOrders(await res.json());
       } else {
@@ -131,6 +139,9 @@ export default function TrackByPhonePage() {
                             </div>
                             {order.merchant?.storeName && (
                               <div style={{ color: 'var(--n-500)', fontSize: '0.8rem' }}>จากร้าน: {order.merchant.storeName}</div>
+                            )}
+                            {order.receiverPhone && (
+                              <div style={{ color: 'var(--n-400)', fontSize: '0.78rem' }}>ผู้รับ: {maskPhone(order.receiverPhone)}</div>
                             )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.75rem', borderRadius: '2rem', background: cfg.bg, color: cfg.color, fontSize: '0.75rem', fontWeight: 700, whiteSpace: 'nowrap' }}>

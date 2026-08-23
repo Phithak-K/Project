@@ -16,7 +16,7 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  // [FIX-003] ใช้ Next.js Proxy แทน Direct URL เพื่อป้องกัน CORS บน Production
 
   useEffect(() => {
     const emailParam = searchParams.get('email');
@@ -38,7 +38,7 @@ function ResetPasswordForm() {
     
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/auth/reset-password`, {
+      const res = await fetch('/api/proxy/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, newPassword }),
