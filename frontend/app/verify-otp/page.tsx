@@ -22,6 +22,10 @@ export default function VerifyOtpPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email) {
+      setError('ไม่พบข้อมูลอีเมลในระบบ กรุณากลับไปล็อกอินหรือสมัครใหม่อีกครั้ง');
+      return;
+    }
     setIsLoading(true);
     setError('');
 
@@ -58,7 +62,10 @@ export default function VerifyOtpPage() {
   };
 
   const handleResend = async () => {
-    if (!email) return;
+    if (!email) {
+      setError('ไม่พบข้อมูลอีเมลในระบบ กรุณากลับไปล็อกอินหรือสมัครใหม่อีกครั้ง');
+      return;
+    }
     setIsResending(true);
     setError('');
     try {
