@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Store, Phone, Mail, ArrowRight, CheckCircle } from 'lucide-react';
+import { Store, Phone, Mail, ArrowRight, CheckCircle, User } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
@@ -15,6 +15,7 @@ export default function MerchantProfilePage() {
 
   // Form state
   const [name, setName] = useState('');
+  const [storeName, setStoreName] = useState('');
   const [phone, setPhone] = useState('');
 
   // Password state
@@ -42,6 +43,7 @@ export default function MerchantProfilePage() {
         const data = await res.json();
         setProfile(data);
         setName(data.name || '');
+        setStoreName(data.storeName || '');
         setPhone(data.phone || '');
       } else {
         toast.error('ไม่สามารถดึงข้อมูลโปรไฟล์ได้');
@@ -64,13 +66,13 @@ export default function MerchantProfilePage() {
       const res = await fetch('/api/proxy/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone }),
+        body: JSON.stringify({ name, storeName, phone }),
       });
       
       const data = await res.json();
       if (res.ok) {
         toast.success('อัปเดตข้อมูลร้านค้าสำเร็จ');
-        setProfile({ ...profile, name: data.name, phone: data.phone });
+        setProfile({ ...profile, name: data.name, storeName: data.storeName, phone: data.phone });
       } else {
         toast.error(data.message || 'ไม่สามารถอัปเดตข้อมูลได้');
       }
@@ -160,16 +162,30 @@ export default function MerchantProfilePage() {
                 />
               </div>
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อร้านค้า (หรือชื่อเจ้าของ)</label>
+              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อร้านค้า</label>
               <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
                 <Store size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+                <input
+                  type="text"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  className="sp-input"
+                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  placeholder="กรอกชื่อร้านค้าของคุณ"
+                  required
+                />
+              </div>
+
+              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อ-นามสกุล (เจ้าของร้าน)</label>
+              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
+                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="sp-input"
                   style={{ paddingLeft: '2.75rem', width: '100%' }}
-                  placeholder="กรอกชื่อร้านค้าของคุณ"
+                  placeholder="กรอกชื่อ-นามสกุลของคุณ"
                   required
                 />
               </div>
