@@ -271,7 +271,7 @@ export function proxy(request: NextRequest) {
     const authResult = checkAuthPageAccess(ctx)
     if (authResult) return authResult
     // ถ้ายังไม่ล็อกอิน → ปล่อยผ่าน (Rewrite ท้ายไฟล์จะจัดการ)
-  } else {
+  } else if (!isSharedPublicPage) {
     // ════════════════════════════════════════════════════════════════════════
     // STEP 4: Role-Based Access Control (ตรวจแบบขนาน ใครโดน return ก่อน)
     // ════════════════════════════════════════════════════════════════════════
