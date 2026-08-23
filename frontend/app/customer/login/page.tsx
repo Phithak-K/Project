@@ -129,7 +129,10 @@ export default function CustomerLoginPage() {
               />
             </div>
             <div className="sp-field">
-              <label className="sp-label">รหัสผ่าน</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.375rem' }}>
+                <label className="sp-label" style={{ marginBottom: 0 }}>รหัสผ่าน</label>
+                <Link href="/forgot-password" style={{ fontSize: '0.875rem', color: 'var(--brand-500)', fontWeight: 500, textDecoration: 'none' }}>ลืมรหัสผ่าน?</Link>
+              </div>
               <div className="sp-input-wrap">
                 <input
                   type={showPw ? 'text' : 'password'} required value={password}
