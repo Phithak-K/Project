@@ -95,25 +95,36 @@ export class AuthService implements OnModuleInit {
     const emailExists = await (model as any).findUnique({
       where: { email: dto.email },
     });
-    if (emailExists)
-      throw new BadRequestException(`อีเมลนี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+    if (emailExists) {
+      if (emailExists.isVerified) {
+        throw new BadRequestException(`อีเมลนี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+      } else {
+        await (model as any).delete({ where: { id: emailExists.id } });
+      }
+    }
 
     const phoneExists = await (model as any).findUnique({
       where: { phone: dto.phone },
     });
-    if (phoneExists)
-      throw new BadRequestException(
-        `เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
-      );
+    if (phoneExists) {
+      if (phoneExists.isVerified) {
+        throw new BadRequestException(`เบอร์โทรศัพท์นี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+      } else {
+        await (model as any).delete({ where: { id: phoneExists.id } });
+      }
+    }
 
     // ✅ เช็ก Username ซ้ำ
     const usernameExists = await (model as any).findUnique({
       where: { username: dto.username },
     });
-    if (usernameExists)
-      throw new BadRequestException(
-        `Username นี้ถูกใช้งานแล้วในระบบ ${roleStr}`,
-      );
+    if (usernameExists) {
+      if (usernameExists.isVerified) {
+        throw new BadRequestException(`Username นี้ถูกใช้งานแล้วในระบบ ${roleStr}`);
+      } else {
+        await (model as any).delete({ where: { id: usernameExists.id } });
+      }
+    }
 
     if (roleStr === 'Merchant' && !dto.storeName) {
       throw new BadRequestException(
