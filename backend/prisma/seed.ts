@@ -47,6 +47,55 @@ async function main() {
   });
   console.log('✅ Driver Created:', driver.name);
 
+  // 2.5 สร้าง Customers สำหรับ Demo ล็อกอิน
+  const customer1 = await prisma.customer.upsert({
+    where: { email: 'somkiat@swiftpath.demo' },
+    update: {},
+    create: {
+      email: 'somkiat@swiftpath.demo',
+      username: 'somkiat_customer',
+      password: hashedPassword,
+      name: 'คุณสมเกียรติ รับเหมาสร้างบ้าน',
+      phone: '0881112222',
+      balance: 15000,
+      isActive: true,
+      isVerified: true
+    }
+  });
+  console.log('✅ Customer 1 Created:', customer1.name);
+
+  const customer2 = await prisma.customer.upsert({
+    where: { email: 'nida@swiftpath.demo' },
+    update: {},
+    create: {
+      email: 'nida@swiftpath.demo',
+      username: 'nida_customer',
+      password: hashedPassword,
+      name: 'คุณนิดา ตกแต่งภายใน',
+      phone: '0883334444',
+      balance: 8000,
+      isActive: true,
+      isVerified: true
+    }
+  });
+  console.log('✅ Customer 2 Created:', customer2.name);
+
+  const customer3 = await prisma.customer.upsert({
+    where: { email: 'wichai@swiftpath.demo' },
+    update: {},
+    create: {
+      email: 'wichai@swiftpath.demo',
+      username: 'wichai_customer',
+      password: hashedPassword,
+      name: 'คุณวิชัย ผู้รับของ',
+      phone: '0891234567',
+      balance: 5000,
+      isActive: true,
+      isVerified: true
+    }
+  });
+  console.log('✅ Customer 3 Created:', customer3.name);
+
   // 3. สร้าง Products (แคตตาล็อกสินค้า 5-6 รายการ)
   const productsData = [
     { name: 'ปูนซีเมนต์ปอร์ตแลนด์', unit: 'ถุง 50 กก.', defaultPrice: 150 },
@@ -86,6 +135,7 @@ async function main() {
       trackingNumber: 'SP-DEMO-001',
       merchantId: merchant.id,
       driverId: driver.id,
+      customerId: customer1.id, // ผูกกับบัญชีลูกค้า สมเกียรติ
       receiverName: 'คุณสมเกียรติ รับเหมาสร้างบ้าน',
       receiverPhone: '0881112222',
       address: 'ไซต์งานก่อสร้าง หมู่บ้านฟ้าใส ซอย 5 จ.ปทุมธานี',
@@ -136,6 +186,7 @@ async function main() {
       trackingNumber: 'SP-DEMO-002',
       merchantId: merchant.id,
       driverId: driver.id,
+      customerId: customer2.id, // ผูกกับบัญชีลูกค้า นิดา
       receiverName: 'คุณนิดา ตกแต่งภายใน',
       receiverPhone: '0883334444',
       address: 'คอนโด LPN รังสิต',
@@ -177,6 +228,59 @@ async function main() {
         { orderId: order2.id, status: 'SHIPPING', location: 'รังสิต ปทุมธานี', note: '🚛 กำลังจัดส่งสินค้า' },
         { orderId: order2.id, status: 'DELIVERED', location: 'คอนโด LPN รังสิต (สำเร็จ)', note: '🎉 จัดส่งสำเร็จ ลูกค้าได้รับพัสดุแล้ว' }
       ]
+    });
+  }
+
+  // ออเดอร์ 3: PENDING — สำหรับ Demo ขั้นตอน Driver กดยืนยันรับงานบนหน้า Radar
+  const order3 = await prisma.order.upsert({
+    where: { trackingNumber: 'SP-DEMO-003' },
+    update: {},
+    create: {
+      trackingNumber: 'SP-DEMO-003',
+      merchantId: merchant.id,
+      customerId: customer3.id, // ผูกกับบัญชีลูกค้า วิชัย
+      receiverName: 'คุณวิชัย ผู้รับของ',
+      receiverPhone: '0891234567',
+      address: '99/5 ถ.ลาดพร้าว แขวงลาดพร้าว เขตลาดพร้าว กรุงเทพฯ 10230',
+      lat: 13.8100,
+      lng: 100.5700,
+      status: 'PENDING',
+      paymentStatus: 'Unpaid',
+      price: 135 * 10 + 450 * 2,
+      totalPrice: 135 * 10 + 450 * 2,
+      estimatedMinutes: 35,
+      productName: 'สินค้า 2 รายการ',
+      items: {
+        create: [
+          {
+            productName: products[5].name,   // เหล็กเส้นกลม SR24
+            productId: products[5].id,
+            quantity: 10,
+            unitPrice: products[5].defaultPrice,
+            totalPrice: Number(products[5].defaultPrice) * 10
+          },
+          {
+            productName: products[4].name,   // ทรายหยาบ
+            productId: products[4].id,
+            quantity: 2,
+            unitPrice: products[4].defaultPrice,
+            totalPrice: Number(products[4].defaultPrice) * 2
+          }
+        ]
+      }
+    }
+  });
+  console.log('✅ Order 3 Created (PENDING — for Driver Radar Demo):', order3.trackingNumber);
+
+  const existingLog3 = await prisma.trackingLog.findFirst({ where: { orderId: order3.id }});
+  if (!existingLog3) {
+    await prisma.trackingLog.create({
+      data: {
+        orderId: order3.id,
+        status: 'PENDING',
+        location: 'เจ๊พร วัสดุก่อสร้างและฮาร์ดแวร์',
+        note: '🆕 ร้านค้าสร้างออเดอร์สำเร็จ (ETA: 35 นาที) — รอคนขับรับงาน',
+      }
     });
   }
 

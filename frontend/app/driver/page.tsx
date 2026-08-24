@@ -209,7 +209,7 @@ export default function DriverDashboard() {
                   </div>
 
                   <button
-                    onClick={() => router.push(`/orders/${order.id}`)}
+                    onClick={() => router.push(`/driver/orders/${order.id}`)}
                     className="sp-btn-brand sp-btn-full"
                     style={{ padding: '0.75rem' }}
                   >
