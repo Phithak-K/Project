@@ -175,14 +175,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const firestore = admin.firestore();
-    const chatRef = firestore
-      .collection('chats')
-      .doc(`order_${data.orderId}`)
-      .collection('messages');
-
     let uploadedImageUrl: string | null = null;
-    let uploadedAudioUrl: string | null = null;
 
     try {
       if (data.imageUrl) {
@@ -191,30 +184,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           `chats/order_${data.orderId}/images`,
         );
       }
-      if (data.audioUrl) {
-        uploadedAudioUrl = await uploadBase64ToStorage(
-          data.audioUrl,
-          `chats/order_${data.orderId}/audio`,
-        );
-      }
+      // Note: frontend doesn't support audio, skipped.
     } catch (e: any) {
       this.logger.error('Failed to upload chat media', e);
     }
 
-    const messageDoc = {
-      orderId: data.orderId,
-      senderId: user.sub,
-      senderRole: user.role,
-      receiverId: data.receiverId,
-      receiverRole: data.receiverRole,
-      content: data.content,
-      imageUrl: uploadedImageUrl,
-      audioUrl: uploadedAudioUrl,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    };
-
-    const docRef = await chatRef.add(messageDoc);
-    const newMessage = { id: docRef.id, ...messageDoc, createdAt: new Date() };
+    const newMessage = await this.prisma.message.create({
+      data: {
+        orderId: data.orderId,
+        senderId: user.sub,
+        senderRole: user.role as any,
+        receiverId: data.receiverId,
+        receiverRole: data.receiverRole as any,
+        content: data.content || '',
+        imageUrl: uploadedImageUrl,
+      },
+    });
 
     this.server.to(`order_${data.orderId}`).emit('receive_message', newMessage);
     return newMessage;
