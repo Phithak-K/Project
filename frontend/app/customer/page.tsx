@@ -264,6 +264,11 @@ export default function CustomerDashboard() {
                   <Wallet size={16} /> Wallet: ฿{balance?.toLocaleString()}
                 </button>
               </Link>
+              <Link href="/profile" style={{ textDecoration: 'none' }}>
+                <button style={{ background: '#f4f4f5', color: '#52525b', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <User size={16} />
+                </button>
+              </Link>
               <button onClick={handleLogout} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <LogOut size={16} />
               </button>
