@@ -83,6 +83,9 @@ export default function DriverDashboard() {
           <Link href="/driver/radar" className="sp-btn-brand" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
             <Navigation size={14} /> ดูเรดาร์
           </Link>
+          <Link href="/driver/history" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.5rem 1rem', background: 'var(--n-800)', border: '1px solid var(--n-700)', borderRadius: '99px', color: 'var(--n-300)', fontSize: '0.8rem', textDecoration: 'none' }}>
+            📜 ประวัติงาน
+          </Link>
           <Link href="/driver/wallet" style={{ display: 'flex', color: 'var(--n-600)', opacity: 0.8 }} aria-label="กระเป๋าเงิน">
             <Wallet size={18} />
           </Link>

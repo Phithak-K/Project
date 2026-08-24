@@ -135,6 +135,76 @@ export class UsersService {
     });
   }
 
+  // 3. Clear sessions? (ถ้าใช้ JWT ปกติจะลบ token ฝั่ง client แต่เราเคลียร์ fcmToken ได้เพื่อเตะออกชั่วคราว)
+  async revokeSession(id: number, role: string) {
+    const delegate = this.getDelegate(role);
+    return delegate.update({
+      where: { id },
+      data: { fcmToken: null },
+    });
+  }
+
+  // ==== 🆕 Admin Feature: Tenant Management (Suspend / Approve) ====
+
+  async suspendUser(adminId: number, targetId: number, role: string, reason: string) {
+    if (!reason || reason.trim() === '') {
+      throw new BadRequestException('Suspension reason is required');
+    }
+    
+    const delegate = this.getDelegate(role);
+    const targetRoleCapitalized = role.charAt(0).toUpperCase() + role.slice(1);
+
+    const user = await delegate.findUnique({ where: { id: targetId } });
+    if (!user) throw new BadRequestException(`User not found`);
+    if (!user.isActive) throw new BadRequestException('User is already suspended');
+
+    // 1. Update isActive to false
+    await delegate.update({
+      where: { id: targetId },
+      data: { isActive: false },
+    });
+
+    // 2. Audit Log
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'SUSPEND_USER',
+        targetId,
+        targetRole: targetRoleCapitalized as any,
+        reason,
+      },
+    });
+
+    return { success: true, message: `User ${targetId} suspended successfully` };
+  }
+
+  async approveUser(adminId: number, targetId: number, role: string) {
+    const delegate = this.getDelegate(role);
+    const targetRoleCapitalized = role.charAt(0).toUpperCase() + role.slice(1);
+
+    const user = await delegate.findUnique({ where: { id: targetId } });
+    if (!user) throw new BadRequestException(`User not found`);
+    if (user.isActive) throw new BadRequestException('User is already active');
+
+    // 1. Update isActive to true
+    await delegate.update({
+      where: { id: targetId },
+      data: { isActive: true },
+    });
+
+    // 2. Audit Log
+    await this.prisma.auditLog.create({
+      data: {
+        adminId,
+        action: 'APPROVE_USER',
+        targetId,
+        targetRole: targetRoleCapitalized as any,
+      },
+    });
+
+    return { success: true, message: `User ${targetId} approved successfully` };
+  }
+
   async remove(id: number, role: string) {
     const delegate = this.getDelegate(role);
 

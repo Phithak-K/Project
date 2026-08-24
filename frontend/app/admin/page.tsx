@@ -16,6 +16,10 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
 
+  const [suspendingUser, setSuspendingUser] = useState<any>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+
   const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
     const p = v.split(`; ${name}=`);
@@ -49,6 +53,49 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/admin/login');
+  };
+
+  const handleSuspend = async () => {
+    if (!suspendingUser || !suspendReason.trim()) return;
+    setActionLoading(suspendingUser.id);
+    try {
+      const roleCapitalized = activeTab === 'customers' ? 'Customer' : activeTab === 'merchants' ? 'Merchant' : 'Driver';
+      const res = await fetch(`/api/proxy/users/${suspendingUser.id}/suspend?role=${roleCapitalized}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: suspendReason }),
+      });
+      if (res.ok) {
+        setSuspendingUser(null);
+        setSuspendReason('');
+        await fetchAll();
+      } else {
+        alert('Failed to suspend user');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    setActionLoading(id);
+    try {
+      const roleCapitalized = activeTab === 'customers' ? 'Customer' : activeTab === 'merchants' ? 'Merchant' : 'Driver';
+      const res = await fetch(`/api/proxy/users/${id}/approve?role=${roleCapitalized}`, {
+        method: 'PATCH',
+      });
+      if (res.ok) {
+        await fetchAll();
+      } else {
+        alert('Failed to approve user');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const currentUsers = users[activeTab];
@@ -203,7 +250,7 @@ export default function AdminDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #27272a' }}>
-                  {['ID', 'Name', 'Email', 'Balance', 'Verified', 'Phone'].map(h => (
+                  {['ID', 'Name', 'Email', 'Balance', 'Verified', 'Phone', 'Status', 'Action'].map(h => (
                     <th key={h} style={{ padding: '0.875rem 1.25rem', textAlign: 'left', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>
                       {h}
                     </th>
@@ -239,6 +286,44 @@ export default function AdminDashboard() {
                       </span>
                     </td>
                     <td style={{ padding: '0.875rem 1.25rem', color: '#71717a', fontSize: '0.875rem', fontFamily: 'monospace' }}>{u.phone || '—'}</td>
+                    <td style={{ padding: '0.875rem 1.25rem' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
+                        padding: '0.25rem 0.625rem', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700,
+                        background: u.isActive !== false ? 'oklch(20% 0.06 150)' : 'oklch(20% 0.05 0)',
+                        color: u.isActive !== false ? 'oklch(65% 0.15 150)' : 'oklch(60% 0.12 0)',
+                      }}>
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'currentColor' }} />
+                        {u.isActive !== false ? 'Active' : 'Suspended'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '0.875rem 1.25rem' }}>
+                      {u.isActive !== false ? (
+                        <button
+                          onClick={() => setSuspendingUser(u)}
+                          disabled={actionLoading === u.id}
+                          style={{
+                            background: 'transparent', border: '1px solid oklch(60% 0.18 20)', color: 'oklch(60% 0.18 20)',
+                            padding: '0.375rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                            opacity: actionLoading === u.id ? 0.5 : 1
+                          }}
+                        >
+                          Suspend
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleApprove(u.id)}
+                          disabled={actionLoading === u.id}
+                          style={{
+                            background: 'transparent', border: '1px solid oklch(65% 0.15 150)', color: 'oklch(65% 0.15 150)',
+                            padding: '0.375rem 0.75rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                            opacity: actionLoading === u.id ? 0.5 : 1
+                          }}
+                        >
+                          Approve
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -246,6 +331,47 @@ export default function AdminDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Suspend Modal */}
+      {suspendingUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '16px', padding: '2rem', width: '90%', maxWidth: '400px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#f4f4f5', marginBottom: '1rem' }}>Suspend User</h3>
+            <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+              You are about to suspend <strong>{suspendingUser.name || suspendingUser.email}</strong>. They will be logged out and cannot access the system until approved.
+            </p>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#a1a1aa', marginBottom: '0.5rem' }}>Reason for Suspension</label>
+              <input
+                type="text"
+                value={suspendReason}
+                onChange={e => setSuspendReason(e.target.value)}
+                placeholder="e.g. Fraudulent activity"
+                autoFocus
+                style={{
+                  width: '100%', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '8px',
+                  padding: '0.75rem', color: '#f4f4f5', fontSize: '0.875rem', outline: 'none'
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                onClick={() => { setSuspendingUser(null); setSuspendReason(''); }}
+                style={{ background: 'transparent', border: '1px solid #3f3f46', color: '#a1a1aa', padding: '0.625rem 1.25rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', fontSize: '0.875rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSuspend}
+                disabled={!suspendReason.trim() || actionLoading === suspendingUser.id}
+                style={{ background: 'oklch(65% 0.18 30)', border: 'none', color: '#fff', padding: '0.625rem 1.25rem', borderRadius: '8px', fontWeight: 700, cursor: actionLoading ? 'not-allowed' : 'pointer', fontSize: '0.875rem', opacity: !suspendReason.trim() || actionLoading ? 0.5 : 1 }}
+              >
+                {actionLoading === suspendingUser.id ? 'Suspending...' : 'Confirm Suspend'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

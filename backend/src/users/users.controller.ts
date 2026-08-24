@@ -28,7 +28,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@Req() req: any) {
-    return this.usersService.findOne(req.user.userId, req.user.role);
+    return this.usersService.findOne(Number(req.user.userId), req.user.role);
   }
 
   // 🆕 PATCH /users/profile — อัปเดตข้อมูลส่วนตัว
@@ -36,7 +36,7 @@ export class UsersController {
   @Patch('profile')
   updateProfile(@Req() req: any, @Body() updateDto: UpdateUserDto) {
     return this.usersService.updateProfile(
-      req.user.userId,
+      Number(req.user.userId),
       req.user.role,
       updateDto,
     );
@@ -49,7 +49,7 @@ export class UsersController {
   @Roles(Role.Merchant)
   @Get('my-drivers')
   getMyDrivers(@Req() req: any) {
-    return this.usersService.getMyDrivers(req.user.userId);
+    return this.usersService.getMyDrivers(Number(req.user.userId));
   }
 
   /** GET /users/find-driver?contact=xxx — ค้นหาคนขับก่อน Link */
@@ -69,7 +69,7 @@ export class UsersController {
   linkDriver(@Param('driverId') driverId: string, @Req() req: any) {
     return this.usersService.linkDriverToMerchant(
       Number(driverId),
-      req.user.userId,
+      Number(req.user.userId),
     );
   }
 
@@ -80,7 +80,7 @@ export class UsersController {
   unlinkDriver(@Param('driverId') driverId: string, @Req() req: any) {
     return this.usersService.unlinkDriverFromMerchant(
       Number(driverId),
-      req.user.userId,
+      Number(req.user.userId),
     );
   }
 
@@ -131,5 +131,31 @@ export class UsersController {
     if (!role)
       throw new BadRequestException('Role query parameter is required');
     return this.usersService.remove(+id, role);
+  }
+
+  // ==== 🆕 Admin Feature: Tenant Management ====
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @Patch(':id/suspend')
+  suspendUser(
+    @Param('id') id: string,
+    @Query('role') role: string,
+    @Body('reason') reason: string,
+    @Req() req: any,
+  ) {
+    if (!role) throw new BadRequestException('Role query parameter is required');
+    return this.usersService.suspendUser(Number(req.user.userId), +id, role, reason);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Admin)
+  @Patch(':id/approve')
+  approveUser(
+    @Param('id') id: string,
+    @Query('role') role: string,
+    @Req() req: any,
+  ) {
+    if (!role) throw new BadRequestException('Role query parameter is required');
+    return this.usersService.approveUser(Number(req.user.userId), +id, role);
   }
 }

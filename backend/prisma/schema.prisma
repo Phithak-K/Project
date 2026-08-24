@@ -295,3 +295,17 @@ model Rating {
   
   createdAt   DateTime @default(now())
 }
+
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  adminId     Int      
+  action      String   // "SUSPEND_USER", "APPROVE_USER"
+  targetId    Int      
+  targetRole  UserRole 
+  reason      String?
+  
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetId, targetRole])
+}

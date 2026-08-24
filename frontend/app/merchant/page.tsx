@@ -126,6 +126,11 @@ export default function MerchantDashboard() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link href="/merchant/history">
+              <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
+                📜 ประวัติร้านค้า
+              </button>
+            </Link>
             <Link href="/catalog">
               <button className="sp-btn-ghost" style={{ padding: '0.6rem 1rem' }}>
                 <BookOpen size={16} /> Catalog สินค้า

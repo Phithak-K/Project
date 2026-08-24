@@ -49,11 +49,18 @@ export default function MerchantDashboardPage() {
           <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
           <span className="sp-caps" style={{ color: 'var(--n-400)' }}>Merchant Stats</span>
         </div>
-        <Link href="/merchant/create-order">
-          <button className="sp-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
-            <Plus size={14} /> สร้างออเดอร์
-          </button>
-        </Link>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Link href="/merchant/history">
+            <button className="sp-btn" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'var(--n-100)', color: 'var(--n-800)', border: '1px solid var(--n-200)' }}>
+              📜 ประวัติ
+            </button>
+          </Link>
+          <Link href="/merchant/create-order">
+            <button className="sp-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+              <Plus size={14} /> สร้างออเดอร์
+            </button>
+          </Link>
+        </div>
       </nav>
 
       <main style={{ maxWidth: '600px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>

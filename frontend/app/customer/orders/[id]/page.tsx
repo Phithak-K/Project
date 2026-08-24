@@ -179,20 +179,39 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
             <h3 className="sp-section-title">สถานะการจัดส่ง</h3>
             <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>Live Update</span>
           </div>
-          <div className="sp-timeline" style={{ marginTop: '1.5rem' }}>
-            {STATUS_FLOW.map((status, idx) => {
-              const active = idx <= currentStepIdx;
-              const current = idx === currentStepIdx;
-              return (
-                <div key={status} className="sp-timeline-item" style={{ marginBottom: '1.5rem', opacity: active ? 1 : 0.4 }}>
-                  <div className={`sp-timeline-dot ${current ? 'sp-timeline-dot-active' : ''}`} style={{ background: active ? 'var(--brand-500)' : 'var(--n-200)' }} />
-                  <div>
-                    <p style={{ fontWeight: 700, color: 'var(--n-900)', fontSize: '0.95rem' }}><StatusLabel status={status} /></p>
-                    {current && <p style={{ fontSize: '0.75rem', color: 'var(--brand-600)', marginTop: '0.1rem' }}>กำลังดำเนินการ</p>}
+          <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {order.trackingLogs?.length === 0 ? (
+              <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem 0' }}>ยังไม่มีประวัติการจัดส่ง</p>
+            ) : (
+              order.trackingLogs?.map((log: any, index: number) => {
+                const isLatest = index === 0;
+                return (
+                  <div key={log.id} style={{ display: 'flex', gap: '1rem', position: 'relative', paddingBottom: index === order.trackingLogs.length - 1 ? '0' : '1.5rem' }}>
+                    {/* Vertical Line */}
+                    {index !== order.trackingLogs.length - 1 && (
+                      <div style={{ position: 'absolute', left: '7px', top: '24px', bottom: '0', width: '2px', background: 'var(--n-200)', zIndex: 0 }} />
+                    )}
+                    {/* Dot */}
+                    <div style={{ position: 'relative', zIndex: 1, marginTop: '4px' }}>
+                      <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: isLatest ? 'var(--brand-500)' : 'var(--n-200)', border: '3px solid #fff', boxShadow: '0 0 0 1px var(--n-200)' }} />
+                    </div>
+                    {/* Content */}
+                    <div style={{ flex: 1, background: isLatest ? 'var(--n-50)' : 'transparent', padding: isLatest ? '0.75rem 1rem' : '0', borderRadius: '8px', border: isLatest ? '1px solid var(--n-200)' : 'none', marginTop: isLatest ? '-8px' : '0' }}>
+                      <p style={{ fontSize: '0.85rem', fontWeight: 700, color: isLatest ? 'var(--n-900)' : 'var(--n-500)', marginBottom: '0.25rem' }}>{log.note}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--n-400)' }}>
+                        <span>{new Date(log.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                        {log.location && (
+                          <>
+                            <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--n-300)' }} />
+                            <span>{log.location}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
 

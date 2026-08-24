@@ -42,12 +42,42 @@ export class OrdersController {
     return this.ordersService.getOrderStats(Number(req.user.userId));
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Get('merchant/history')
+  getMerchantHistory(
+    @Req() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.ordersService.getMerchantHistory(
+      Number(req.user.userId),
+      startDate,
+      endDate,
+    );
+  }
+
   // ==== Driver Routes ====
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
   @Get('driver/my-jobs')
   getDriverActiveJobs(@Req() req: any) {
     return this.ordersService.getDriverActiveJobs(Number(req.user.userId));
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
+  @Get('driver/history')
+  getDriverHistory(
+    @Req() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.ordersService.getDriverHistory(
+      Number(req.user.userId),
+      startDate,
+      endDate,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -91,6 +121,21 @@ export class OrdersController {
       Number(req.user.userId),
       page ? Number(page) : 1,
       limit ? Number(limit) : 10,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Customer)
+  @Get('customer/history')
+  getCustomerHistory(
+    @Req() req: any,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.ordersService.getCustomerHistory(
+      Number(req.user.userId),
+      startDate,
+      endDate,
     );
   }
 

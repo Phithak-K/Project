@@ -616,6 +616,115 @@ export class OrdersService {
     return updatedOrder;
   }
 
+  // ✅ New Feature: Fetch merchant history and stats (Optimized + Date Filter)
+  async getMerchantHistory(
+    merchantId: number,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const merchantIdNum = Number(merchantId);
+    
+    // สร้าง Date Filter Clause
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+
+    const whereClause: any = {
+      merchantId: merchantIdNum,
+      status: OrderStatus.DELIVERED,
+    };
+
+    if (startDate || endDate) {
+      whereClause.updatedAt = dateFilter;
+    }
+
+    // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
+    const totalDelivered = await this.prisma.order.count({
+      where: whereClause,
+    });
+
+    // 2. หายอดขายรวมผ่าน Aggregate เพื่อลด Memory
+    const stats = await this.prisma.order.aggregate({
+      _sum: { totalPrice: true },
+      where: whereClause,
+    });
+
+    // 3. ดึงประวัติรายการล่าสุด 50 รายการ (ลดภาระ RAM)
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      include: {
+        driver: { select: { name: true, phone: true } },
+      },
+    });
+
+    return {
+      stats: {
+        totalDelivered,
+        totalRevenue: stats._sum.totalPrice ? stats._sum.totalPrice.toNumber() : 0,
+      },
+      orders,
+    };
+  }
+
+  // ==== Customer Routes ====
+  async getCustomerHistory(
+    customerId: number,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const whereClause: any = {
+      customerId,
+      status: OrderStatus.DELIVERED,
+    };
+
+    if (startDate || endDate) {
+      whereClause.updatedAt = {};
+      if (startDate) {
+        whereClause.updatedAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        whereClause.updatedAt.lte = end;
+      }
+    }
+
+    const totalDelivered = await this.prisma.order.count({
+      where: whereClause,
+    });
+
+    const stats = await this.prisma.order.aggregate({
+      _sum: { totalPrice: true },
+      where: whereClause,
+    });
+
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      include: {
+        driver: { select: { name: true, phone: true } },
+        merchant: { select: { name: true, storeName: true } },
+      },
+    });
+
+    return {
+      stats: {
+        totalDelivered,
+        totalSpent: stats._sum.totalPrice ? stats._sum.totalPrice.toNumber() : 0,
+      },
+      orders,
+    };
+  }
+
   // ==== 🆕 Analytics Dashboard Feature ====
   async getMerchantAnalytics(merchantId: number) {
     const startOfMonth = new Date();
@@ -731,6 +840,71 @@ export class OrdersService {
         merchant: { select: { storeName: true, phone: true } },
       },
     });
+  }
+
+  // ✅ New Feature: Fetch driver history and stats (Optimized + Date Filter)
+  async getDriverHistory(
+    driverId: number,
+    startDate?: string,
+    endDate?: string,
+  ) {
+    const driverIdNum = Number(driverId);
+    
+    // สร้าง Date Filter Clause
+    const dateFilter: any = {};
+    if (startDate) {
+      dateFilter.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.lte = end;
+    }
+
+    const whereClause: any = {
+      driverId: driverIdNum,
+      status: OrderStatus.DELIVERED,
+    };
+
+    if (startDate || endDate) {
+      whereClause.updatedAt = dateFilter;
+    }
+
+    // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
+    const totalDelivered = await this.prisma.order.count({
+      where: whereClause,
+    });
+
+    // 2. หายอดเงินสดรวมผ่าน Aggregate เพื่อลด Memory (เฉพาะ Cash/COD/Unpaid)
+    const cashStats = await this.prisma.order.aggregate({
+      _sum: { totalPrice: true },
+      where: {
+        ...whereClause,
+        OR: [
+          { paymentMethod: 'COD' },
+          { paymentMethod: 'Cash' },
+          { paymentStatus: 'Unpaid' }
+        ]
+      },
+    });
+
+    // 3. ดึงประวัติรายการล่าสุด 50 รายการ (ลดภาระ RAM)
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      include: {
+        merchant: { select: { storeName: true, phone: true } },
+      },
+    });
+
+    return {
+      stats: {
+        totalDelivered,
+        totalCashCollected: cashStats._sum.totalPrice ? cashStats._sum.totalPrice.toNumber() : 0,
+      },
+      orders,
+    };
   }
 
   async acceptOrder(orderId: number, driverId: number) {
@@ -1189,17 +1363,21 @@ export class OrdersService {
       d.setDate(d.getDate() - i);
       days.push({ date: d.toISOString().split('T')[0], revenue: 0 });
     }
-    const recentOrders = await this.prisma.order.findMany({
-      where: {
-        status: OrderStatus.DELIVERED,
-        createdAt: { gte: new Date(days[0].date) },
-      },
-      select: { totalPrice: true, price: true, createdAt: true },
-    });
-    recentOrders.forEach((o: any) => {
-      const dateStr = o.createdAt.toISOString().split('T')[0];
-      const idx = days.findIndex((d: any) => d.date === dateStr);
-      if (idx !== -1) days[idx].revenue += Number(o.totalPrice || o.price);
+    const rawRevenue = await this.prisma.$queryRaw<
+      { date: string; revenue: number }[]
+    >`
+      SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') as date, SUM("totalPrice") as revenue
+      FROM "Order"
+      WHERE "status" = 'DELIVERED'
+        AND "createdAt" >= ${new Date(days[0].date)}
+      GROUP BY TO_CHAR("createdAt", 'YYYY-MM-DD')
+    `;
+
+    rawRevenue.forEach((row) => {
+      const idx = days.findIndex((d) => d.date === row.date);
+      if (idx !== -1) {
+        days[idx].revenue = Number(row.revenue);
+      }
     });
 
     return {

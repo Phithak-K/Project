@@ -11,39 +11,39 @@
 /* ── 1. DESIGN TOKENS ────────────────────────── */
 :root {
   /* Brand — Logistics Orange (warm, authoritative, not neon) */
-  --brand-50:    oklch(97% 0.03 55);
-  --brand-100:   oklch(93% 0.06 52);
-  --brand-200:   oklch(86% 0.10 50);
-  --brand-400:   oklch(72% 0.18 46);
-  --brand-500:   oklch(62% 0.20 42);   /* PRIMARY */
-  --brand-600:   oklch(52% 0.19 40);
-  --brand-700:   oklch(42% 0.17 38);
-  --brand-800:   oklch(32% 0.12 36);
-  --brand-900:   oklch(20% 0.08 35);
+  --brand-50:    #fff3e5;
+  --brand-100:   #ffe0b2;
+  --brand-200:   #ffcc80;
+  --brand-400:   #ff9800;
+  --brand-500:   #f57c00;   /* PRIMARY */
+  --brand-600:   #ef6c00;
+  --brand-700:   #e65100;
+  --brand-800:   #bf360c;
+  --brand-900:   #3e2723;
 
   /* Neutrals — Iron-tinted (never pure grey) */
-  --n-50:    oklch(97.5% 0.008 55);
-  --n-100:   oklch(94% 0.010 54);
-  --n-150:   oklch(90% 0.010 53);
-  --n-200:   oklch(86% 0.012 52);
-  --n-300:   oklch(76% 0.012 50);
-  --n-400:   oklch(62% 0.010 48);
-  --n-500:   oklch(50% 0.008 46);
-  --n-600:   oklch(40% 0.008 44);
-  --n-700:   oklch(30% 0.010 42);
-  --n-800:   oklch(22% 0.012 40);
-  --n-850:   oklch(18% 0.012 40);
-  --n-900:   oklch(13% 0.014 38);
+  --n-50:    #faf9f7;
+  --n-100:   #f5f3f0;
+  --n-150:   #e8e5e1;
+  --n-200:   #dcd9d4;
+  --n-300:   #b5b1ac;
+  --n-400:   #8c8883;
+  --n-500:   #706c67;
+  --n-600:   #55514c;
+  --n-700:   #3f3b37;
+  --n-800:   #292622;
+  --n-850:   #1f1c19;
+  --n-900:   #141210;
 
   /* Semantic */
-  --success-bg:   oklch(93% 0.05 148);
-  --success-text: oklch(35% 0.18 148);
-  --error-bg:     oklch(95% 0.04 22);
-  --error-text:   oklch(40% 0.20 22);
-  --warning-bg:   oklch(95% 0.06 75);
-  --warning-text: oklch(42% 0.18 65);
-  --info-bg:      oklch(93% 0.04 250);
-  --info-text:    oklch(38% 0.16 250);
+  --success-bg:   #e6f4ea;
+  --success-text: #137333;
+  --error-bg:     #fce8e6;
+  --error-text:   #c5221f;
+  --warning-bg:   #fef7e0;
+  --warning-text: #b06000;
+  --info-bg:      #e8f0fe;
+  --info-text:    #1967d2;
 
   /* Typography */
   --font-display: var(--font-kanit), 'Tahoma', sans-serif;
@@ -104,7 +104,7 @@ body {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr;
-  background: oklch(100% 0 0);
+  background: #ffffff;
 }
 @media (min-width: 900px) {
   .sp-auth-wrap { grid-template-columns: 1fr 1fr; }
@@ -116,7 +116,7 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: clamp(2rem, 6vw, 5rem);
-  background: oklch(100% 0 0);
+  background: #ffffff;
   min-height: 100vh;
 }
 
@@ -147,7 +147,7 @@ body {
   justify-content: space-between;
   padding: 0 1.5rem;
   height: 60px;
-  background: oklch(100% 0 0);
+  background: #ffffff;
   border-bottom: 1px solid var(--n-150);
 }
 
@@ -311,7 +311,7 @@ body {
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   background: var(--brand-500);
-  color: oklch(100% 0 0);
+  color: #ffffff;
   border: none;
   border-radius: 0.625rem;
   font-size: 0.9rem;
@@ -373,7 +373,7 @@ body {
 
 /* ── 8. CARDS ─────────────────────────────────── */
 .sp-card {
-  background: oklch(100% 0 0);
+  background: #ffffff;
   border: 1px solid var(--n-150);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -406,7 +406,7 @@ body {
 }
 .sp-badge-pending   { background: var(--warning-bg);  color: var(--warning-text); }
 .sp-badge-accepted  { background: var(--info-bg);     color: var(--info-text); }
-.sp-badge-picked    { background: oklch(93% 0.04 290); color: oklch(38% 0.12 290); }
+.sp-badge-picked    { background: #e5f6fd; color: #006080; }
 .sp-badge-shipping  { background: var(--info-bg);     color: var(--info-text); }
 .sp-badge-delivered { background: var(--success-bg);  color: var(--success-text); }
 .sp-badge-cancelled { background: var(--error-bg);    color: var(--error-text); }
@@ -612,7 +612,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 24px oklch(14% 0.014 38 / 0.25);
+  box-shadow: 0 4px 24px rgba(36, 28, 22, 0.25);
   transition: background var(--t-fast), transform var(--t-fast);
 }
 .sp-chat-btn:hover { background: var(--brand-600); transform: scale(1.06); }
@@ -624,10 +624,10 @@ body {
   z-index: 50;
   width: 360px;
   max-width: calc(100vw - 2rem);
-  background: oklch(100% 0 0);
+  background: #ffffff;
   border: 1px solid var(--n-200);
   border-radius: 1rem;
-  box-shadow: 0 8px 40px oklch(14% 0.014 38 / 0.12);
+  box-shadow: 0 8px 40px rgba(36, 28, 22, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1186,11 +1186,11 @@ body {
 
 :root {
   /* Soft layered shadows */
-  --sp-shadow-sm:      0 1px 2px oklch(20% 0.02 40 / 0.05), 0 1px 3px oklch(20% 0.02 40 / 0.07);
-  --sp-shadow-md:      0 4px 14px oklch(20% 0.02 40 / 0.08), 0 2px 5px oklch(20% 0.02 40 / 0.05);
-  --sp-shadow-lg:      0 14px 38px oklch(18% 0.02 40 / 0.13), 0 5px 12px oklch(18% 0.02 40 / 0.06);
-  --sp-shadow-brand:   0 4px 14px oklch(62% 0.20 42 / 0.28);
-  --sp-shadow-brand-lg:0 9px 26px oklch(62% 0.20 42 / 0.38);
+  --sp-shadow-sm:      0 1px 2px rgba(41, 38, 34, 0.05), 0 1px 3px rgba(41, 38, 34, 0.07);
+  --sp-shadow-md:      0 4px 14px rgba(41, 38, 34, 0.08), 0 2px 5px rgba(41, 38, 34, 0.05);
+  --sp-shadow-lg:      0 14px 38px rgba(36, 33, 29, 0.13), 0 5px 12px rgba(36, 33, 29, 0.06);
+  --sp-shadow-brand:   0 4px 14px rgba(245, 124, 0, 0.28);
+  --sp-shadow-brand-lg:0 9px 26px rgba(245, 124, 0, 0.38);
 }
 
 /* Smooth scrolling + text rendering */
@@ -1238,12 +1238,12 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 
 /* ── Nav: frosted-glass ── */
 .sp-nav {
-  background: oklch(100% 0 0 / 0.80);
+  background: rgba(255, 255, 255, 0.80);
   backdrop-filter: saturate(180%) blur(12px);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
 }
 .sp-nav-dark {
-  background: oklch(13% 0.014 38 / 0.82);
+  background: rgba(20, 18, 16, 0.82);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
 }
@@ -1302,4 +1302,35 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   .sp-btn-primary:hover,
   .sp-btn-brand:hover,
   .sp-btn-ghost:hover { transform: none; }
+}
+
+/* ── 23. PRINT (PDF) STYLES ──────────────────────── */
+.sp-print-header { display: none; }
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .sp-page, .sp-page-dark { background: white !important; }
+  .sp-nav, .sp-no-print { display: none !important; }
+  .sp-container { padding-top: 0 !important; }
+  .sp-print-header { display: block !important; }
+  
+  /* Make cards look good in print */
+  .sp-card { 
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  
+  /* Reset layout constraints to use full A4 width */
+  main {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  /* Hide all box shadows */
+  * { box-shadow: none !important; }
 }

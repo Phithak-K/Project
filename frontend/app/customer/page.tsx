@@ -336,10 +336,17 @@ export default function CustomerDashboard() {
 
             {/* Recent Orders Section */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#18181b' }}>Recent Orders</h2>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a1a1aa', background: '#f4f4f5', padding: '0.25rem 0.75rem', borderRadius: '99px' }}>
-                {orders.length} Active
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#18181b' }}>Recent Orders</h2>
+                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a1a1aa', background: '#f4f4f5', padding: '0.25rem 0.75rem', borderRadius: '99px' }}>
+                  {orders.length} Active
+                </span>
+              </div>
+              <Link href="/history" style={{ textDecoration: 'none' }}>
+                <button style={{ background: '#f4f4f5', color: '#18181b', border: '1px solid #e4e4e7', padding: '0.4rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span>ประวัติย้อนหลัง (History)</span>
+                </button>
+              </Link>
             </div>
 
             {orders.length === 0 ? (
