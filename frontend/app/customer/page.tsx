@@ -351,7 +351,7 @@ export default function CustomerDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {orders.map(order => (
-                  <Link key={order.id} href={`/customer/orders/${order.id}`} style={{ textDecoration: 'none' }}>
+                  <Link key={order.id} href={`/orders/${order.id}`} style={{ textDecoration: 'none' }}>
                     <div style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'oklch(65% 0.18 30 / 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(65% 0.18 30)' }}>
