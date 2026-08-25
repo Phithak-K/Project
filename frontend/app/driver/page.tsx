@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain, User, Wallet } from 'lucide-react';
+import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain, User, Wallet, Package } from 'lucide-react';
 
 export default function DriverDashboard() {
   const router = useRouter();
