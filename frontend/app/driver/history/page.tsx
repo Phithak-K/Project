@@ -2,15 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, Package, MapPin, CheckCircle, Calendar, DollarSign, Wallet } from 'lucide-react';
+import { ArrowLeft, Package, CheckCircle, MapPin } from 'lucide-react';
 
 export default function DriverHistoryPage() {
   const router = useRouter();
-  const [data, setData] = useState<{ stats: any, orders: any[] } | null>(null);
+  const [data, setData] = useState<{ stats: any; orders: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Date Filters
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -23,227 +20,136 @@ export default function DriverHistoryPage() {
 
   const fetchHistory = useCallback(async () => {
     const role = getCookie('role');
-    if (!role || role !== 'Driver') {
-      router.push('/login');
-      return;
-    }
-    
+    if (!role || role !== 'Driver') { router.push('/login'); return; }
     setIsLoading(true);
     try {
-      const queryParams = new URLSearchParams();
-      if (startDate) queryParams.append('startDate', startDate);
-      if (endDate) queryParams.append('endDate', endDate);
-      
-      const res = await fetch(`/api/proxy/orders/driver/history?${queryParams.toString()}`);
-      if (res.ok) {
-        setData(await res.json());
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      const res = await fetch(`/api/proxy/orders/driver/history?${params.toString()}`);
+      if (res.ok) setData(await res.json());
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
   }, [router, startDate, endDate]);
 
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  if (isLoading) {
-    return (
-      <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
-        <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
-      </div>
-    );
-  }
+  const setQuick = (mode: 'today' | 'week' | 'month' | 'all') => {
+    const today = new Date();
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    if (mode === 'all') { setStartDate(''); setEndDate(''); return; }
+    if (mode === 'today') { setStartDate(fmt(today)); setEndDate(fmt(today)); return; }
+    if (mode === 'month') {
+      setStartDate(fmt(new Date(today.getFullYear(), today.getMonth(), 1)));
+      setEndDate(fmt(today)); return;
+    }
+    const from = new Date(); from.setDate(today.getDate() - 7);
+    setStartDate(fmt(from)); setEndDate(fmt(today));
+  };
+
+  if (isLoading) return (
+    <div className="sp-page-loading" style={{ background: 'var(--n-900)' }}>
+      <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
+    </div>
+  );
+
+  const orders = data?.orders ?? [];
+  const stats = data?.stats;
 
   return (
     <div className="sp-page-dark">
-      {/* ── Nav ── */}
       <nav className="sp-nav-dark">
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={() => router.push('/driver')} style={{ background: 'none', border: 'none', color: 'var(--n-300)', cursor: 'pointer', display: 'flex' }}>
-            <ArrowLeft size={20} />
+          <button onClick={() => router.push('/driver')}
+            style={{ background: 'none', border: 'none', color: 'var(--n-500)', cursor: 'pointer', display: 'flex', padding: '0.25rem' }}
+            aria-label="????????">
+            <ArrowLeft size={18} />
           </button>
-          <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>ประวัติงานจัดส่ง</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--n-200)', letterSpacing: '0.04em' }}>
+            ????????????????
+          </span>
         </div>
       </nav>
 
-      <main className="sp-container" style={{ paddingTop: '2rem' }}>
-        
-        {/* ── Date Filters ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', background: 'var(--n-800)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--n-700)' }}>
-          {/* Quick Select Buttons */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <button 
-              onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
-                setStartDate(today);
-                setEndDate(today);
-              }}
-              style={{ padding: '0.4rem 0.75rem', background: 'var(--brand-500)', border: 'none', borderRadius: '20px', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              วันนี้
-            </button>
-            <button 
-              onClick={() => {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yStr = yesterday.toISOString().split('T')[0];
-                setStartDate(yStr);
-                setEndDate(yStr);
-              }}
-              style={{ padding: '0.4rem 0.75rem', background: 'var(--n-700)', border: 'none', borderRadius: '20px', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              เมื่อวาน
-            </button>
-            <button 
-              onClick={() => {
-                const today = new Date();
-                const last7 = new Date();
-                last7.setDate(today.getDate() - 7);
-                setStartDate(last7.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
-              }}
-              style={{ padding: '0.4rem 0.75rem', background: 'var(--n-700)', border: 'none', borderRadius: '20px', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              7 วันล่าสุด
-            </button>
-            <button 
-              onClick={() => {
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                setStartDate(firstDay.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
-              }}
-              style={{ padding: '0.4rem 0.75rem', background: 'var(--n-700)', border: 'none', borderRadius: '20px', color: '#fff', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              เดือนนี้
-            </button>
-            <button 
-              onClick={() => { setStartDate(''); setEndDate(''); }} 
-              style={{ padding: '0.4rem 0.75rem', background: 'transparent', border: '1px solid var(--n-600)', borderRadius: '20px', color: 'var(--n-400)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-            >
-              ล้างค่า
-            </button>
-          </div>
+      <main style={{ maxWidth: '600px', margin: '0 auto', padding: '2rem 1.25rem' }}>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
-            <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--n-400)', fontWeight: 600, marginBottom: '0.25rem' }}>เริ่มต้น</label>
-              <input 
-                type="date" 
-                value={startDate} 
-                onChange={(e) => setStartDate(e.target.value)} 
-                className="sp-input" 
-                style={{ width: '100%', background: 'var(--n-900)', border: '1px solid var(--n-700)', color: '#fff', padding: '0.5rem', fontSize: '0.8rem', colorScheme: 'dark', cursor: 'pointer' }}
-              />
-            </div>
-            <div style={{ flex: '1 1 120px' }}>
-              <label style={{ display: 'block', fontSize: '0.7rem', color: 'var(--n-400)', fontWeight: 600, marginBottom: '0.25rem' }}>สิ้นสุด</label>
-              <input 
-                type="date" 
-                value={endDate} 
-                onChange={(e) => setEndDate(e.target.value)} 
-                className="sp-input" 
-                style={{ width: '100%', background: 'var(--n-900)', border: '1px solid var(--n-700)', color: '#fff', padding: '0.5rem', fontSize: '0.8rem', colorScheme: 'dark', cursor: 'pointer' }}
-              />
-            </div>
+        {/* KPI Stats � Industrial Row */}
+        <div className="sp-kpi-row">
+          <div>
+            <div className="sp-stat-number">{stats?.totalDelivered ?? 0}</div>
+            <div className="sp-stat-label">????????????</div>
+          </div>
+          <div>
+            <div className="sp-stat-number amber">?{Number(stats?.totalCashCollected ?? 0).toLocaleString()}</div>
+            <div className="sp-stat-label">??? COD ?????</div>
           </div>
         </div>
 
-        {/* ── KPI Stats ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-          <div className="sp-card-dark sp-animate">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ padding: '0.5rem', background: 'oklch(65% 0.18 30 / 0.1)', borderRadius: '8px' }}>
-                <Package size={20} style={{ color: 'var(--brand-500)' }} />
-              </div>
-              <span style={{ fontSize: '0.875rem', color: 'var(--n-400)', fontWeight: 600 }}>ส่งสำเร็จแล้ว</span>
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
-              {data?.stats?.totalDelivered || 0} <span style={{ fontSize: '1rem', color: 'var(--n-500)', fontWeight: 600 }}>งาน</span>
-            </div>
+        {/* Date Filters */}
+        <div style={{ marginBottom: '2rem' }}>
+          <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '0.75rem' }}>?????????????????</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            {(['today', 'week', 'month', 'all'] as const).map((mode) => (
+              <button key={mode} onClick={() => setQuick(mode)}
+                style={{ padding: '0.35rem 0.875rem', background: 'transparent', border: '1px solid var(--n-700)', borderRadius: '4px', color: 'var(--n-400)', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', cursor: 'pointer', textTransform: 'uppercase' }}>
+                {mode === 'today' ? '??????' : mode === 'week' ? '7 ???' : mode === 'month' ? '????????' : '???????'}
+              </button>
+            ))}
           </div>
-
-          <div className="sp-card-dark sp-animate" style={{ animationDelay: '0.1s' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ padding: '0.5rem', background: 'oklch(65% 0.15 150 / 0.1)', borderRadius: '8px' }}>
-                <DollarSign size={20} style={{ color: 'oklch(65% 0.15 150)' }} />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            {[{ label: '???????', value: startDate, fn: setStartDate }, { label: '???', value: endDate, fn: setEndDate }].map(({ label, value, fn }) => (
+              <div key={label} style={{ flex: 1 }}>
+                <label className="sp-caps" style={{ display: 'block', color: 'var(--n-600)', marginBottom: '0.25rem', fontSize: '0.58rem' }}>{label}</label>
+                <input type="date" value={value} onChange={(e) => fn(e.target.value)}
+                  style={{ width: '100%', background: 'var(--n-850)', border: '1px solid var(--n-800)', borderRadius: '4px', padding: '0.5rem 0.75rem', color: 'var(--n-200)', fontSize: '0.8rem', colorScheme: 'dark', cursor: 'pointer' }} />
               </div>
-              <span style={{ fontSize: '0.875rem', color: 'var(--n-400)', fontWeight: 600 }}>ยอดเก็บเงินสด COD</span>
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff' }}>
-              <span style={{ fontSize: '1.25rem', color: 'var(--n-400)', marginRight: '0.25rem' }}>฿</span>
-              {Number(data?.stats?.totalCashCollected || 0).toLocaleString()}
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* ── Order History List ── */}
-        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Calendar size={18} style={{ color: 'var(--brand-500)' }} /> ประวัติย้อนหลัง
-        </h2>
+        {/* Order History List */}
+        <hr className="sp-section-divider" />
+        <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem' }}>
+          {orders.length > 0 ? `${orders.length} ??????` : '???????????'}
+        </p>
 
-        {!data?.orders || data.orders.length === 0 ? (
-          <div className="sp-card-dark sp-animate-d1" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-            <Package size={48} style={{ color: 'var(--n-700)', margin: '0 auto 1rem' }} />
-            <p style={{ color: 'var(--n-400)', fontSize: '1rem' }}>ยังไม่มีประวัติการส่งงาน</p>
+        {orders.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '4rem 1.5rem', color: 'var(--n-700)' }}>
+            <Package size={40} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+            <p className="sp-caps" style={{ fontSize: '0.65rem' }}>????????????????????????????</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {data.orders.map((order, idx) => (
-              <div key={order.id} className="sp-card-dark sp-animate" style={{ animationDelay: `${Math.min(idx * 0.05, 0.5)}s`, padding: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                  <div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'rgba(46, 125, 50, 0.15)', color: 'rgb(46, 125, 50)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                      <CheckCircle size={12} /> DELIVERED
+          <div>
+            {orders.map((order) => (
+              <div key={order.id} className="sp-animate"
+                style={{ padding: '1.125rem 0', borderBottom: '1px solid var(--n-850)', display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.75rem', alignItems: 'start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem', flexWrap: 'wrap' }}>
+                    <CheckCircle size={12} style={{ color: 'var(--brand-500)', flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--brand-500)', fontWeight: 700 }}>{order.trackingNumber}</span>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--n-700)', marginLeft: 'auto' }}>
+                      {new Date(order.updatedAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
                     </span>
-                    <h3 style={{ color: '#fff', fontSize: '1rem', fontWeight: 700 }}>#{order.trackingNumber}</h3>
-                    <p style={{ color: 'var(--n-400)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                      {new Date(order.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
-                    </p>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ color: '#fff', fontWeight: 800, fontSize: '1.1rem' }}>
-                      ฿{Number(order.totalPrice || order.price || 0).toLocaleString()}
-                    </div>
-                    <div style={{ color: order.paymentMethod === 'COD' || order.paymentStatus === 'Unpaid' ? 'rgb(230, 81, 0)' : 'var(--n-500)', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.25rem' }}>
-                      {order.paymentMethod === 'COD' || order.paymentStatus === 'Unpaid' ? 'รอโอนเงิน (COD)' : 'ชำระล่วงหน้าแล้ว'}
-                    </div>
+                  <p style={{ color: 'var(--n-200)', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.25rem' }}>{order.receiverName}</p>
+                  <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'flex-start' }}>
+                    <MapPin size={11} style={{ color: 'var(--n-700)', marginTop: '2px', flexShrink: 0 }} />
+                    <p style={{ color: 'var(--n-600)', fontSize: '0.78rem', lineHeight: 1.4 }}>{order.address}</p>
                   </div>
                 </div>
-
-                <div style={{ background: 'var(--n-800)', borderRadius: '8px', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <MapPin size={16} style={{ color: 'var(--brand-500)', marginTop: '2px', flexShrink: 0 }} />
-                    <div>
-                      <p style={{ color: 'var(--n-200)', fontSize: '0.875rem', fontWeight: 600 }}>{order.receiverName}</p>
-                      <p style={{ color: 'var(--n-500)', fontSize: '0.8rem', marginTop: '0.125rem' }}>{order.address}</p>
-                      <p style={{ color: 'var(--brand-600)', fontSize: '0.75rem', marginTop: '0.25rem', fontFamily: 'monospace' }}>📞 {order.receiverPhone}</p>
-                    </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontWeight: 900, fontSize: '1.05rem', color: 'var(--n-50)', fontVariantNumeric: 'tabular-nums' }}>
+                    ?{Number(order.totalPrice ?? order.price ?? 0).toLocaleString()}
                   </div>
+                  <div style={{ fontSize: '0.65rem', fontWeight: 700, marginTop: '0.25rem', color: (order.paymentMethod === 'COD' || order.paymentStatus === 'Unpaid') ? 'oklch(73% 0.19 50)' : 'var(--n-600)' }}>
+                    {(order.paymentMethod === 'COD' || order.paymentStatus === 'Unpaid') ? 'COD ?????' : '????????'}
+                  </div>
+                  {order.proofOfDelivery && (
+                    <img src={order.proofOfDelivery.startsWith('http') || order.proofOfDelivery.startsWith('data:') ? order.proofOfDelivery : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${order.proofOfDelivery.startsWith('/') ? '' : '/'}${order.proofOfDelivery}`}
+                      alt="POD" style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--n-800)', marginTop: '0.5rem' }}
+                      crossOrigin="anonymous" />
+                  )}
                 </div>
-
-                {order.proofOfDelivery && (
-                  <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--n-900)', padding: '0.5rem', borderRadius: '8px', border: '1px solid var(--n-800)' }}>
-                    <img 
-                      src={
-                        order.proofOfDelivery.startsWith('http') || order.proofOfDelivery.startsWith('data:') 
-                          ? order.proofOfDelivery 
-                          : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${order.proofOfDelivery.startsWith('/') ? '' : '/'}${order.proofOfDelivery}`
-                      }
-                      alt="Proof" 
-                      style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--n-700)' }} 
-                      crossOrigin="anonymous"
-                    />
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--n-300)', fontWeight: 600 }}>หลักฐานการส่งมอบ</p>
-                      <p style={{ fontSize: '0.7rem', color: 'var(--n-500)' }}>อัปโหลดสำเร็จ</p>
-                    </div>
-                    <CheckCircle size={16} style={{ color: 'rgb(46, 125, 50)', marginRight: '0.5rem' }} />
-                  </div>
-                )}
               </div>
             ))}
           </div>

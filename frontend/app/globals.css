@@ -1334,3 +1334,101 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   /* Hide all box shadows */
   * { box-shadow: none !important; }
 }
+
+/* ── 24. INDUSTRIAL PREMIUM — KPI STAT SYSTEM ─────── */
+/*
+   Utilitarian chic: เลขใหญ่ยักษ์ ไม่มีกล่อง ไม่มีเงา
+   ใช้เส้นคั่นแทนกรอบ, เว้นระยะห่างให้ข้อมูลหายใจ
+*/
+
+/* Stat block หลัก — ไม่มีกรอบ ปล่อยตัวเลขวางบนพื้นหลัง */
+.sp-stat-block {
+  padding: 0;
+  border-left: 2px solid var(--brand-500);
+  padding-left: 1.25rem;
+}
+
+/* ตัวเลขสถิติขนาดใหญ่ (Modular Scale — fluid) */
+.sp-stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(2.25rem, 6vw, 3.5rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--n-50);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Label ใต้ตัวเลข */
+.sp-stat-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--n-600);
+  margin-top: 0.375rem;
+}
+
+/* Unit suffix เช่น "งาน", "บาท" */
+.sp-stat-unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--n-600);
+  margin-left: 0.25rem;
+  vertical-align: baseline;
+}
+
+/* Grid layout สำหรับ KPI row */
+.sp-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0;
+  border-top: 1px solid var(--n-800);
+  border-bottom: 1px solid var(--n-800);
+  padding: 1.5rem 0;
+  margin-bottom: 2rem;
+}
+
+.sp-kpi-row > * + * {
+  border-left: 1px solid var(--n-800);
+  padding-left: 1.5rem;
+}
+
+.sp-kpi-row > * {
+  padding-right: 1.5rem;
+}
+
+/* Amber accent สำหรับตัวเลขสำคัญ (COD, Warning) */
+.sp-stat-number.amber { color: oklch(73% 0.19 50); }
+
+/* Section divider แทนการใช้ Card */
+.sp-section-divider {
+  border: none;
+  border-top: 1px solid var(--n-800);
+  margin: 1.5rem 0;
+}
+
+/* Industrial table — เส้นบางๆ แยกแถว */
+.sp-table-industrial {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sp-table-industrial th {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--n-600);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--n-800);
+}
+.sp-table-industrial td {
+  padding: 0.875rem 0.75rem;
+  border-bottom: 1px solid var(--n-850);
+  color: var(--n-200);
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+.sp-table-industrial tr:last-child td { border-bottom: none; }
+.sp-table-industrial tr:hover td { background: var(--n-850); }
