@@ -137,12 +137,12 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
         
         {/* Header Unit */}
-        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+        <div className="sp-animate sp-safe-contrast" style={{ marginBottom: '2.5rem', borderRadius: '1rem' }}>
           <span className="sp-section-eyebrow">พัสดุของฉัน</span>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
-              <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>{order.trackingNumber}</h1>
-              <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{order.productName}</p>
+              <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-50)' }}>{order.trackingNumber}</h1>
+              <p style={{ color: 'var(--n-400)', fontSize: '0.9rem', marginTop: '0.25rem' }}>{order.productName}</p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               {order.driverId && (
@@ -235,7 +235,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
 
         {/* Payment QR (if needed) */}
         {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-          <div className="sp-card-dark sp-animate" style={{ background: 'var(--brand-500)', border: 'none', textAlign: 'center', marginBottom: '1.5rem' }}>
+          <div className="sp-card sp-animate" style={{ background: 'var(--brand-500)', border: 'none', textAlign: 'center', marginBottom: '1.5rem', boxShadow: '0 8px 32px -4px rgba(234, 88, 12, 0.4)' }}>
             <h3 className="sp-font-display" style={{ color: 'var(--n-50)', fontSize: '1.5rem', marginBottom: '0.5rem' }}>
               มียอดชำระ: ฿{(order.totalPrice || order.price).toLocaleString()}
             </h3>
@@ -267,7 +267,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
                   className="sp-input" placeholder="เขียนคำชมเชยหรือข้อเสนอแนะ..."
                   style={{ marginBottom: '0.75rem' }}
                 />
-                <button onClick={submitRating} className="sp-btn-brand sp-btn-full">ส่งความคิดเห็น</button>
+                <button onClick={submitRating} className="sp-btn-touch sp-btn-touch-full">ส่งความคิดเห็น</button>
               </div>
             )}
           </div>
@@ -287,8 +287,8 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
 
         <button 
           onClick={handleDownloadPdf}
-          className="sp-btn-primary sp-btn-full" 
-          style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+          className="sp-btn-touch sp-btn-touch-full sp-btn-touch-ghost" 
+          style={{ marginTop: '1rem' }}
         >
           <Download size={16} /> ดาวน์โหลดใบเสร็จ / ใบส่งของ (PDF)
         </button>

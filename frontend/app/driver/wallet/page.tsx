@@ -47,7 +47,7 @@ function CheckoutForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: '1rem' }}>
-      <div style={{ background: 'var(--n-800)', borderRadius: '12px', padding: '1rem', border: '1px solid var(--n-700)', marginBottom: '1.5rem' }}>
+      <div style={{ background: 'var(--n-200)', borderRadius: '12px', padding: '1rem', border: '1px solid var(--n-700)', marginBottom: '1.5rem' }}>
         <PaymentElement options={{ layout: 'tabs' }} />
       </div>
 
@@ -138,12 +138,12 @@ export default function DriverWalletPage() {
   );
 
   return (
-    <div className="sp-page-dark">
-      <nav className="sp-nav-dark">
+    <div className="sp-page">
+      <nav className="sp-nav">
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--n-500)', fontSize: '0.875rem' }}>
           <ArrowLeft size={16} /> กลับ
         </button>
-        <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span>
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span>
           <span className="sp-caps" style={{ color: 'var(--n-500)', marginLeft: '0.5rem' }}>Wallet</span>
         </span>
         <div style={{ width: '60px' }} />
@@ -152,7 +152,7 @@ export default function DriverWalletPage() {
       <main style={{ maxWidth: '480px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
 
         {/* Balance Card */}
-        <div className="sp-card-dark sp-animate" style={{ background: 'linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 100%)', border: 'none', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
+        <div className="sp-card sp-animate" style={{ background: 'linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 100%)', border: 'none', marginBottom: '2rem', position: 'relative', overflow: 'hidden' }}>
           <div style={{ position: 'absolute', top: '-30px', right: '-20px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
           <div style={{ position: 'absolute', bottom: '-40px', left: '-10px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
           <Wallet size={22} style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '1rem' }} />
@@ -205,17 +205,17 @@ export default function DriverWalletPage() {
               </div>
             )}
 
-            <div className="sp-card-dark" style={{ background: 'var(--n-900)', border: '1px solid var(--n-700)', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--n-400)', marginBottom: '0.5rem' }}>
+            <div className="sp-card" style={{ background: 'var(--n-50)', border: '1px solid var(--n-700)', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--n-500)', marginBottom: '0.5rem' }}>
                 <span>ยอดเงินปัจจุบัน</span>
                 <span>฿{balance?.toLocaleString()}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--n-400)', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--n-500)', marginBottom: '0.5rem' }}>
                 <span>จำนวนที่เติม</span>
                 <span style={{ fontWeight: 700, color: 'var(--brand-500)' }}>+฿{finalAmount?.toLocaleString()}</span>
               </div>
               <div style={{ height: '1px', background: 'var(--n-700)', margin: '0.625rem 0' }} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: 'var(--n-50)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, color: 'var(--n-900)' }}>
                 <span>ยอดใหม่โดยประมาณ</span>
                 <span>฿{((balance || 0) + (finalAmount || 0)).toLocaleString()}</span>
               </div>
@@ -250,7 +250,7 @@ export default function DriverWalletPage() {
         )}
 
         {step === 'success' && (
-            <div className="sp-card-dark sp-animate" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+            <div className="sp-card sp-animate" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
               <div style={{
                 width: '64px', height: '64px', borderRadius: '50%',
                 background: 'var(--success-50)', color: 'var(--success-600)',
@@ -259,8 +259,8 @@ export default function DriverWalletPage() {
               }}>
                 <CheckCircle size={32} />
               </div>
-              <h2 className="sp-font-display sp-text-md" style={{ marginBottom: '0.5rem', color: 'var(--n-50)' }}>เติมเงินสำเร็จ!</h2>
-              <p style={{ color: 'var(--n-400)', marginBottom: '2rem' }}>
+              <h2 className="sp-font-display sp-text-md" style={{ marginBottom: '0.5rem', color: 'var(--n-900)' }}>เติมเงินสำเร็จ!</h2>
+              <p style={{ color: 'var(--n-500)', marginBottom: '2rem' }}>
                 ระบบได้เพิ่มยอดเงิน ฿{finalAmount?.toLocaleString()} เข้ากระเป๋าของคุณแล้ว
               </p>
               <button onClick={() => { setStep('select'); setCustomAmount(''); setAmount(500); fetchBalance(); }}

@@ -158,10 +158,10 @@ export default function DriverRegisterPage() {
       </div>
 
       <div className="sp-auth-brand-panel">
-        <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
         <div>
           <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>รายได้ดี ยืดหยุ่น</p>
-          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-900)', lineHeight: 1.1 }}>
             ทำงาน<br />ตามเวลาคุณ
           </p>
           <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
@@ -170,11 +170,11 @@ export default function DriverRegisterPage() {
         </div>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>+20%</p>
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>+20%</p>
             <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Rainy Day Bonus</p>
           </div>
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>COD</p>
+            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>COD</p>
             <p className="sp-caps" style={{ color: 'var(--n-600)' }}>รองรับเก็บเงินปลายทาง</p>
           </div>
         </div>

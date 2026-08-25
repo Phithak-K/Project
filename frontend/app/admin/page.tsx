@@ -109,34 +109,34 @@ export default function AdminDashboard() {
   const tabLabel: Record<string, string> = { customers: 'Customer', merchants: 'Merchant', drivers: 'Driver' };
 
   if (loading) return (
-    <div className="sp-page-dark" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-800)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
         <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading Control Center</p>
       </div>
     </div>
   );
 
   return (
-    <div className="sp-page-dark">
+    <div className="sp-page">
 
       {/* Nav */}
-      <nav className="sp-nav-dark">
+      <nav className="sp-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className="sp-logo-dark">
+          <span className="sp-logo">
             Swift<span className="sp-logo-accent">Path</span>
           </span>
-          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-800)', paddingLeft: '0.75rem' }}>
+          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-200)', paddingLeft: '0.75rem' }}>
             Control Center
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <button onClick={fetchAll} disabled={refreshing}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', display: 'flex' }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-500)', display: 'flex' }}>
             <RefreshCw size={16} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
           </button>
           <button id="btn-admin-logout" onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'transparent', border: '1px solid var(--n-700)', padding: '0.5rem 1rem', color: 'var(--n-300)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'transparent', border: '1px solid var(--n-200)', padding: '0.5rem 1rem', color: 'var(--n-600)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
             <LogOut size={14} /> Logout
           </button>
         </div>
@@ -164,7 +164,7 @@ export default function AdminDashboard() {
               { label: 'Cancelled', value: stats.cancelledOrders, color: 'var(--error-text)' },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ display: 'flex', flexDirection: 'column' }}>
-                <span className="sp-stat-label" style={{ color: 'var(--n-400)' }}>{label}</span>
+                <span className="sp-stat-label" style={{ color: 'var(--n-500)' }}>{label}</span>
                 <div className="sp-stat-number sp-font-display" style={{ color }}>{value}</div>
               </div>
             ))}
@@ -178,25 +178,25 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div>
                 <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Revenue</p>
-                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-50)' }}>7-Day Overview</h2>
+                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>7-Day Overview</h2>
               </div>
-              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-400)' }}>
+              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
                 Success Rate: <strong style={{ color: 'oklch(65% 0.15 150)', fontSize: '1rem' }}>{stats.successRate}%</strong>
               </span>
             </div>
-            <div style={{ padding: '2rem 0', background: 'var(--n-850)', borderTop: '2px solid var(--n-800)' }}>
+            <div style={{ padding: '2rem 0', background: 'var(--n-50)', borderTop: '2px solid var(--n-200)' }}>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={stats.revenueChart} barSize={40}>
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-800)' }} tickLine={false} />
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
                   <YAxis hide />
                   <Tooltip
-                    contentStyle={{ background: 'var(--n-900)', border: '1px solid var(--n-700)', borderRadius: '0', color: 'var(--n-50)', fontFamily: 'monospace' }}
+                    contentStyle={{ background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: '0', color: 'var(--n-900)', fontFamily: 'monospace' }}
                     formatter={(v: any) => [`฿${Number(v).toLocaleString()}`, 'REVENUE']}
                     labelStyle={{ color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem' }}
                   />
                   <Bar dataKey="revenue">
                     {stats.revenueChart.map((_: any, i: number) => (
-                      <Cell key={i} fill={i === stats.revenueChart.length - 1 ? 'var(--brand-500)' : 'var(--n-700)'} />
+                      <Cell key={i} fill={i === stats.revenueChart.length - 1 ? 'var(--brand-500)' : 'var(--n-200)'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
             <div>
               <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Management</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-50)' }}>User Accounts</h2>
+              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>User Accounts</h2>
             </div>
             <input
               type="search"
@@ -220,8 +220,8 @@ export default function AdminDashboard() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{
-                background: 'var(--n-850)', border: 'none', borderBottom: '2px solid var(--n-700)',
-                padding: '0.75rem 1rem', color: 'var(--n-50)', fontSize: '0.875rem', outline: 'none', width: '300px'
+                background: 'var(--n-50)', border: 'none', borderBottom: '2px solid var(--n-200)',
+                padding: '0.75rem 1rem', color: 'var(--n-900)', fontSize: '0.875rem', outline: 'none', width: '300px'
               }}
             />
           </div>
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr>
                   {['ID', 'Name', 'Email', 'Balance', 'Verified', 'Phone', 'Status', 'Action'].map(h => (
-                    <th key={h} className="sp-caps" style={{ padding: '1rem', color: 'var(--n-400)' }}>
+                    <th key={h} className="sp-caps" style={{ padding: '1rem', color: 'var(--n-500)' }}>
                       {h}
                     </th>
                   ))}
@@ -270,7 +270,7 @@ export default function AdminDashboard() {
                 ) : filteredUsers.map((u: any) => (
                   <tr key={u.id}>
                     <td className="sp-mono" style={{ color: 'var(--n-500)' }}>#{u.id}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--n-50)' }}>{u.name || '—'}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--n-900)' }}>{u.name || '—'}</td>
                     <td style={{ color: 'var(--n-300)' }}>{u.email}</td>
                     <td className="sp-mono" style={{ color: 'var(--brand-500)', fontWeight: 700 }}>
                       ฿{Number(u.balance || 0).toLocaleString()}
@@ -278,13 +278,13 @@ export default function AdminDashboard() {
                     <td>
                       <span style={{
                         display: 'inline-flex', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-                        background: u.isVerified ? 'oklch(20% 0.06 150)' : 'var(--n-800)',
+                        background: u.isVerified ? 'oklch(20% 0.06 150)' : 'var(--n-200)',
                         color: u.isVerified ? 'oklch(65% 0.15 150)' : 'var(--n-400)',
                       }}>
                         {u.isVerified ? 'Verified' : 'Unverified'}
                       </span>
                     </td>
-                    <td className="sp-mono" style={{ color: 'var(--n-400)' }}>{u.phone || '—'}</td>
+                    <td className="sp-mono" style={{ color: 'var(--n-500)' }}>{u.phone || '—'}</td>
                     <td>
                       <span style={{
                         display: 'inline-flex', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
@@ -300,7 +300,7 @@ export default function AdminDashboard() {
                           onClick={() => setSuspendingUser(u)}
                           disabled={actionLoading === u.id}
                           style={{
-                            background: 'var(--n-850)', border: 'none', color: 'var(--error-text)',
+                            background: 'var(--n-50)', border: 'none', color: 'var(--error-text)',
                             padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
                             opacity: actionLoading === u.id ? 0.5 : 1
                           }}
@@ -332,9 +332,9 @@ export default function AdminDashboard() {
       {/* Suspend Modal */}
       {suspendingUser && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="sp-animate-d1" style={{ background: 'var(--n-900)', borderTop: '4px solid var(--error-text)', padding: '3rem', width: '100%', maxWidth: '500px' }}>
-            <h3 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--n-50)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Suspend User</h3>
-            <p style={{ color: 'var(--n-400)', fontSize: '0.9rem', marginBottom: '2rem' }}>
+          <div className="sp-animate-d1" style={{ background: 'var(--n-50)', borderTop: '4px solid var(--error-text)', padding: '3rem', width: '100%', maxWidth: '500px' }}>
+            <h3 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--n-900)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Suspend User</h3>
+            <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginBottom: '2rem' }}>
               You are about to suspend <strong style={{ color: 'var(--error-text)' }}>{suspendingUser.name || suspendingUser.email}</strong>.<br/>They will be logged out immediately.
             </p>
             <div style={{ marginBottom: '2rem' }}>
@@ -346,8 +346,8 @@ export default function AdminDashboard() {
                 placeholder="e.g. Fraudulent activity"
                 autoFocus
                 style={{
-                  width: '100%', background: 'var(--n-850)', border: 'none', borderBottom: '2px solid var(--n-700)',
-                  padding: '1rem', color: 'var(--n-50)', fontSize: '0.95rem', outline: 'none'
+                  width: '100%', background: 'var(--n-50)', border: 'none', borderBottom: '2px solid var(--n-200)',
+                  padding: '1rem', color: 'var(--n-900)', fontSize: '0.95rem', outline: 'none'
                 }}
               />
             </div>

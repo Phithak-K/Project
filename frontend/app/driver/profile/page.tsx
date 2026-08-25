@@ -169,7 +169,7 @@ export default function DriverProfilePage() {
               {/* ข้อมูลที่แก้ไขได้ */}
               <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อ-นามสกุล</label>
               <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-500)' }} />
                 <input
                   type="text"
                   value={name}
@@ -183,7 +183,7 @@ export default function DriverProfilePage() {
 
               <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>เบอร์โทรศัพท์</label>
               <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+                <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-500)' }} />
                 <input
                   type="tel"
                   value={phone}

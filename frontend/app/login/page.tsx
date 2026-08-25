@@ -40,8 +40,8 @@ export default function CustomerLoginPage() {
   };
 
   return (
-    <div className="sp-page-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%' }}>
+    <div className="sp-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%', margin: '0 auto' }}>
         
         <div className="sp-animate" style={{ marginBottom: '4rem' }}>
           <span className="sp-logo-dark" style={{ fontSize: '1.5rem' }}>Swift<span className="sp-logo-accent">Path</span></span>
@@ -49,9 +49,9 @@ export default function CustomerLoginPage() {
         </div>
 
         <div className="sp-animate-d1" style={{ marginBottom: '3rem' }}>
-          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>ENTERPRISE LOGISTICS</span>
-          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-50)' }}>
-            ล็อกอิน<br />ลูกค้า
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>GLOBAL ACCESS</span>
+          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-900)' }}>
+            เข้าสู่ระบบ<br />รวม
           </h1>
           <p style={{ color: 'var(--n-500)', marginTop: '0.75rem', fontSize: '0.9rem', fontWeight: 500 }}>
             จัดการพัสดุและติดตามการขนส่งแบบเรียลไทม์
@@ -59,7 +59,7 @@ export default function CustomerLoginPage() {
         </div>
 
         {error && (
-          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid oklch(73% 0.19 50)', background: 'var(--n-850)', color: 'var(--n-50)', marginBottom: '2rem', fontSize: '0.875rem' }}>
+          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid var(--error-text)', background: 'var(--n-50)', color: 'var(--n-900)', marginBottom: '2rem', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
             {error}
           </div>
         )}
@@ -100,15 +100,15 @@ export default function CustomerLoginPage() {
             </div>
           </div>
 
-          <button id="btn-customer-login" type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-            {isLoading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : <span>เข้าสู่ระบบ</span>}
+          <button id="btn-login-submit" type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+            {isLoading ? <span className="sp-spinner" /> : <span>เข้าสู่ระบบ</span>}
             {!isLoading && <ArrowRight size={20} />}
           </button>
         </form>
 
-        <div className="sp-animate-d3" style={{ marginTop: '3rem', borderTop: '1px solid var(--n-800)', paddingTop: '2rem' }}>
+        <div className="sp-animate-d3" style={{ marginTop: '3rem', borderTop: '1px solid var(--n-200)', paddingTop: '2rem' }}>
           <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', fontWeight: 500 }}>
-            ยังไม่ได้สมัคร? <Link href="/register" style={{ color: 'var(--n-50)', fontWeight: 700, textDecoration: 'underline' }}>ลงทะเบียน</Link>
+            ยังไม่ได้สมัคร? <Link href="/register" style={{ color: 'var(--n-900)', fontWeight: 700, textDecoration: 'underline' }}>สมัครสมาชิก</Link>
           </p>
           <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem' }}>
             <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>สำหรับร้านค้า &rarr;</a>

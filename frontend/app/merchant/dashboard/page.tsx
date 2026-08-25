@@ -110,10 +110,10 @@ export default function MerchantDashboardPage() {
             </div>
           </div>
 
-          <div className="sp-card-dark" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="sp-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--n-50)' }}>
             <div>
-              <span className="sp-caps" style={{ color: 'var(--n-600)' }}>ส่งสำเร็จพัสดุถึงมือผู้รับ</span>
-              <div className="sp-stat-number" style={{ fontSize: '1.75rem', color: 'var(--n-50)', marginTop: '0.25rem' }}>
+              <span className="sp-caps" style={{ color: 'var(--n-400)' }}>ส่งสำเร็จพัสดุถึงมือผู้รับ</span>
+              <div className="sp-stat-number" style={{ fontSize: '1.75rem', color: 'var(--n-900)', marginTop: '0.25rem' }}>
                 {stats?.deliveredOrders || 0} รายการ
               </div>
             </div>

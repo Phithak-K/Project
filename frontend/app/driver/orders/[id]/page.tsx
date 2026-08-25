@@ -221,10 +221,10 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
   if (loading) {
     return (
-      <div className="sp-page-dark" style={{ minHeight: '100vh', padding: '2rem 1.25rem' }}>
+      <div className="sp-page" style={{ minHeight: '100vh', padding: '2rem 1.25rem' }}>
         <div style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '4rem' }}>
-          <OrderSkeleton dark />
-          <OrderSkeleton dark />
+          <OrderSkeleton />
+          <OrderSkeleton />
         </div>
       </div>
     );
@@ -246,14 +246,14 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   };
 
   return (
-    <div className="sp-page-dark">
-      <nav className="sp-nav-dark">
-        <button onClick={() => router.push('/driver/radar')} className="sp-btn-danger" style={{ opacity: 0.6 }}>
+    <div className="sp-page">
+      <nav className="sp-nav">
+        <button onClick={() => router.push('/driver/radar')} className="sp-btn-danger" style={{ opacity: 0.8 }}>
           <ArrowLeft size={18} />
         </button>
         <div style={{ textAlign: 'center' }}>
-          <p className="sp-caps" style={{ color: 'var(--n-600)', fontSize: '0.6rem' }}>รหัสพัสดุ</p>
-          <span className="sp-logo-dark" style={{ fontSize: '1rem' }}>{order.trackingNumber}</span>
+          <p className="sp-caps" style={{ color: 'var(--n-500)', fontSize: '0.6rem' }}>รหัสพัสดุ</p>
+          <span className="sp-logo" style={{ fontSize: '1rem' }}>{order.trackingNumber}</span>
         </div>
         <button 
           onClick={() => setIsChatOpen(true)}
@@ -267,16 +267,16 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
       <main style={{ maxWidth: '480px', margin: '0 auto', padding: '2rem 1.25rem' }}>
         
         {/* Status Hero */}
-        <div className="sp-card-dark sp-animate" style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-          <span className="sp-caps" style={{ color: 'oklch(62% 0.2 42)', fontWeight: 900 }}>{order.status}</span>
-          <h1 className="sp-font-display" style={{ fontSize: '1.5rem', color: 'var(--n-50)', marginTop: '0.5rem' }}>
+        <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', textAlign: 'center', background: 'var(--n-50)', border: '1px solid var(--n-200)' }}>
+          <span className="sp-caps" style={{ color: 'var(--brand-600)', fontWeight: 900 }}>{order.status}</span>
+          <h1 className="sp-font-display" style={{ fontSize: '1.5rem', color: 'var(--n-900)', marginTop: '0.5rem' }}>
             {getStatusTitle(order.status)}
           </h1>
         </div>
 
         {/* ─── GPS Tracking Panel (แสดงเมื่อกำลังส่งหรือ Shipping) ─── */}
         {(order.status === 'SHIPPING' || order.status === 'PICKED_UP') && (
-          <div className="sp-card-dark sp-animate" style={{ marginBottom: '1.5rem', border: `1px solid ${gpsColor[gpsStatus]}40` }}>
+          <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', border: `1px solid ${gpsColor[gpsStatus]}40` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {/* Pulse indicator */}
@@ -286,7 +286,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                   boxShadow: isTracking ? `0 0 0 4px ${gpsColor[gpsStatus]}30` : 'none',
                   animation: isTracking ? 'pulse 1.5s infinite' : 'none',
                 }} />
-                <span style={{ fontWeight: 700, color: 'var(--n-100)', fontSize: '0.875rem' }}>
+                <span style={{ fontWeight: 700, color: 'var(--n-800)', fontSize: '0.875rem' }}>
                   Real-time GPS
                 </span>
               </div>
@@ -308,7 +308,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
               ) : (
                 <button
                   onClick={stopTracking}
-                  style={{ padding: '0.625rem', fontSize: '0.8rem', background: 'var(--n-800)', color: 'var(--n-200)', border: '1px solid var(--n-700)', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}
+                  style={{ padding: '0.625rem', fontSize: '0.8rem', background: 'var(--n-200)', color: 'var(--n-200)', border: '1px solid var(--n-700)', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}
                 >
                   <Square size={14} /> หยุดส่งพิกัด
                 </button>
@@ -348,41 +348,41 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
         {/* Info Grid */}
         <div className="sp-stagger">
-          <div className="sp-card-dark" style={{ marginBottom: '1.25rem' }}>
-            <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem' }}>จุดหมายปลายทาง</h3>
+          <div className="sp-card" style={{ marginBottom: '1.25rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem' }}>จุดหมายปลายทาง</h3>
             <div style={{ display: 'flex', gap: '0.875rem' }}>
               <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.2rem', flexShrink: 0 }} />
               <div>
-                <p style={{ fontWeight: 700, color: 'var(--n-100)' }}>{order.receiverName}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', marginTop: '0.125rem' }}>{order.address}</p>
+                <p style={{ fontWeight: 700, color: 'var(--n-900)' }}>{order.receiverName}</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--n-600)', marginTop: '0.125rem' }}>{order.address}</p>
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
-                  <a href={`tel:${order.receiverPhone}`} className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Phone size={14} /> โทรหาผู้รับ
+                  <a href={`tel:${order.receiverPhone}`} className="sp-btn-touch sp-btn-touch-ghost" style={{ fontSize: '0.85rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, borderColor: 'var(--n-300)' }}>
+                    <Phone size={16} style={{ color: 'var(--n-700)' }} /> โทรหาผู้รับ
                   </a>
                   <a href={
                     order.lat && order.lng
                       ? `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}`
                       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`
-                  } target="_blank" rel="noreferrer" className="sp-btn-ghost" style={{ padding: '0.4rem 0.75rem', fontSize: '0.75rem', color: 'var(--n-200)', borderColor: 'var(--n-700)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Navigation size={14} /> นำทาง
+                  } target="_blank" rel="noreferrer" className="sp-btn-touch sp-btn-touch-ghost" style={{ fontSize: '0.85rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, borderColor: 'var(--n-300)' }}>
+                    <Navigation size={16} style={{ color: 'var(--n-700)' }} /> นำทาง
                   </a>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="sp-card-dark" style={{ marginBottom: '2.5rem' }}>
-            <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem' }}>รายละเอียดสินค้า</h3>
+          <div className="sp-card" style={{ marginBottom: '2.5rem' }}>
+            <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem' }}>รายละเอียดสินค้า</h3>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center' }}>
-                <Package size={20} style={{ color: 'var(--n-700)' }} />
+                <Package size={20} style={{ color: 'var(--n-500)' }} />
                 <div>
-                  <p style={{ fontWeight: 600, color: 'var(--n-100)' }}>{order.productName}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--n-500)' }}>จำนวน {order.quantity} รายการ</p>
+                  <p style={{ fontWeight: 600, color: 'var(--n-900)' }}>{order.productName}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--n-600)' }}>จำนวน {order.quantity} รายการ</p>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p className="sp-stat-number" style={{ color: 'var(--n-50)', fontSize: '1.25rem' }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
+                <p className="sp-stat-number" style={{ color: 'var(--n-900)', fontSize: '1.25rem' }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
                 <span className="sp-caps" style={{ color: 'var(--success-text)', fontSize: '0.6rem' }}>COD รองรับ</span>
               </div>
             </div>
@@ -394,7 +394,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             {order.status === 'ACCEPTED' && (
               <button 
                 onClick={() => updateStatus('pickup')} disabled={updating}
-                className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem' }}
+                className="sp-btn-touch sp-btn-touch-full"
               >
                 {updating ? <span className="sp-spinner" /> : 'ยืนยันการรับพัสดุ'}
               </button>
@@ -403,20 +403,20 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             {order.status === 'PICKED_UP' && (
               <button 
                 onClick={() => updateStatus('ship')} disabled={updating}
-                className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem' }}
+                className="sp-btn-touch sp-btn-touch-full"
               >
                 {updating ? <span className="sp-spinner" /> : 'เริ่มการจัดส่ง'}
               </button>
             )}
 
             {order.status === 'SHIPPING' && (
-              <div className="sp-card-dark" style={{ border: '1px dashed var(--n-700)' }}>
-                <p className="sp-caps" style={{ textAlign: 'center', color: 'var(--n-600)', marginBottom: '1rem' }}>หลักฐานการส่ง (POD)</p>
+              <div className="sp-card" style={{ border: '1px dashed var(--n-300)', background: 'var(--n-50)' }}>
+                <p className="sp-caps" style={{ textAlign: 'center', color: 'var(--n-500)', marginBottom: '1rem' }}>หลักฐานการส่ง (POD)</p>
                 
                 {proofImage ? (
                   <div style={{ textAlign: 'center' }}>
-                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem', marginBottom: '1rem' }} />
-                    <button onClick={() => setProofImage(null)} className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}>ถ่ายใหม่</button>
+                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--n-200)' }} />
+                    <button onClick={() => setProofImage(null)} className="sp-btn-touch-ghost" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', borderRadius: '20px' }}>ถ่ายใหม่</button>
                   </div>
                 ) : (
                   <button 
@@ -426,7 +426,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                       setProofImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
                       toast.success('บันทึกภาพหลักฐานสำเร็จ (Mock PNG)');
                     }}
-                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-800)', borderRadius: '1rem', background: 'transparent', color: 'var(--n-600)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-300)', borderRadius: '1rem', background: '#ffffff', color: 'var(--n-500)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                   >
                     <Camera size={32} style={{ marginBottom: '0.5rem' }} />
                     <p style={{ fontSize: '0.8rem' }}>คลิกเพื่อจำลองการถ่ายรูปหลักฐาน (Demo)</p>
@@ -436,7 +436,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                 <button 
                   onClick={() => updateStatus('complete', { proofOfDelivery: proofImage })}
                   disabled={!proofImage || updating}
-                  className="sp-btn-brand sp-btn-full" style={{ marginTop: '1.25rem', padding: '1.125rem' }}
+                  className="sp-btn-touch sp-btn-touch-full" style={{ marginTop: '1.25rem' }}
                 >
                   {updating ? <span className="sp-spinner" /> : 'ปิดเสร็จสิ้นงานส่ง'}
                 </button>
@@ -444,55 +444,57 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-              <div className="sp-card-dark" style={{ border: '1px solid var(--n-700)' }}>
-                <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem', textAlign: 'center' }}>ช่องทางการรับเงิน</h3>
+              <div className="sp-card" style={{ border: '1px solid var(--n-200)', background: 'var(--n-50)' }}>
+                <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem', textAlign: 'center' }}>ช่องทางการรับเงิน</h3>
                 
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                   <button 
                     onClick={() => setPaymentTab('qr')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-900)' : 'transparent', color: paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-400)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-700)'}`, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-50)' : '#fff', color: paymentTab === 'qr' ? 'var(--brand-600)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-300)'}`, cursor: 'pointer' }}
                   >
                     ลูกค้าสแกน QR
                   </button>
                   <button 
                     onClick={() => setPaymentTab('cash')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'var(--success-bg)' : 'transparent', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-400)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-700)'}`, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'rgba(46, 125, 50, 0.1)' : '#fff', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-300)'}`, cursor: 'pointer' }}
                   >
                     รับเงินสด/โอนแล้ว
                   </button>
                 </div>
 
                 {paymentTab === 'qr' ? (
-                  <div style={{ textAlign: 'center', background: 'var(--brand-900)', border: '1px solid var(--brand-600)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
-                    <Zap size={24} style={{ color: 'var(--brand-500)', marginBottom: '0.75rem', margin: '0 auto' }} />
-                    <h3 style={{ fontWeight: 700, color: 'var(--n-50)' }}>รอสแกน QR รับเงิน</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
-                    <QRScanner 
-                      onScanSuccess={async (text) => {
-                        try {
-                          const data = JSON.parse(text);
-                          if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
-                            await updateStatus('pay');
-                          } else {
-                            toast.error('QR ไม่ถูกต้องสำหรับออเดอร์นี้');
-                          }
-                        } catch { toast.error('QR ไม่ถูกต้อง'); }
-                      }}
-                    />
+                  <div style={{ textAlign: 'center', background: 'var(--brand-50)', border: '1px solid var(--brand-200)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
+                    <Zap size={24} style={{ color: 'var(--brand-600)', marginBottom: '0.75rem', margin: '0 auto' }} />
+                    <h3 style={{ fontWeight: 700, color: 'var(--n-900)' }}>รอสแกน QR รับเงิน</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--n-600)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
+                    <div style={{ padding: '1rem', background: '#fff', display: 'inline-block', borderRadius: '10px' }}>
+                      <QRScanner 
+                        onScanSuccess={async (text) => {
+                          try {
+                            const data = JSON.parse(text);
+                            if (data.orderId === order.id && data.type === 'SwiftPath_Payment') {
+                              await updateStatus('pay');
+                            } else {
+                              toast.error('QR ไม่ถูกต้องสำหรับออเดอร์นี้');
+                            }
+                          } catch { toast.error('QR ไม่ถูกต้อง'); }
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '1rem 0' }}>
                     <DollarSign size={32} style={{ color: 'var(--success-text)', margin: '0 auto', marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)', marginBottom: '0.5rem' }}>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)', marginBottom: '0.5rem' }}>
                       ฿{(order.totalPrice || order.price || 0).toLocaleString()}
                     </div>
-                    <h3 style={{ color: 'var(--n-100)', marginBottom: '0.5rem', fontWeight: 600 }}>ยอดที่ต้องเรียกเก็บ</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--n-400)', marginBottom: '1.5rem' }}>กดยืนยันหากคุณได้รับเงินสด หรือลูกค้าชำระเงินเรียบร้อยแล้ว</p>
+                    <h3 style={{ color: 'var(--n-800)', marginBottom: '0.5rem', fontWeight: 600 }}>ยอดที่ต้องเรียกเก็บ</h3>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>กดยืนยันหากคุณได้รับเงินสด หรือลูกค้าชำระเงินเรียบร้อยแล้ว</p>
                     <button 
                       onClick={() => updateStatus('pay')} 
                       disabled={updating}
-                      className="sp-btn-brand sp-btn-full" 
-                      style={{ padding: '1rem', background: 'var(--success-text)' }}
+                      className="sp-btn-touch sp-btn-touch-full" 
+                      style={{ background: 'var(--success-text)' }}
                     >
                       {updating ? <span className="sp-spinner" /> : 'ยืนยันรับเงินเรียบร้อย'}
                     </button>
@@ -502,10 +504,10 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.paymentStatus === 'Paid' && (
-              <div className="sp-card-dark" style={{ textAlign: 'center', background: 'oklch(18% 0.014 38 / 0.5)', border: '1px solid var(--success-text)' }}>
+              <div className="sp-card" style={{ textAlign: 'center', background: 'rgba(46, 125, 50, 0.05)', border: '1px solid var(--success-text)' }}>
                 <CheckCircle size={32} style={{ color: 'var(--success-text)', marginBottom: '0.75rem' }} />
-                <h3 style={{ fontWeight: 900, color: 'var(--n-50)' }}>งานสำเร็จ</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--n-500)' }}>ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
+                <h3 style={{ fontWeight: 900, color: 'var(--success-text)' }}>งานสำเร็จ</h3>
+                <p style={{ fontSize: '0.8rem', color: 'var(--n-600)' }}>ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
               </div>
             )}
 

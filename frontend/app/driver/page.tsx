@@ -65,36 +65,37 @@ export default function DriverDashboard() {
   };
 
   if (isLoading) return (
-    <div className="sp-page-dark" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-800)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
         <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading Fleet Portal</p>
       </div>
     </div>
   );
 
   return (
-    <div className="sp-page-dark">
+    <div className="sp-page">
       {/* ── Nav ── */}
-      <nav className="sp-nav-dark">
+      <nav className="sp-nav">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
-          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-800)', paddingLeft: '0.75rem' }}>Fleet</span>
+          <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-200)', paddingLeft: '0.75rem' }}>Fleet</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <Link href="/driver/radar" className="sp-btn-primary" style={{ padding: '0.4rem 0.875rem', fontSize: '0.75rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             <Navigation size={12} /> เรดาร์
           </Link>
-          <Link href="/driver/history" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--n-400)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/driver/history" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--n-600)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, textDecoration: 'none' }}>
             ประวัติ
           </Link>
-          <Link href="/driver/wallet" style={{ display: 'flex', color: 'var(--n-400)' }} aria-label="กระเป๋าเงิน">
+          <Link href="/driver/wallet" style={{ display: 'flex', color: 'var(--n-600)' }} aria-label="กระเป๋าเงิน">
             <Wallet size={16} />
           </Link>
-          <Link href="/driver/profile" style={{ display: 'flex', color: 'var(--n-400)' }} aria-label="โปรไฟล์">
+          <Link href="/driver/profile" style={{ display: 'flex', color: 'var(--n-600)' }} aria-label="โปรไฟล์">
             <User size={16} />
           </Link>
-          <button onClick={handleLogout} aria-label="ออกจากระบบ" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', display: 'flex' }}>
+          <button onClick={handleLogout} aria-label="ออกจากระบบ" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex' }}>
             <LogOut size={16} />
           </button>
         </div>
@@ -116,27 +117,27 @@ export default function DriverDashboard() {
         {/* ── Stats Hero ── */}
         <div className="sp-animate" style={{ marginBottom: '4rem' }}>
           <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>DASHBOARD</span>
-          <h1 className="sp-font-display sp-text-hero" style={{ marginTop: '0.5rem', color: 'var(--n-50)' }}>รายงานวันนี้</h1>
+          <h1 className="sp-font-display sp-text-hero" style={{ marginTop: '0.5rem', color: 'var(--n-900)' }}>รายงานวันนี้</h1>
           
           <div className="sp-kpi-row" style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span className="sp-stat-label" style={{ color: 'var(--success-text)' }}>งานสำเร็จ</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--success-text)' }}>{stats?.completedTrips ?? '—'}</div>
+              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>{stats?.completedTrips ?? '—'}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="sp-stat-label" style={{ color: 'oklch(65% 0.15 260)' }}>กำลังส่ง</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'oklch(65% 0.15 260)' }}>{stats?.activeOrders ?? '—'}</div>
+              <span className="sp-stat-label" style={{ color: 'var(--brand-600)' }}>กำลังส่ง</span>
+              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>{stats?.activeOrders ?? '—'}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span className="sp-stat-label" style={{ color: 'var(--brand-500)' }}>รายได้</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--brand-500)' }}>฿{(stats?.totalIncome ?? 0).toLocaleString()}</div>
+              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>฿{(stats?.totalIncome ?? 0).toLocaleString()}</div>
             </div>
           </div>
 
           {stats?.weatherBonus > 0 && (
-            <div style={{ padding: '1rem', background: 'var(--n-850)', borderLeft: '4px solid var(--brand-500)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ padding: '1rem', background: 'var(--n-50)', borderLeft: '4px solid var(--brand-500)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <Zap size={18} style={{ color: 'var(--brand-500)' }} />
-              <span style={{ color: 'var(--n-50)', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ color: 'var(--n-900)', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Surge Bonus <strong style={{ color: 'var(--brand-500)' }}>+฿{stats.weatherBonus.toLocaleString()}</strong>
               </span>
             </div>
@@ -152,10 +153,10 @@ export default function DriverDashboard() {
             </div>
             <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
               {hotspots.map((spot, i) => (
-                <div key={i} style={{ minWidth: '180px', padding: '1.25rem', background: 'var(--n-850)', borderTop: '2px solid var(--n-800)', flexShrink: 0 }}>
+                <div key={i} style={{ minWidth: '180px', padding: '1.25rem', background: 'var(--n-50)', borderTop: '2px solid var(--n-200)', flexShrink: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', alignItems: 'flex-start' }}>
-                    <span style={{ fontWeight: 800, color: 'var(--n-50)', fontSize: '1rem' }}>{spot.city}</span>
-                    <CloudRain size={16} style={{ color: 'oklch(65% 0.12 220)' }} />
+                    <span style={{ fontWeight: 800, color: 'var(--n-900)', fontSize: '1rem' }}>{spot.city}</span>
+                    <CloudRain size={16} style={{ color: 'var(--brand-600)' }} />
                   </div>
                   <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>+20% Surge Bonus</span>
                 </div>
@@ -170,14 +171,14 @@ export default function DriverDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
             <div>
               <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ACTIVE</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-50)' }}>งานที่มอบหมาย</h2>
+              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>งานที่มอบหมาย</h2>
             </div>
-            <span className="sp-mono" style={{ color: 'var(--n-400)' }}>[{orders.length}]</span>
+            <span className="sp-mono" style={{ color: 'var(--n-500)' }}>[{orders.length}]</span>
           </div>
 
           {orders.length === 0 ? (
             <div style={{ padding: '4rem 0', textAlign: 'center' }}>
-              <p className="sp-caps" style={{ color: 'var(--n-600)' }}>ไม่มีงานในขณะนี้</p>
+              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ไม่มีงานในขณะนี้</p>
               <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 600 }}>
                 เปิดเรดาร์เพื่อรับการแจ้งเตือนแบบเรียลไทม์
               </p>
@@ -185,46 +186,55 @@ export default function DriverDashboard() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               {orders.map(order => (
-                <div key={order.id} style={{ background: 'var(--n-850)', borderTop: order.weatherWarning ? '4px solid var(--brand-500)' : '2px solid var(--n-800)' }}>
-                  <div style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                      <div>
-                        <p className="sp-mono" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--brand-500)' }}>{order.trackingNumber}</p>
-                        <p style={{ fontWeight: 700, color: 'var(--n-50)', marginTop: '0.25rem', fontSize: '1.1rem' }}>{order.productName}</p>
+                <div key={order.id} className="sp-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: '12px' }}>
+                  {order.weatherWarning && <div style={{ height: '4px', background: 'var(--brand-500)' }} />}
+                  
+                  {/* Header Section */}
+                  <div style={{ padding: '1.25rem 1.5rem', background: 'var(--n-50)', borderBottom: '1px solid var(--n-150)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ width: '40px', height: '40px', background: 'var(--brand-100)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-600)' }}>
+                        <Package size={20} />
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--n-50)' }}>
-                          ฿{(order.totalPrice || order.price)?.toLocaleString()}
-                        </p>
-                        {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>Surge +20%</span>}
+                      <div>
+                        <p className="sp-mono" style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--brand-600)' }}>{order.trackingNumber}</p>
+                        <p style={{ fontWeight: 700, color: 'var(--n-900)', marginTop: '0.125rem', fontSize: '1.1rem' }}>{order.productName}</p>
                       </div>
                     </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--n-900)' }}>
+                        ฿{(order.totalPrice || order.price)?.toLocaleString()}
+                      </p>
+                      {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-600)', fontSize: '0.65rem' }}>Surge +20%</span>}
+                    </div>
+                  </div>
 
-                    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                  {/* Body Section */}
+                  <div style={{ padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
                       {order.estimatedMinutes && (
-                        <span className="sp-caps" style={{ color: 'var(--n-400)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <span className="sp-caps" style={{ background: 'var(--n-100)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'var(--n-700)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem' }}>
                           <Clock size={12} /> ETA {order.estimatedMinutes} นาที
                         </span>
                       )}
                       {order.hasInsurance && (
-                        <span className="sp-caps" style={{ color: 'oklch(65% 0.12 270)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                          <Shield size={12} /> ประกัน
+                        <span className="sp-caps" style={{ background: 'oklch(95% 0.05 270)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'oklch(60% 0.15 270)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem' }}>
+                          <Shield size={12} /> มีประกันคุ้มครอง
                         </span>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '2rem' }}>
-                      <MapPin size={16} style={{ color: 'var(--n-600)', marginTop: '0.1rem', flexShrink: 0 }} />
-                      <p style={{ color: 'var(--n-300)', fontSize: '0.9rem', lineHeight: 1.6, fontWeight: 500 }}>
-                        <strong style={{ color: 'var(--n-100)' }}>{order.receiverName}</strong><br/>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
+                      <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.1rem', flexShrink: 0 }} />
+                      <p style={{ color: 'var(--n-600)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 500 }}>
+                        <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{order.receiverName}</strong><br/>
                         {order.address}
                       </p>
                     </div>
 
                     <button
                       onClick={() => router.push(`/driver/orders/${order.id}`)}
-                      className="sp-btn-primary"
-                      style={{ width: '100%' }}
+                      className="sp-btn-touch sp-btn-touch-full sp-btn-primary"
+                      style={{ borderRadius: '8px', fontWeight: 800, fontSize: '1rem', padding: '1.25rem' }}
                     >
                       ดูรายละเอียด / อัปเดตสถานะ
                     </button>

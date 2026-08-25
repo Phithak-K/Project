@@ -255,32 +255,32 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
           <aside className="sp-stagger" style={{ animationDelay: '100ms' }}>
             {/* Price Card */}
-            <div className="sp-card-dark" style={{ marginBottom: '1.5rem' }}>
+            <div className="sp-card" style={{ marginBottom: '1.5rem', background: 'var(--brand-50)' }}>
               <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.25rem' }}>สรุปยอดชำระ</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
                   <span style={{ color: 'var(--n-500)' }}>ยอดสินค้า</span>
-                  <span style={{ color: 'var(--n-50)' }}>฿{(order.price || 0).toLocaleString()}</span>
+                  <span style={{ color: 'var(--n-900)' }}>฿{(order.price || 0).toLocaleString()}</span>
                 </div>
                 {order.hasInsurance && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'oklch(65% 0.12 270)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ color: 'oklch(60% 0.15 270)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                       <Shield size={14} /> ประกันสินค้า
                     </span>
-                    <span style={{ color: 'var(--n-50)' }}>+ ฿50</span>
+                    <span style={{ color: 'var(--n-900)' }}>+ ฿50</span>
                   </div>
                 )}
-                <div style={{ height: '1px', background: 'var(--n-800)', margin: '0.5rem 0' }} />
+                <div style={{ height: '1px', background: 'var(--n-200)', margin: '0.5rem 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span className="sp-caps" style={{ color: 'var(--n-500)' }}>รวมสุทธิ</span>
-                  <span className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-50)' }}>
+                  <span className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-900)' }}>
                     ฿{(order.totalPrice || order.price).toLocaleString()}
                   </span>
                 </div>
                 <button 
                   onClick={handleDownloadPdf}
                   className="sp-btn-ghost" 
-                  style={{ width: '100%', marginTop: '1rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                  style={{ width: '100%', marginTop: '1rem', background: '#fff' }}
                 >
                   <Download size={16} /> ดาวน์โหลดใบส่งของ (PDF)
                 </button>

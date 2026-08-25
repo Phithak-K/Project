@@ -392,15 +392,20 @@ export class AuthService implements OnModuleInit {
     const model = this.getModel(roleStr);
     // รองรับ Login ทั้ง email และ username
     let user: any = null;
-    if (loginDto.email) {
-      user = await (model as any).findUnique({
-        where: { email: loginDto.email },
-      });
-    } else if (loginDto.username) {
-      user = await (model as any).findUnique({
-        where: { username: loginDto.username },
-      });
+    const identifier = loginDto.email || loginDto.username;
+    
+    if (!identifier) {
+      throw new BadRequestException('กรุณาระบุอีเมล หรือ Username');
     }
+
+    user = await (model as any).findFirst({
+      where: {
+        OR: [
+          { email: identifier },
+          { username: identifier },
+        ]
+      },
+    });
 
     if (!user)
       throw new BadRequestException(

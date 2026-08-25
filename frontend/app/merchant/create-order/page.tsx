@@ -148,11 +148,11 @@ export default function CreateOrderPage() {
 
   return (
     <div className="sp-page">
-      <nav className="sp-nav">
-        <button onClick={() => router.back()} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer' }}>
+      <nav className="sp-nav" style={{ background: '#fff', borderBottom: '1px solid var(--n-200)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={() => router.back()} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--n-500)' }}>
           <ArrowLeft size={16} /> ย้อนกลับ
         </button>
-        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
+        <span className="sp-logo">Store<span className="sp-logo-accent">Portal</span></span>
         <div style={{ width: '80px' }} />
       </nav>
 
@@ -166,7 +166,7 @@ export default function CreateOrderPage() {
         <form onSubmit={handleSubmit} className="sp-stagger">
 
           {/* ── Section 1: รายการสินค้า (Multi-item) ── */}
-          <div className="sp-card" style={{ marginBottom: '1.5rem' }}>
+          <div className="sp-card" style={{ marginBottom: '1.5rem', background: '#fff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 className="sp-caps" style={{ color: 'var(--n-400)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Package size={14} /> รายการสินค้า
@@ -178,7 +178,7 @@ export default function CreateOrderPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {items.map((item, idx) => (
-                <div key={idx} style={{ position: 'relative', padding: '1rem', border: '1px solid var(--n-150)', borderRadius: '0.75rem', background: 'var(--n-50)' }}>
+                <div key={idx} style={{ position: 'relative', padding: '1.25rem', border: '1px solid var(--n-200)', borderRadius: '12px', background: 'var(--n-50)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <span className="sp-caps" style={{ color: 'var(--n-500)', fontSize: '0.7rem' }}>รายการที่ {idx + 1}</span>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -279,7 +279,7 @@ export default function CreateOrderPage() {
           </div>
 
           {/* ── Section 2: ข้อมูลผู้รับ ── */}
-          <div className="sp-card" style={{ marginBottom: '1.5rem' }}>
+          <div className="sp-card" style={{ marginBottom: '1.5rem', background: '#fff' }}>
             <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <User size={14} /> ข้อมูลผู้รับ
             </h3>
@@ -361,7 +361,7 @@ export default function CreateOrderPage() {
           {/* ── Section 3: Summary ── */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
 
-            <div className="sp-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="sp-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#fff' }}>
               <h3 className="sp-caps" style={{ color: 'var(--n-400)' }}>บริการเสริม</h3>
               <div className="sp-checkbox">
                 <input type="checkbox" id="insure" checked={formData.hasInsurance}
@@ -388,7 +388,7 @@ export default function CreateOrderPage() {
               )}
             </div>
 
-            <div className="sp-card-dark" style={{ background: 'var(--n-850)' }}>
+            <div className="sp-card" style={{ background: 'var(--n-50)' }}>
               <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.25rem' }}>สรุปยอดชำระ</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {items.map((item, idx) => (
@@ -413,7 +413,7 @@ export default function CreateOrderPage() {
                 <div style={{ height: '1px', background: 'var(--n-700)', margin: '0.25rem 0' }} />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <span className="sp-caps" style={{ color: 'var(--n-500)' }}>รวมสุทธิ</span>
-                  <span className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>
+                  <span className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>
                     ฿{grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
@@ -421,7 +421,7 @@ export default function CreateOrderPage() {
             </div>
           </div>
 
-          <button id="btn-submit-order" type="submit" disabled={loading} className="sp-btn-brand sp-btn-full" style={{ padding: '1.125rem', fontSize: '1.1rem' }}>
+          <button id="btn-submit-order" type="submit" disabled={loading} className="sp-btn-touch sp-btn-touch-full">
             {loading ? <span className="sp-spinner" /> : <>ยืนยันและสร้างออเดอร์</>}
           </button>
         </form>

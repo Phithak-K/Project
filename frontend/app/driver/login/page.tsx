@@ -40,17 +40,17 @@ export default function DriverLoginPage() {
   };
 
   return (
-    <div className="sp-page-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%' }}>
+    <div className="sp-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%', margin: '0 auto' }}>
         
         <div className="sp-animate" style={{ marginBottom: '4rem' }}>
-          <span className="sp-logo-dark" style={{ fontSize: '1.5rem' }}>Swift<span className="sp-logo-accent">Path</span></span>
+          <span className="sp-logo" style={{ fontSize: '1.5rem' }}>Swift<span className="sp-logo-accent">Path</span></span>
           <div style={{ width: '40px', height: '4px', background: 'var(--brand-500)', marginTop: '0.5rem' }}></div>
         </div>
 
         <div className="sp-animate-d1" style={{ marginBottom: '3rem' }}>
           <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>FLEET PORTAL</span>
-          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-50)' }}>
+          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-900)' }}>
             ล็อกอิน<br />คนขับรถ
           </h1>
           <p style={{ color: 'var(--n-500)', marginTop: '0.75rem', fontSize: '0.9rem', fontWeight: 500 }}>
@@ -59,7 +59,7 @@ export default function DriverLoginPage() {
         </div>
 
         {error && (
-          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid oklch(73% 0.19 50)', background: 'var(--n-850)', color: 'var(--n-50)', marginBottom: '2rem', fontSize: '0.875rem' }}>
+          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid var(--error-text)', background: 'var(--n-50)', color: 'var(--n-900)', marginBottom: '2rem', fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
             {error}
           </div>
         )}
@@ -67,7 +67,7 @@ export default function DriverLoginPage() {
         <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           <div>
-            <label className="sp-caps" style={{ display: 'block', color: 'var(--n-400)', marginBottom: '0.5rem' }}>อีเมล หรือ USERNAME</label>
+            <label className="sp-caps" style={{ display: 'block', color: 'var(--n-500)', marginBottom: '0.5rem' }}>อีเมล หรือ USERNAME</label>
             <input 
               id="driver-email"
               type="text" 
@@ -81,8 +81,8 @@ export default function DriverLoginPage() {
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
-              <label className="sp-caps" style={{ color: 'var(--n-400)' }}>รหัสผ่าน</label>
-              <Link href="/forgot-password" style={{ fontSize: '0.75rem', color: 'var(--n-400)', fontWeight: 600, textDecoration: 'underline' }}>ลืมรหัสผ่าน?</Link>
+              <label className="sp-caps" style={{ color: 'var(--n-500)' }}>รหัสผ่าน</label>
+              <Link href="/forgot-password" style={{ fontSize: '0.75rem', color: 'var(--n-500)', fontWeight: 600, textDecoration: 'underline' }}>ลืมรหัสผ่าน?</Link>
             </div>
             <div className="sp-input-wrap">
               <input 
@@ -100,15 +100,15 @@ export default function DriverLoginPage() {
             </div>
           </div>
 
-          <button id="btn-driver-login" type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-            {isLoading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : <span>เข้าสู่ระบบ</span>}
+          <button id="btn-driver-login" type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+            {isLoading ? <span className="sp-spinner" /> : <span>เข้าสู่ระบบ</span>}
             {!isLoading && <ArrowRight size={20} />}
           </button>
         </form>
 
-        <div className="sp-animate-d3" style={{ marginTop: '3rem', borderTop: '1px solid var(--n-800)', paddingTop: '2rem' }}>
+        <div className="sp-animate-d3" style={{ marginTop: '3rem', borderTop: '1px solid var(--n-200)', paddingTop: '2rem' }}>
           <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', fontWeight: 500 }}>
-            ยังไม่ได้สมัคร? <Link href="/register" style={{ color: 'var(--n-50)', fontWeight: 700, textDecoration: 'underline' }}>สมัครเป็นคนขับ</Link>
+            ยังไม่ได้สมัคร? <Link href="/register" style={{ color: 'var(--n-900)', fontWeight: 700, textDecoration: 'underline' }}>สมัครเป็นคนขับ</Link>
           </p>
           <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem' }}>
             <a href={`//app.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>สำหรับลูกค้า &rarr;</a>

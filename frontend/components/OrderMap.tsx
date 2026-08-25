@@ -115,8 +115,8 @@ export default function OrderMap({
       destMarkerRef.current = L.marker([lat, lng], { icon: destIcon })
         .addTo(map)
         .bindPopup(`
-          <div style="font-family: 'Inter', sans-serif; padding: 4px; text-align: center;">
-            <strong style="color: var(--n-800); font-size: 0.9rem;">${label}</strong>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 4px; text-align: center; background: #ffffff; color: #1a1a1a;">
+            <strong style="color: #1a1a1a; font-size: 0.9rem;">${label}</strong>
           </div>
         `);
 

@@ -98,7 +98,7 @@ export default function MerchantHistoryPage() {
       <main id="report-content" className="sp-container" style={{ paddingTop: '2rem', paddingBottom: '2rem', background: 'var(--n-50)' }}>
         
         {/* ── Date Filters ── */}
-        <div className="sp-no-print" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem', background: '#fff', padding: '1rem', borderRadius: '12px', border: '1px solid var(--n-200)' }}>
+        <div className="sp-no-print" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', background: '#fff', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
           {/* Quick Select Buttons */}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             <button 
@@ -183,27 +183,27 @@ export default function MerchantHistoryPage() {
 
 
         {/* ── KPI Stats ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-          <div className="sp-card sp-animate" style={{ background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ padding: '0.5rem', background: 'rgba(230, 81, 0, 0.1)', borderRadius: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+          <div className="sp-card sp-animate" style={{ background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: '16px', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.6rem', background: 'var(--brand-50)', borderRadius: '10px' }}>
                 <Package size={20} style={{ color: 'var(--brand-600)' }} />
               </div>
-              <span style={{ fontSize: '0.875rem', color: 'var(--n-600)', fontWeight: 600 }}>ออเดอร์สำเร็จ</span>
+              <span style={{ fontSize: '0.9rem', color: 'var(--n-600)', fontWeight: 700 }}>ออเดอร์สำเร็จ</span>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--n-900)' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--n-900)' }}>
               {data?.stats?.totalDelivered || 0} <span style={{ fontSize: '1rem', color: 'var(--n-500)', fontWeight: 600 }}>ออเดอร์</span>
             </div>
           </div>
 
-          <div className="sp-card sp-animate" style={{ animationDelay: '0.1s', background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-              <div style={{ padding: '0.5rem', background: 'rgba(46, 125, 50, 0.1)', borderRadius: '8px' }}>
+          <div className="sp-card sp-animate" style={{ animationDelay: '0.1s', background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: '16px', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ padding: '0.6rem', background: 'rgba(46, 125, 50, 0.1)', borderRadius: '10px' }}>
                 <DollarSign size={20} style={{ color: 'rgb(46, 125, 50)' }} />
               </div>
-              <span style={{ fontSize: '0.875rem', color: 'var(--n-600)', fontWeight: 600 }}>ยอดขายรวม</span>
+              <span style={{ fontSize: '0.9rem', color: 'var(--n-600)', fontWeight: 700 }}>ยอดขายรวม</span>
             </div>
-            <div style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--n-900)' }}>
+            <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--n-900)' }}>
               <span style={{ fontSize: '1.25rem', color: 'var(--n-500)', marginRight: '0.25rem' }}>฿</span>
               {Number(data?.stats?.totalRevenue || 0).toLocaleString()}
             </div>
@@ -230,13 +230,13 @@ export default function MerchantHistoryPage() {
             <p style={{ color: 'var(--n-500)', fontSize: '1rem' }}>ยังไม่มีประวัติออเดอร์ในช่วงเวลานี้</p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {data.orders.map((order, idx) => (
-              <div key={order.id} className="sp-card sp-animate" style={{ animationDelay: `${Math.min(idx * 0.05, 0.5)}s`, padding: '1.25rem', background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+              <div key={order.id} className="sp-card sp-animate" style={{ animationDelay: `${Math.min(idx * 0.05, 0.5)}s`, padding: '1.5rem', background: '#fff', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', borderRadius: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
                   <div>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'rgba(46, 125, 50, 0.15)', color: 'rgb(27, 94, 32)', padding: '0.25rem 0.5rem', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                      <CheckCircle size={12} /> DELIVERED
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', background: 'rgba(46, 125, 50, 0.1)', color: 'rgb(30, 100, 35)', padding: '0.35rem 0.65rem', borderRadius: '6px', fontSize: '0.7rem', fontWeight: 800, marginBottom: '0.75rem' }}>
+                      <CheckCircle size={14} /> DELIVERED
                     </span>
                     <h3 style={{ color: 'var(--n-900)', fontSize: '1rem', fontWeight: 700 }}>#{order.trackingNumber}</h3>
                     <p style={{ color: 'var(--n-500)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
