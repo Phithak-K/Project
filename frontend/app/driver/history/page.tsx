@@ -42,10 +42,12 @@ export default function DriverHistoryPage() {
 
   return (
     <div className="sp-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <nav className="sp-nav">
-        <Link href="/driver" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--n-600)', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase' }}>
-          <ArrowLeft size={16} /> กลับหน้าหลัก
-        </Link>
+      <nav className="sp-nav" style={{ padding: 0 }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', height: '100%', padding: '0 1.5rem' }}>
+          <Link href="/driver" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--n-600)', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase' }}>
+            <ArrowLeft size={16} /> กลับหน้าหลัก
+          </Link>
+        </div>
       </nav>
 
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem 1.5rem', width: '100%', flex: 1 }}>

@@ -86,8 +86,8 @@ export default function CustomerHistoryPage() {
   return (
     <div className="sp-page" style={{ minHeight: '100vh', background: 'var(--n-50)', paddingBottom: '4rem' }}>
       {/* ── Nav ── */}
-      <nav className="sp-nav" style={{ background: '#fff', borderBottom: '1px solid var(--n-200)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <nav className="sp-nav" style={{ background: '#fff', borderBottom: '1px solid var(--n-200)', position: 'sticky', top: 0, zIndex: 10, padding: 0 }}>
+        <div className="sp-container" style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%', height: '100%' }}>
           <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', color: 'var(--n-600)', cursor: 'pointer', display: 'flex' }}>
             <ArrowLeft size={20} />
           </button>

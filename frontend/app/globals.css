@@ -93,6 +93,11 @@ body {
   color: var(--n-900);
 }
 
+.sp-container {
+  width: min(100% - 2.5rem, 1220px);
+  margin: 0 auto;
+}
+
 .sp-page-dark {
   min-height: 100vh;
   background: var(--n-900);
