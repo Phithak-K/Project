@@ -15,7 +15,7 @@
   --brand-100:   #ffe0b2;
   --brand-200:   #ffcc80;
   --brand-400:   #ff9800;
-  --brand-500:   #f57c00;   /* PRIMARY */
+  --brand-500:   oklch(70% 0.2 40);   /* PRIMARY */
   --brand-600:   #ef6c00;
   --brand-700:   #e65100;
   --brand-800:   #bf360c;
@@ -31,9 +31,9 @@
   --n-500:   #706c67;
   --n-600:   #55514c;
   --n-700:   #3f3b37;
-  --n-800:   #292622;
-  --n-850:   #1f1c19;
-  --n-900:   #141210;
+  --n-800:   oklch(20% 0.01 250);
+  --n-850:   oklch(18% 0.01 250);
+  --n-900:   oklch(15% 0.01 250);
 
   /* Semantic */
   --success-bg:   #e6f4ea;
@@ -104,7 +104,7 @@ body {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr;
-  background: #ffffff;
+  background: var(--n-900);
 }
 @media (min-width: 900px) {
   .sp-auth-wrap { grid-template-columns: 1fr 1fr; }
@@ -116,7 +116,7 @@ body {
   flex-direction: column;
   justify-content: center;
   padding: clamp(2rem, 6vw, 5rem);
-  background: #ffffff;
+  background: var(--n-900);
   min-height: 100vh;
 }
 
@@ -147,7 +147,7 @@ body {
   justify-content: space-between;
   padding: 0 1.5rem;
   height: 60px;
-  background: #ffffff;
+  background: var(--n-900);
   border-bottom: 1px solid var(--n-150);
 }
 
@@ -196,24 +196,26 @@ body {
 .sp-input {
   width: 100%;
   padding: 0.8rem 1rem;
-  border: 1.5px solid var(--n-200);
-  border-radius: 0.625rem;
-  background: var(--n-50);
-  color: var(--n-900);
+  border: none;
+  border-bottom: 2px solid var(--n-700);
+  border-radius: 0;
+  background: var(--n-850);
+  color: var(--n-50);
   font-size: 0.95rem;
   font-family: inherit;
   outline: none;
-  transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  transition: border-color var(--t-fast), background var(--t-fast);
   -webkit-appearance: none;
 }
-.sp-input::placeholder { color: var(--n-300); }
+.sp-input::placeholder { color: var(--n-500); }
 .sp-input:focus {
   border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px var(--brand-100);
+  background: var(--n-800);
 }
 .sp-input:disabled {
-  background: var(--n-100);
-  color: var(--n-400);
+  background: var(--n-900);
+  color: var(--n-600);
+  border-bottom-color: var(--n-800);
   cursor: not-allowed;
 }
 
@@ -284,24 +286,26 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--n-900);
-  color: var(--n-50);
+  padding: 0.875rem 1.5rem;
+  background: var(--brand-500);
+  color: var(--n-900);
   border: none;
-  border-radius: 0.625rem;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   font-family: inherit;
   cursor: pointer;
-  transition: background var(--t-fast), transform var(--t-fast);
+  transition: background var(--t-fast);
   white-space: nowrap;
 }
-.sp-btn-primary:hover  { background: var(--brand-600); }
-.sp-btn-primary:active { transform: scale(0.97); }
+.sp-btn-primary:hover  { background: var(--brand-400); }
+.sp-btn-primary:active { background: var(--brand-600); }
 .sp-btn-primary:disabled {
-  background: var(--n-300);
+  background: var(--n-800);
+  color: var(--n-500);
   cursor: not-allowed;
-  transform: none;
 }
 
 .sp-btn-brand {
@@ -309,13 +313,15 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.875rem 1.5rem;
   background: var(--brand-500);
-  color: #ffffff;
+  color: var(--n-900);
   border: none;
-  border-radius: 0.625rem;
-  font-size: 0.9rem;
-  font-weight: 600;
+  border-radius: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   font-family: inherit;
   cursor: pointer;
   transition: background var(--t-fast), transform var(--t-fast);
@@ -373,7 +379,7 @@ body {
 
 /* ── 8. CARDS ─────────────────────────────────── */
 .sp-card {
-  background: #ffffff;
+  background: var(--n-900);
   border: 1px solid var(--n-150);
   border-radius: 1rem;
   padding: 1.5rem;
@@ -624,7 +630,7 @@ body {
   z-index: 50;
   width: 360px;
   max-width: calc(100vw - 2rem);
-  background: #ffffff;
+  background: var(--n-900);
   border: 1px solid var(--n-200);
   border-radius: 1rem;
   box-shadow: 0 8px 40px rgba(36, 28, 22, 0.12);
