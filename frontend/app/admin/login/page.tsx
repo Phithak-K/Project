@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Shield } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({ email: '', password: '' });
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,6 @@ export default function AdminLoginPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.message || 'เข้าสู่ระบบไม่สำเร็จ'); return; }
 
-      // ✅ ส่งโทเค็นให้ Server-side Next.js จัดการคุกกี้ (HttpOnly) แทนการเขียนลง document.cookie
       await fetch('/api/auth/callback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -39,108 +38,73 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--n-950, #09090b)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem'
-    }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-          <div style={{
-            width: '52px', height: '52px', borderRadius: '14px',
-            background: 'oklch(65% 0.18 30)', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', margin: '0 auto 1rem'
-          }}>
-            <Shield size={26} style={{ color: '#fff' }} />
+    <div className="sp-page-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%' }}>
+        
+        <div className="sp-animate" style={{ marginBottom: '4rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Shield size={28} style={{ color: 'var(--brand-500)' }} />
+          <div>
+            <span className="sp-logo-dark" style={{ fontSize: '1.5rem' }}>Swift<span className="sp-logo-accent">Path</span></span>
+            <div style={{ width: '40px', height: '4px', background: 'var(--brand-500)', marginTop: '0.25rem' }}></div>
           </div>
-          <h1 style={{ fontWeight: 900, fontSize: '1.5rem', color: '#f4f4f5', letterSpacing: '-0.02em' }}>
-            Swift<span style={{ color: 'oklch(65% 0.18 30)' }}>Path</span> Admin
+        </div>
+
+        <div className="sp-animate-d1" style={{ marginBottom: '3rem' }}>
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>CONTROL CENTER</span>
+          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-50)' }}>
+            ผู้ดูแลระบบ
           </h1>
-          <p style={{ color: '#71717a', fontSize: '0.875rem', marginTop: '0.375rem' }}>
-            Control Center — Authorized Access Only
+          <p style={{ color: 'var(--n-500)', marginTop: '0.75rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+            Authorized Access Only
           </p>
         </div>
 
-        {/* Card */}
-        <div style={{
-          background: '#18181b', border: '1px solid #27272a',
-          borderRadius: '16px', padding: '2rem'
-        }}>
-          <form id="form-admin-login" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        {error && (
+          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid oklch(73% 0.19 50)', background: 'var(--n-850)', color: 'var(--n-50)', marginBottom: '2rem', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                Admin Email
-              </label>
-              <input
-                id="admin-email"
-                type="email"
-                required
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                placeholder="admin@swiftpath.com"
-                style={{
-                  width: '100%', background: '#09090b', border: '1px solid #3f3f46',
-                  borderRadius: '10px', padding: '0.75rem 1rem', color: '#f4f4f5',
-                  fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box',
-                  transition: 'border-color 0.15s'
-                }}
-              />
+        <form onSubmit={handleSubmit} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          <div>
+            <label className="sp-caps" style={{ display: 'block', color: 'var(--n-400)', marginBottom: '0.5rem' }}>Admin Email</label>
+            <input 
+              type="email" 
+              required 
+              value={form.email} 
+              onChange={e => setForm(f => ({ ...f, email: e.target.value }))} 
+              className="sp-input" 
+              placeholder="admin@swiftpath.com" 
+            />
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
+              <label className="sp-caps" style={{ color: 'var(--n-400)' }}>Password</label>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                Password
-              </label>
-              <input
-                id="admin-password"
-                type="password"
-                required
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                placeholder="••••••••••••"
-                style={{
-                  width: '100%', background: '#09090b', border: '1px solid #3f3f46',
-                  borderRadius: '10px', padding: '0.75rem 1rem', color: '#f4f4f5',
-                  fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box',
-                }}
+            <div className="sp-input-wrap">
+              <input 
+                type={showPw ? 'text' : 'password'} 
+                required 
+                value={form.password} 
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))} 
+                className="sp-input" 
+                placeholder="••••••••" 
               />
+              <button type="button" className="sp-input-toggle" onClick={() => setShowPw(!showPw)}>
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
+          </div>
 
-            {error && (
-              <div style={{
-                background: 'oklch(25% 0.08 0)', border: '1px solid oklch(40% 0.12 0)',
-                borderRadius: '8px', padding: '0.75rem 1rem', color: 'oklch(72% 0.18 20)',
-                fontSize: '0.875rem'
-              }}>
-                {error}
-              </div>
-            )}
+          <button type="submit" disabled={loading} className="sp-btn-primary" style={{ marginTop: '1rem', padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+            {loading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : <span>เข้าสู่ระบบ</span>}
+            {!loading && <ArrowRight size={20} />}
+          </button>
+        </form>
 
-            <button
-              id="btn-admin-login"
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%', padding: '0.875rem', borderRadius: '10px',
-                background: loading ? '#3f3f46' : 'oklch(65% 0.18 30)',
-                color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-                border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                transition: 'background 0.15s',
-              }}
-            >
-              <Lock size={15} />
-              {loading ? 'กำลังยืนยันตัวตน...' : 'เข้าสู่ระบบ Admin'}
-            </button>
-          </form>
-        </div>
-
-        <p style={{ textAlign: 'center', color: '#3f3f46', fontSize: '0.75rem', marginTop: '1.5rem' }}>
-          SwiftPath Control Center — Zero-Trust Security
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

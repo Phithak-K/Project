@@ -30,10 +30,10 @@ export default function MerchantLoginPage() {
         const { redirectUrl } = await handleLoginCallback(data);
         window.location.href = redirectUrl;
       } else {
-        setError(data.message || '???????????????????????????');
+        setError(data.message || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
       }
     } catch {
-      setError('???????????????????????????????????');
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
     } finally {
       setIsLoading(false);
     }
@@ -42,16 +42,20 @@ export default function MerchantLoginPage() {
   return (
     <div className="sp-page-dark" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 'clamp(2rem, 6vw, 6rem)', maxWidth: '600px', width: '100%' }}>
+        
         <div className="sp-animate" style={{ marginBottom: '4rem' }}>
           <span className="sp-logo-dark" style={{ fontSize: '1.5rem' }}>Swift<span className="sp-logo-accent">Path</span></span>
           <div style={{ width: '40px', height: '4px', background: 'var(--brand-500)', marginTop: '0.5rem' }}></div>
         </div>
 
         <div className="sp-animate-d1" style={{ marginBottom: '3rem' }}>
-          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>MERCHANT PORTAL</span>
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>MERCHANT HUB</span>
           <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-50)' }}>
-            ?????????????<br />??????
+            ล็อกอิน<br />ร้านค้า
           </h1>
+          <p style={{ color: 'var(--n-500)', marginTop: '0.75rem', fontSize: '0.9rem', fontWeight: 500 }}>
+            จัดการออเดอร์ บริหารพัสดุและขนส่ง
+          </p>
         </div>
 
         {error && (
@@ -61,37 +65,54 @@ export default function MerchantLoginPage() {
         )}
 
         <form onSubmit={handleLogin} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
           <div>
-            <label className="sp-caps" style={{ display: 'block', color: 'var(--n-400)', marginBottom: '0.5rem' }}>????? ???? USERNAME</label>
-            <input type="text" required value={email} onChange={e => setEmail(e.target.value)} className="sp-input" placeholder="????????? ???? Username" />
+            <label className="sp-caps" style={{ display: 'block', color: 'var(--n-400)', marginBottom: '0.5rem' }}>อีเมล หรือ USERNAME</label>
+            <input 
+              id="merchant-email"
+              type="text" 
+              required 
+              value={email} 
+              onChange={e => setEmail(e.target.value)} 
+              className="sp-input" 
+              placeholder="กรอกอีเมล หรือ Username" 
+            />
           </div>
 
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.5rem' }}>
-              <label className="sp-caps" style={{ color: 'var(--n-400)' }}>????????</label>
-              <Link href="/forgot-password" style={{ fontSize: '0.75rem', color: 'var(--n-400)', fontWeight: 600, textDecoration: 'underline' }}>????????????</Link>
+              <label className="sp-caps" style={{ color: 'var(--n-400)' }}>รหัสผ่าน</label>
+              <Link href="/forgot-password" style={{ fontSize: '0.75rem', color: 'var(--n-400)', fontWeight: 600, textDecoration: 'underline' }}>ลืมรหัสผ่าน?</Link>
             </div>
             <div className="sp-input-wrap">
-              <input type={showPw ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)} className="sp-input" placeholder="��������" />
+              <input 
+                id="merchant-password"
+                type={showPw ? 'text' : 'password'} 
+                required 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                className="sp-input" 
+                placeholder="••••••••" 
+              />
               <button type="button" className="sp-input-toggle" onClick={() => setShowPw(!showPw)}>
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
-            {isLoading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : <span>???????????</span>}
+          <button id="btn-merchant-login" type="submit" disabled={isLoading} className="sp-btn-primary" style={{ marginTop: '1rem', padding: '1.25rem', width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+            {isLoading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : <span>เข้าสู่ระบบ</span>}
             {!isLoading && <ArrowRight size={20} />}
           </button>
         </form>
 
         <div className="sp-animate-d3" style={{ marginTop: '3rem', borderTop: '1px solid var(--n-800)', paddingTop: '2rem' }}>
           <p style={{ fontSize: '0.875rem', color: 'var(--n-500)', fontWeight: 500 }}>
-            ????????????????????? <Link href="/register" style={{ color: 'var(--n-50)', fontWeight: 700, textDecoration: 'underline' }}>?????????????</Link>
+            ยังไม่ได้สมัคร? <Link href="/register" style={{ color: 'var(--n-50)', fontWeight: 700, textDecoration: 'underline' }}>สมัครเปิดร้าน</Link>
           </p>
           <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1.5rem' }}>
-            <a href={`//app.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>???????????? &rarr;</a>
-            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>??????????? &rarr;</a>
+            <a href={`//app.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>สำหรับลูกค้า &rarr;</a>
+            <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/login`} style={{ fontSize: '0.75rem', color: 'var(--n-500)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>สำหรับคนขับ &rarr;</a>
           </div>
         </div>
       </main>

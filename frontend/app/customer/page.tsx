@@ -3,102 +3,68 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Package, Search, Clock, LogOut, ChevronRight, Wallet, User } from 'lucide-react';
+import { Package, Search, Clock, LogOut, ChevronRight, Wallet, User, Shield } from 'lucide-react';
 
 // ─── Skeleton Components ──────────────────────────────────────────────────────
 
 const shimmerStyle: React.CSSProperties = {
-  background: 'linear-gradient(90deg, #f4f4f5 25%, #e4e4e7 50%, #f4f4f5 75%)',
+  background: 'linear-gradient(90deg, var(--n-850) 25%, var(--n-800) 50%, var(--n-850) 75%)',
   backgroundSize: '200% 100%',
   animation: 'sp-shimmer 1.4s ease-in-out infinite',
-  borderRadius: '8px',
 };
 
-function SkeletonBlock({
-  width = '100%',
-  height = '16px',
-  style = {},
-}: {
-  width?: string;
-  height?: string;
-  style?: React.CSSProperties;
-}) {
+function SkeletonBlock({ width = '100%', height = '16px', style = {} }: { width?: string; height?: string; style?: React.CSSProperties }) {
   return <div style={{ ...shimmerStyle, width, height, ...style }} />;
 }
 
 function SkeletonWalletCard() {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid #e4e4e7',
-        borderRadius: '16px',
-        padding: '1.75rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: '2.5rem',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+    <div style={{ background: 'var(--n-850)', borderTop: '2px solid var(--n-800)', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <SkeletonBlock width="100px" height="12px" />
-        <SkeletonBlock width="160px" height="36px" style={{ borderRadius: '6px' }} />
+        <SkeletonBlock width="160px" height="36px" />
       </div>
-      <SkeletonBlock width="130px" height="42px" style={{ borderRadius: '10px' }} />
+      <SkeletonBlock width="130px" height="42px" />
     </div>
   );
 }
 
 function SkeletonOrderCard() {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid #e4e4e7',
-        borderRadius: '12px',
-        padding: '1.25rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-      }}
-    >
+    <div style={{ background: 'var(--n-850)', borderTop: '2px solid var(--n-800)', padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <SkeletonBlock width="40px" height="40px" style={{ borderRadius: '10px', flexShrink: 0 }} />
+        <SkeletonBlock width="40px" height="40px" style={{ flexShrink: 0 }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <SkeletonBlock width="140px" height="14px" />
           <SkeletonBlock width="90px" height="12px" />
         </div>
       </div>
-      <SkeletonBlock width="80px" height="26px" style={{ borderRadius: '99px' }} />
+      <SkeletonBlock width="80px" height="26px" />
     </div>
   );
 }
 
 function SkeletonLoggedIn() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
-      {/* Skeleton Navbar */}
-      <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7' }}>
-        <SkeletonBlock width="140px" height="24px" style={{ borderRadius: '6px' }} />
-        <SkeletonBlock width="110px" height="36px" style={{ borderRadius: '8px' }} />
+    <div className="sp-page-dark">
+      <nav className="sp-nav-dark">
+        <SkeletonBlock width="140px" height="24px" />
+        <SkeletonBlock width="110px" height="36px" />
       </nav>
-      {/* Skeleton Hero */}
-      <div style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fffbf7 100%)', borderBottom: '1px solid #f5ebe0', padding: '5rem 2rem', textAlign: 'center' }}>
+      <div style={{ padding: '5rem 2rem', borderBottom: '1px solid var(--n-800)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-          <SkeletonBlock width="200px" height="14px" style={{ borderRadius: '4px' }} />
-          <SkeletonBlock width="480px" height="52px" style={{ borderRadius: '8px', maxWidth: '100%' }} />
-          <SkeletonBlock width="360px" height="18px" style={{ borderRadius: '4px', maxWidth: '100%' }} />
-          <SkeletonBlock width="600px" height="60px" style={{ borderRadius: '16px', marginTop: '0.75rem', maxWidth: '100%' }} />
+          <SkeletonBlock width="200px" height="14px" />
+          <SkeletonBlock width="480px" height="52px" style={{ maxWidth: '100%' }} />
+          <SkeletonBlock width="600px" height="60px" style={{ marginTop: '0.75rem', maxWidth: '100%' }} />
         </div>
       </div>
-      {/* Skeleton Main — Wallet + Orders */}
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '3rem 1.5rem' }}>
         <SkeletonWalletCard />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
           <SkeletonBlock width="120px" height="18px" />
-          <SkeletonBlock width="60px" height="26px" style={{ borderRadius: '99px' }} />
+          <SkeletonBlock width="60px" height="26px" />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <SkeletonOrderCard />
           <SkeletonOrderCard />
           <SkeletonOrderCard />
@@ -108,24 +74,22 @@ function SkeletonLoggedIn() {
   );
 }
 
-// ✅ CRITICAL-02 FIX: Skeleton แยกสำหรับ Guest — ตรงกับ layout จริง ลด CLS
 function SkeletonGuest() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
-      <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7' }}>
-        <SkeletonBlock width="140px" height="24px" style={{ borderRadius: '6px' }} />
-        <SkeletonBlock width="110px" height="36px" style={{ borderRadius: '8px' }} />
+    <div className="sp-page-dark">
+      <nav className="sp-nav-dark">
+        <SkeletonBlock width="140px" height="24px" />
+        <SkeletonBlock width="110px" height="36px" />
       </nav>
-      <div style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fffbf7 100%)', borderBottom: '1px solid #f5ebe0', padding: '5rem 2rem', textAlign: 'center' }}>
+      <div style={{ padding: '5rem 2rem', borderBottom: '1px solid var(--n-800)' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-          <SkeletonBlock width="200px" height="14px" style={{ borderRadius: '4px' }} />
-          <SkeletonBlock width="480px" height="52px" style={{ borderRadius: '8px', maxWidth: '100%' }} />
-          <SkeletonBlock width="600px" height="60px" style={{ borderRadius: '16px', marginTop: '0.75rem', maxWidth: '100%' }} />
+          <SkeletonBlock width="200px" height="14px" />
+          <SkeletonBlock width="480px" height="52px" style={{ maxWidth: '100%' }} />
+          <SkeletonBlock width="600px" height="60px" style={{ marginTop: '0.75rem', maxWidth: '100%' }} />
         </div>
       </div>
-      {/* Skeleton Main — CTA box เล็กๆ ตรงกับ Logged-Out UI จริง */}
       <main style={{ maxWidth: '680px', margin: '0 auto', padding: '3rem 1.5rem' }}>
-        <SkeletonBlock width="100%" height="220px" style={{ borderRadius: '16px' }} />
+        <SkeletonBlock width="100%" height="220px" />
       </main>
     </div>
   );
@@ -140,11 +104,10 @@ export default function CustomerDashboard() {
   const [trackingInput, setTrackingInput] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMounted, setIsMounted] = useState(false); // 🛡️ Hydration Guard
+  const [isMounted, setIsMounted] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-  // ✅ Hydration Guard: รอ Client mount ก่อนเสมอ ป้องกัน SSR/CSR mismatch
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -155,8 +118,8 @@ export default function CustomerDashboard() {
     if (parts.length === 2) return parts.pop()?.split(';').shift();
     return null;
   };
+
   useEffect(() => {
-    // Guard: รันเฉพาะหลัง mount บน client เท่านั้น
     if (!isMounted) return;
 
     const role = getCookie('role');
@@ -196,6 +159,7 @@ export default function CustomerDashboard() {
     await clearAuth();
     window.location.href = '/login';
   };
+
   const handleTrack = (e: React.FormEvent) => {
     e.preventDefault();
     if (trackingInput.trim()) {
@@ -203,55 +167,36 @@ export default function CustomerDashboard() {
     }
   };
 
-  // [FIX] Phase 1: ยังไม่ mount → render Skeleton แทน null เพื่อจัดสรรพื้นที่ Layout ล่วงหน้า
-  // ป้องกัน Cumulative Layout Shift (CLS) และ White Flash บน First Paint
   if (!isMounted) {
     return (
       <>
-        <style>{`
-          @keyframes sp-shimmer {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-        `}</style>
+        <style>{`@keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
         <SkeletonGuest />
       </>
     );
   }
 
-  // 🖴 Phase 2: Mount แล้วแต่กำลังโหลด → ✅ CRITICAL-02: เลือก Skeleton ตาม Auth State ลด CLS
   if (isLoading) {
     const hasToken = document.cookie.includes('role=');
     return (
       <>
-        <style>{`
-          @keyframes sp-shimmer {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-        `}</style>
+        <style>{`@keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
         {hasToken ? <SkeletonLoggedIn /> : <SkeletonGuest />}
       </>
     );
   }
 
-  // ✅ Phase 3: โหลดเสร็จ → แสดงเนื้อหาจริง
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa', color: '#18181b', fontFamily: "'Inter', sans-serif" }}>
-      <style>{`
-        @keyframes sp-shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
-        }
-      `}</style>
+    <div className="sp-page-dark">
+      <style>{`@keyframes sp-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }`}</style>
 
       {/* Navbar */}
-      <nav style={{ background: '#fff', padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #e4e4e7', position: 'sticky', top: 0, zIndex: 50 }}>
+      <nav className="sp-nav-dark">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontWeight: 900, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
-            Swift<span style={{ color: 'oklch(65% 0.18 30)' }}>Path</span>
+          <span className="sp-logo-dark">
+            Swift<span className="sp-logo-accent">Path</span>
           </span>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#71717a', borderLeft: '1px solid #e4e4e7', paddingLeft: '0.75rem' }}>
+          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-800)', paddingLeft: '0.75rem' }}>
             Portal
           </span>
         </div>
@@ -260,23 +205,23 @@ export default function CustomerDashboard() {
           {isLoggedIn ? (
             <>
               <Link href="/wallet" style={{ textDecoration: 'none' }}>
-                <button style={{ background: 'oklch(65% 0.18 30 / 0.1)', color: 'oklch(65% 0.18 30)', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button style={{ background: 'var(--n-850)', color: 'var(--brand-500)', border: '1px solid var(--brand-900)', padding: '0.5rem 1rem', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Wallet size={16} /> Wallet: ฿{balance?.toLocaleString()}
                 </button>
               </Link>
               <Link href="/profile" style={{ textDecoration: 'none' }}>
-                <button style={{ background: '#f4f4f5', color: '#52525b', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <button style={{ background: 'var(--n-850)', color: 'var(--n-300)', border: '1px solid var(--n-700)', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                   <User size={16} />
                 </button>
               </Link>
-              <button onClick={handleLogout} style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '0.5rem', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <button onClick={handleLogout} style={{ background: 'var(--error-bg)', color: 'var(--error-text)', border: '1px solid var(--error-bg)', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <LogOut size={16} />
               </button>
             </>
           ) : (
             <Link href="/login" style={{ textDecoration: 'none' }}>
-              <button style={{ background: '#18181b', color: '#fff', border: 'none', padding: '0.5rem 1.25rem', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <User size={16} /> Business Log In
+              <button style={{ background: 'transparent', color: 'var(--n-300)', border: '1px solid var(--n-700)', padding: '0.5rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <User size={14} /> Business Log In
               </button>
             </Link>
           )}
@@ -284,31 +229,32 @@ export default function CustomerDashboard() {
       </nav>
 
       {/* Hero Section */}
-      <div style={{ background: 'linear-gradient(180deg, #ffffff 0%, #fffbf7 100%)', borderBottom: '1px solid #f5ebe0', padding: '5rem 2rem', textAlign: 'center' }}>
+      <div className="sp-animate-d1" style={{ borderBottom: '1px solid var(--n-800)', padding: '6rem 2rem', textAlign: 'center' }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'oklch(65% 0.18 30)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Professional Logistics Network</span>
-          <h1 style={{ fontSize: '3rem', fontWeight: 900, color: '#18181b', letterSpacing: '-0.04em', marginTop: '0.75rem', marginBottom: '1.25rem', lineHeight: 1.1 }}>
-            Enterprise Delivery <span style={{ color: 'oklch(65% 0.18 30)' }}>Simplified</span>
+          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>Professional Logistics Network</span>
+          <h1 className="sp-font-display sp-text-hero" style={{ marginTop: '0.75rem', marginBottom: '1.25rem' }}>
+            Enterprise Delivery <span style={{ color: 'var(--brand-500)' }}>Simplified</span>
           </h1>
-          <p style={{ fontSize: '1.125rem', color: '#52525b', maxWidth: '600px', margin: '0 auto 2.5rem', lineHeight: 1.5, fontWeight: 500 }}>
+          <p style={{ fontSize: '1.125rem', color: 'var(--n-400)', maxWidth: '600px', margin: '0 auto 3rem', lineHeight: 1.5, fontWeight: 500 }}>
             Real-time multi-carrier orchestration platform with advanced route planning and secure financial settlement.
           </p>
 
           {/* Search Box */}
           <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-            <form onSubmit={handleTrack} style={{ display: 'flex', gap: '0.5rem', background: '#fff', padding: '0.5rem', borderRadius: '16px', border: '1px solid #e4e4e7', boxShadow: '0 8px 30px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, paddingLeft: '1rem', color: '#71717a' }}>
-                <Search size={20} style={{ color: 'oklch(65% 0.18 30)' }} />
+            <form onSubmit={handleTrack} style={{ display: 'flex', background: 'var(--n-850)', padding: '0.5rem', border: '1px solid var(--n-700)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, paddingLeft: '1rem' }}>
+                <Search size={20} style={{ color: 'var(--brand-500)' }} />
                 <input
                   type="text"
                   value={trackingInput}
                   onChange={e => setTrackingInput(e.target.value)}
-                  placeholder="Enter tracking number (e.g. SPXXXXXXXX)"
-                  style={{ width: '100%', border: 'none', outline: 'none', fontSize: '1rem', color: '#18181b', fontWeight: 600 }}
+                  placeholder="ENTER TRACKING NUMBER"
+                  className="sp-input"
+                  style={{ width: '100%', border: 'none', background: 'transparent', fontSize: '1rem', color: 'var(--n-50)', padding: '0' }}
                 />
               </div>
-              <button type="submit" style={{ background: 'oklch(65% 0.18 30)', color: '#fff', border: 'none', padding: '0.875rem 1.75rem', borderRadius: '12px', fontWeight: 700, cursor: 'pointer', fontSize: '0.95rem' }}>
-                Track Package
+              <button type="submit" className="sp-btn-primary" style={{ padding: '0.875rem 1.75rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}>
+                TRACK PACKAGE
               </button>
             </form>
           </div>
@@ -316,62 +262,66 @@ export default function CustomerDashboard() {
       </div>
 
       {/* Conditional Content */}
-      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+      <main style={{ maxWidth: '680px', margin: '0 auto', padding: '4rem 1.5rem' }}>
         {isLoggedIn ? (
-          <div>
+          <div className="sp-animate-d2">
             {/* Wallet Section */}
-            <div style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '16px', padding: '1.75rem', boxShadow: '0 4px 15px rgba(0,0,0,0.01)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+            <div style={{ background: 'var(--n-850)', borderTop: '4px solid var(--brand-500)', padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
               <div>
-                <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Available Balance</p>
-                <p style={{ fontSize: '2.25rem', fontWeight: 900, color: '#18181b', marginTop: '0.375rem', letterSpacing: '-0.02em' }}>
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Available Balance</p>
+                <p className="sp-font-display" style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--n-50)', marginTop: '0.5rem' }}>
                   ฿{balance !== null ? balance.toLocaleString() : '0'}
                 </p>
               </div>
               <Link href="/wallet" style={{ textDecoration: 'none' }}>
-                <button style={{ background: '#18181b', color: '#fff', border: 'none', padding: '0.75rem 1.5rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem' }}>
+                <button style={{ background: 'transparent', color: 'var(--n-300)', border: '1px solid var(--n-700)', padding: '0.75rem 1.5rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem', textTransform: 'uppercase' }}>
                   Manage Wallet
                 </button>
               </Link>
             </div>
 
             {/* Recent Orders Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#18181b' }}>Recent Orders</h2>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a1a1aa', background: '#f4f4f5', padding: '0.25rem 0.75rem', borderRadius: '99px' }}>
-                  {orders.length} Active
-                </span>
+            <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+              <div>
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ACTIVE</p>
+                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-50)' }}>Recent Orders</h2>
               </div>
-              <Link href="/history" style={{ textDecoration: 'none' }}>
-                <button style={{ background: '#f4f4f5', color: '#18181b', border: '1px solid #e4e4e7', padding: '0.4rem 1rem', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <span>ประวัติย้อนหลัง (History)</span>
-                </button>
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <span className="sp-mono" style={{ color: 'var(--n-400)' }}>[{orders.length}]</span>
+                <Link href="/history" style={{ textDecoration: 'none' }}>
+                  <button style={{ background: 'transparent', color: 'var(--brand-500)', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                    ประวัติย้อนหลัง &rarr;
+                  </button>
+                </Link>
+              </div>
             </div>
 
             {orders.length === 0 ? (
-              <div style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '16px', padding: '4rem 2rem', textAlign: 'center' }}>
-                <Clock size={32} style={{ color: '#d4d4d8', margin: '0 auto 1rem' }} />
-                <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#18181b', marginBottom: '0.25rem' }}>No orders found</h3>
-                <p style={{ color: '#71717a', fontSize: '0.875rem' }}>Orders dispatched to your address will appear here.</p>
+              <div style={{ padding: '4rem 0', textAlign: 'center' }}>
+                <Clock size={32} style={{ color: 'var(--n-600)', margin: '0 auto 1rem' }} />
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>No orders found</p>
+                <p style={{ color: 'var(--n-400)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Orders dispatched to your address will appear here.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {orders.map(order => (
                   <Link key={order.id} href={`/orders/${order.id}`} style={{ textDecoration: 'none' }}>
-                    <div style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'oklch(65% 0.18 30 / 0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'oklch(65% 0.18 30)' }}>
+                    <div style={{ background: 'var(--n-850)', borderTop: '2px solid var(--n-800)', padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'background 0.2s' }}
+                         onMouseEnter={e => e.currentTarget.style.background = 'var(--n-800)'}
+                         onMouseLeave={e => e.currentTarget.style.background = 'var(--n-850)'}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ width: '48px', height: '48px', background: 'var(--n-900)', border: '1px solid var(--n-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-500)' }}>
                           <Package size={20} />
                         </div>
                         <div>
-                          <p style={{ fontWeight: 700, color: '#18181b', fontSize: '0.95rem' }}>{order.trackingNumber}</p>
-                          <p style={{ color: '#71717a', fontSize: '0.8rem', marginTop: '0.125rem', fontWeight: 500 }}>{order.productName}</p>
+                          <p className="sp-mono" style={{ fontWeight: 700, color: 'var(--brand-500)', fontSize: '0.9rem' }}>{order.trackingNumber}</p>
+                          <p style={{ color: 'var(--n-50)', fontSize: '0.95rem', marginTop: '0.25rem', fontWeight: 600 }}>{order.productName}</p>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <StatusBadge status={order.status} />
-                        <ChevronRight size={16} style={{ color: '#d4d4d8' }} />
+                        <ChevronRight size={18} style={{ color: 'var(--n-500)' }} />
                       </div>
                     </div>
                   </Link>
@@ -381,20 +331,20 @@ export default function CustomerDashboard() {
           </div>
         ) : (
           /* Logged Out CTA */
-          <div style={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '16px', padding: '4rem 2rem', textAlign: 'center', boxShadow: '0 4px 15px rgba(0,0,0,0.01)' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#18181b', marginBottom: '0.5rem' }}>Manage Shipments Electronically</h2>
-            <p style={{ color: '#71717a', fontSize: '0.95rem', maxWidth: '440px', margin: '0 auto 2rem', lineHeight: 1.5, fontWeight: 500 }}>
+          <div className="sp-animate-d2" style={{ background: 'var(--n-850)', borderTop: '4px solid var(--brand-500)', padding: '4rem 2rem', textAlign: 'center' }}>
+            <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-50)', marginBottom: '1rem' }}>Manage Shipments Electronically</h2>
+            <p style={{ color: 'var(--n-400)', fontSize: '0.95rem', maxWidth: '440px', margin: '0 auto 2.5rem', lineHeight: 1.6, fontWeight: 500 }}>
               Create an enterprise account or log in to manage active delivery flows, fund your corporate wallet, and track multi-carrier pipelines.
             </p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
               <Link href="/login" style={{ textDecoration: 'none' }}>
-                <button style={{ background: 'oklch(65% 0.18 30)', color: '#fff', border: 'none', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
-                  Log In
+                <button className="sp-btn-primary" style={{ padding: '0.875rem 2rem' }}>
+                  LOG IN
                 </button>
               </Link>
               <Link href="/register" style={{ textDecoration: 'none' }}>
-                <button style={{ background: '#fff', color: '#18181b', border: '1px solid #d4d4d8', padding: '0.75rem 2rem', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
-                  Register
+                <button style={{ background: 'transparent', color: 'var(--n-300)', border: '1px solid var(--n-700)', padding: '0.875rem 2rem', fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem', textTransform: 'uppercase' }}>
+                  REGISTER
                 </button>
               </Link>
             </div>
@@ -402,15 +352,15 @@ export default function CustomerDashboard() {
         )}
 
         {/* Corporate Footer Links */}
-        <div style={{ height: '1px', background: '#e4e4e7', margin: '4rem 0 2rem' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 800, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Join the Network</p>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+        <div style={{ height: '1px', background: 'var(--n-800)', margin: '4rem 0 2rem' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center' }}>
+          <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Join the Network</p>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <a href={`//store.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`} style={{ textDecoration: 'none' }}>
-              <button style={{ background: '#fff', border: '1px solid #d4d4d8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 700, color: '#52525b', cursor: 'pointer' }}>Merchant Platform</button>
+              <button style={{ background: 'transparent', border: '1px solid var(--n-700)', padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--n-400)', cursor: 'pointer' }}>Merchant Platform</button>
             </a>
             <a href={`//fleet.${process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'}/register`} style={{ textDecoration: 'none' }}>
-              <button style={{ background: '#fff', border: '1px solid #d4d4d8', borderRadius: '8px', padding: '0.5rem 1rem', fontSize: '0.8rem', fontWeight: 700, color: '#52525b', cursor: 'pointer' }}>Driver Fleet</button>
+              <button style={{ background: 'transparent', border: '1px solid var(--n-700)', padding: '0.75rem 1.25rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--n-400)', cursor: 'pointer' }}>Driver Fleet</button>
             </a>
           </div>
         </div>
@@ -423,18 +373,18 @@ export default function CustomerDashboard() {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string, text: string, label: string }> = {
-    PENDING:   { bg: '#fef3c7', text: '#d97706', label: 'Pending Approval' },
-    ACCEPTED:  { bg: '#e0f2fe', text: '#0284c7', label: 'Assigned' },
-    PICKED_UP: { bg: '#faf5ff', text: '#9333ea', label: 'Received' },
-    SHIPPING:  { bg: '#ffedd5', text: '#ea580c', label: 'Shipping' },
-    DELIVERED: { bg: '#dcfce7', text: '#16a34a', label: 'Completed' },
-    CANCELLED: { bg: '#fee2e2', text: '#ef4444', label: 'Cancelled' },
+    PENDING:   { bg: 'var(--brand-900)', text: 'var(--brand-500)', label: 'Pending' },
+    ACCEPTED:  { bg: 'oklch(20% 0.05 260)', text: 'oklch(65% 0.15 260)', label: 'Assigned' },
+    PICKED_UP: { bg: 'oklch(20% 0.05 260)', text: 'oklch(65% 0.15 260)', label: 'Received' },
+    SHIPPING:  { bg: 'oklch(20% 0.05 260)', text: 'oklch(65% 0.15 260)', label: 'Shipping' },
+    DELIVERED: { bg: 'oklch(20% 0.06 150)', text: 'oklch(65% 0.15 150)', label: 'Completed' },
+    CANCELLED: { bg: 'var(--error-bg)', text: 'var(--error-text)', label: 'Cancelled' },
   };
 
-  const current = styles[status] || { bg: '#f4f4f5', text: '#71717a', label: status };
+  const current = styles[status] || { bg: 'var(--n-800)', text: 'var(--n-400)', label: status };
 
   return (
-    <span style={{ background: current.bg, color: current.text, fontSize: '0.75rem', fontWeight: 800, padding: '0.25rem 0.75rem', borderRadius: '99px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+    <span style={{ background: current.bg, color: current.text, fontSize: '0.7rem', fontWeight: 800, padding: '0.375rem 0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
       {current.label}
     </span>
   );
