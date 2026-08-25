@@ -1,52 +1,47 @@
-import { LucideIcon } from 'lucide-react';
-import Link from 'next/link';
+import React from 'react';
 
-interface EmptyStateProps {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  actionLabel?: string;
-  actionHref?: string;
-  onAction?: () => void;
-}
-
-export default function EmptyState({
-  icon: Icon,
-  title,
-  description,
-  actionLabel,
-  actionHref,
-  onAction,
-}: EmptyStateProps) {
+export default function EmptyState({ 
+  icon, 
+  title, 
+  description, 
+  action 
+}: { 
+  icon?: React.ReactNode, 
+  title: string, 
+  description: string, 
+  action?: React.ReactNode 
+}) {
   return (
-    <div className="sp-empty-centered sp-animate" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
-      <div style={{
-        width: '72px', height: '72px', borderRadius: '50%',
-        background: 'var(--n-50)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        margin: '0 auto 1.5rem'
-      }}>
-        <Icon size={36} style={{ color: 'var(--n-300)' }} />
-      </div>
-      <h3 className="sp-empty-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--n-800)', marginBottom: '0.5rem' }}>
-        {title}
-      </h3>
-      <p className="sp-empty-body" style={{ color: 'var(--n-500)', fontSize: '0.875rem', maxWidth: '320px', margin: '0 auto' }}>
-        {description}
-      </p>
-      
-      {actionLabel && (
-        <div style={{ marginTop: '2rem' }}>
-          {actionHref ? (
-            <Link href={actionHref} className="sp-btn-brand" style={{ display: 'inline-flex', padding: '0.75rem 2rem' }}>
-              {actionLabel}
-            </Link>
-          ) : (
-            <button onClick={onAction} className="sp-btn-brand" style={{ padding: '0.75rem 2rem' }}>
-              {actionLabel}
-            </button>
-          )}
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '4rem 2rem', 
+      textAlign: 'center',
+      background: 'var(--surface)',
+      borderRadius: 'var(--radius-lg)',
+      border: '1px dashed var(--n-200)',
+      animation: 'fade-in 0.3s ease-out'
+    }}>
+      {icon && (
+        <div style={{ 
+          marginBottom: '1.5rem', 
+          color: 'var(--n-300)',
+          background: 'var(--n-50)',
+          padding: '1.5rem',
+          borderRadius: '50%'
+        }}>
+          {icon}
         </div>
       )}
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--n-800)', marginBottom: '0.5rem' }}>
+        {title}
+      </h3>
+      <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', maxWidth: '300px', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        {description}
+      </p>
+      {action && <div>{action}</div>}
     </div>
   );
 }

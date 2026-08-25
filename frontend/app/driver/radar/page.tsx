@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { MapPin, Clock, Shield, Zap, CheckCircle, CloudRain, LogOut, ArrowLeft, RefreshCw, Package } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useHaptic } from '@/hooks/useHaptic';
+import { useSound } from '@/hooks/useSound';
+import EmptyState from '@/components/EmptyState';
+import OrderSkeleton from '@/components/OrderSkeleton';
+import ThemeToggle from '@/components/ThemeToggle';
 
 // พิกัดเมืองไทยสำหรับ Marker บน Map
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -22,6 +28,9 @@ export default function DriverRadarPage() {
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+
+  const triggerHaptic = useHaptic();
+  const playSound = useSound();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [hotspots, setHotspots] = useState<any[]>([]);
@@ -177,7 +186,11 @@ export default function DriverRadarPage() {
           if (token) {
             sock = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
             sock.on('new_available_order', (order: any) => {
-              setOrders(prev => prev.find(o => o.id === order.id) ? prev : [order, ...prev]);
+              setOrders(prev => {
+                if (prev.find(o => o.id === order.id)) return prev;
+                playSound(); // Play sound on new order
+                return [order, ...prev];
+              });
             });
             sock.on('order_taken', (data: { orderId: number }) => {
               setOrders(prev => prev.filter(o => o.id !== data.orderId));
@@ -191,16 +204,19 @@ export default function DriverRadarPage() {
   }, [fetchOrders, SOCKET_URL]);
 
   const handleAccept = async (orderId: number) => {
+    triggerHaptic(); // Vibrate when button pressed
     setAccepting(orderId);
     try {
       const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
-      if (res.ok) router.push(`/driver/orders/${orderId}`);
-      else {
+      if (res.ok) {
+        toast.success('รับงานสำเร็จ!');
+        router.push(`/driver/orders/${orderId}`);
+      } else {
         const e = await res.json();
-        alert(e.message || 'ไม่สามารถรับงานได้');
+        toast.error(e.message || 'ไม่สามารถรับงานได้');
         setOrders(prev => prev.filter(o => o.id !== orderId));
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setAccepting(null); }
   };
 
@@ -220,6 +236,7 @@ export default function DriverRadarPage() {
         </button>
         <span className="sp-logo">Fleet<span className="sp-logo-accent">Radar</span></span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeToggle />
           <span className="sp-caps" style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'sp-in 1.2s ease-in-out infinite alternate' }} />
             Live
@@ -286,14 +303,13 @@ export default function DriverRadarPage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-            <span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} />
-          </div>
+          <OrderSkeleton />
         ) : orders.length === 0 ? (
-          <div className="sp-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem', background: 'var(--n-50)' }}>
-            <p className="sp-font-display" style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--n-300)' }}>ว่าง</p>
-            <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '0.75rem' }}>ระบบจะแจ้งเตือนทันทีที่มีงาน</p>
-          </div>
+          <EmptyState 
+            icon={<CloudRain size={32} />}
+            title="ว่าง"
+            description="ยังไม่มีงานใหม่ในพื้นที่ของคุณ ระบบจะแจ้งเตือนทันทีที่มีงาน"
+          />
         ) : (
           <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {orders.map(order => (

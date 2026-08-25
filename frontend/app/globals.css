@@ -143,6 +143,40 @@ body {
   .sp-auth-brand-panel { display: flex; }
 }
 
+/* ── DRIVER NIGHT MODE ── */
+.driver-dark {
+  --n-50: #1a1a1a;
+  --n-100: #242424;
+  --n-150: #2a2a2a;
+  --n-200: #333333;
+  --n-300: #4d4d4d;
+  --n-400: #666666;
+  --n-500: #999999;
+  --n-600: #b3b3b3;
+  --n-700: #cccccc;
+  --n-800: #e6e6e6;
+  --n-900: #f5f5f5;
+  --surface: #121212;
+}
+
+.driver-dark .sp-page {
+  background: var(--surface) !important;
+  color: var(--n-900);
+}
+.driver-dark .sp-nav {
+  background: rgba(18, 18, 18, 0.85) !important;
+  border-bottom-color: var(--n-200) !important;
+}
+.driver-dark .sp-card {
+  background: var(--n-50) !important;
+  border-color: var(--n-200) !important;
+}
+.driver-dark .sp-input {
+  background: var(--n-100) !important;
+  color: var(--n-900) !important;
+  border-color: var(--n-300) !important;
+}
+
 /* ── 5. NAVIGATION ────────────────────────────── */
 .sp-nav {
   position: sticky;

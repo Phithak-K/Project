@@ -106,11 +106,10 @@ export default function OrderHistoryPage() {
           <div className="sp-animate">
             {orders.length === 0 ? (
               <EmptyState 
-                icon={Package}
+                icon={<Package size={32} />}
                 title="คุณยังไม่มีประวัติการสั่งซื้อ"
                 description="เริ่มต้นใช้งานโดยการสั่งซื้อสินค้าผ่านร้านค้าพันธมิตรของเรา"
-                actionLabel="กลับสู่หน้าหลัก"
-                actionHref="/"
+                action={<Link href="/" className="sp-btn-brand">กลับสู่หน้าหลัก</Link>}
               />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

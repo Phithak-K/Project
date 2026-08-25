@@ -28,7 +28,21 @@ export default function RootLayout({
     <html
       lang="th"
       className={`${kanit.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('driver-theme') === 'dark') {
+                  document.documentElement.classList.add('driver-dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-body" suppressHydrationWarning>
         <GoogleOAuthProvider clientId={googleClientId}>
           <FCMProvider>

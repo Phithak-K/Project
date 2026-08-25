@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { Users, Package, TrendingUp, CheckCircle, Clock, XCircle, LogOut, RefreshCw } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -200,6 +200,41 @@ export default function AdminDashboard() {
                     ))}
                   </Bar>
                 </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* User Growth Area Chart (Simulated Data) */}
+        {stats && (
+          <div className="sp-card sp-animate-d3" style={{ marginBottom: '3rem', padding: '2rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+              <div>
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Platform Adoption</p>
+                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>User Growth</h3>
+              </div>
+            </div>
+            <div style={{ width: '100%', height: '200px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={[
+                  { name: 'Mon', users: 120 }, { name: 'Tue', users: 150 }, 
+                  { name: 'Wed', users: 200 }, { name: 'Thu', users: 280 },
+                  { name: 'Fri', users: 350 }, { name: 'Sat', users: 420 },
+                  { name: 'Sun', users: 550 }
+                ]}>
+                  <defs>
+                    <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="oklch(65% 0.15 150)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="oklch(65% 0.15 150)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--n-400)', fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                    formatter={(v: any) => [`${v} Users`, 'Adoption']}
+                  />
+                  <Area type="monotone" dataKey="users" stroke="oklch(65% 0.15 150)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>

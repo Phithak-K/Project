@@ -7,6 +7,7 @@ import {
   ArrowLeft, Package, User, Phone, MapPin, Plus, Trash2,
   DollarSign, Shield, CloudRain, CheckCircle
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface OrderItem {
   productName: string;
@@ -83,10 +84,11 @@ export default function CreateOrderPage() {
 
   // ── Weather Check ──
   const checkWeather = async () => {
-    if (!formData.city) return alert('กรุณาระบุเมือง/จังหวัดก่อน');
+    if (!formData.city) return toast.error('กรุณาระบุเมือง/จังหวัดก่อน');
     setWeatherChecking(true);
     try {
       const res = await fetch(`/api/proxy/weather/${encodeURIComponent(formData.city.trim())}`);
+      if (!res.ok) throw new Error('weather proxy err');
       const data = await res.json();
       if (data.weather?.[0]) {
         const main = data.weather[0].main;
@@ -99,7 +101,7 @@ export default function CreateOrderPage() {
         }
         setWeatherData({ main, surge, eta });
       }
-    } catch { alert('ไม่สามารถดึงข้อมูลสภาพอากาศได้'); }
+    } catch { toast.error('ไม่สามารถดึงข้อมูลสภาพอากาศได้'); }
     finally { setWeatherChecking(false); }
   };
 
@@ -108,7 +110,7 @@ export default function CreateOrderPage() {
     e.preventDefault();
 
     const invalidItems = items.filter(i => !i.productName.trim() || (Number(i.unitPrice) || 0) <= 0 || (Number(i.quantity) || 0) <= 0);
-    if (invalidItems.length > 0) { alert('กรุณากรอกชื่อสินค้า จำนวน และราคาให้ครบทุกรายการ'); return; }
+    if (invalidItems.length > 0) { toast.error('กรุณากรอกชื่อสินค้า จำนวน และราคาให้ครบทุกรายการ'); return; }
 
     setLoading(true);
     try {
@@ -137,12 +139,13 @@ export default function CreateOrderPage() {
         await clearSession();
         window.location.replace('/login');
       } else if (res.ok) {
+        toast.success('สร้างออเดอร์สำเร็จ!', { duration: 3000 });
         router.push('/'); // กลับไปหน้า Dashboard ที่มีรายการออเดอร์
       } else {
         const err = await res.json();
-        alert(err.message || 'เกิดข้อผิดพลาดในการสร้างออเดอร์');
+        toast.error(err.message || 'เกิดข้อผิดพลาดในการสร้างออเดอร์');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setLoading(false); }
   };
 

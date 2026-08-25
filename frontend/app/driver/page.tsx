@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, LogOut, MapPin, Clock, Shield, Zap, TrendingUp, Navigation, CloudRain, User, Wallet, Package } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function DriverDashboard() {
   const router = useRouter();
@@ -89,6 +90,7 @@ export default function DriverDashboard() {
           <Link href="/driver/history" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--n-600)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, textDecoration: 'none' }}>
             ประวัติ
           </Link>
+          <ThemeToggle />
           <Link href="/driver/wallet" style={{ display: 'flex', color: 'var(--n-600)' }} aria-label="กระเป๋าเงิน">
             <Wallet size={16} />
           </Link>
