@@ -1108,7 +1108,8 @@ body {
   font-size: .9rem;
   font-weight: 750;
 }
-.landing-primary-action { color: white; background: linear-gradient(135deg, #ff7131, #dd4008); box-shadow: 0 12px 30px rgba(221,64,8,.24); }
+.landing-primary-action { color: var(--on-brand); background: var(--grad-brand); box-shadow: var(--lift-brand-hi); transition: transform .2s var(--ease-spring), box-shadow .25s ease, background .25s ease; }
+.landing-primary-action:hover { background: var(--grad-brand-hot); }
 .landing-secondary-action { color: var(--n-900); border: 1px solid var(--n-200); background: rgba(255,255,255,.7); }
 .landing-primary-action:hover, .landing-secondary-action:hover { transform: translateY(-2px); }
 .landing-proof-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.7rem; color: #7a726c; font-size: .76rem; font-weight: 600; }
@@ -1191,7 +1192,7 @@ body {
 .landing-cta { margin-top: 7rem; margin-bottom: 2rem; padding: clamp(2rem, 5vw, 4.5rem); display: flex; align-items: end; justify-content: space-between; gap: 2rem; color: var(--brand-900); border-radius: 30px; background: var(--brand-50); border: 1px solid var(--brand-200); }
 .landing-cta span { display: flex; align-items: center; gap: .45rem; color: var(--brand-600); font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
 .landing-cta h2 { color: var(--brand-800); }
-.landing-cta a { flex-shrink: 0; display: inline-flex; align-items: center; gap: .5rem; padding: .9rem 1.2rem; color: white; border-radius: 13px; background: var(--brand-500); font-size: .86rem; font-weight: 800; text-decoration: none; transition: transform .2s ease; }
+.landing-cta a { flex-shrink: 0; display: inline-flex; align-items: center; gap: .5rem; padding: .9rem 1.2rem; color: var(--on-brand); border-radius: var(--r-field); background: var(--grad-brand); box-shadow: var(--lift-brand); font-size: .86rem; font-weight: 800; text-decoration: none; transition: transform .2s var(--ease-spring), box-shadow .25s ease, background .25s ease; }
 .landing-cta a:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(242, 90, 25, 0.25); }
 .landing-footer { width: min(1220px, calc(100% - 2rem)); margin: 0 auto; padding: 2.2rem 0 3rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: #8a817a; border-top: 1px solid var(--n-200); font-size: .72rem; }
 
@@ -1838,3 +1839,612 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   border: 1.5px solid #fca5a5;
 }
 
+
+/* ══════════════════════════════════════════════════════
+   31. SWIFTPATH UI v4 — UNIFIED SURFACE & MOTION
+   จุดประสงค์: รวมสไตล์ที่กระจัดกระจายจากหลาย pass ให้เป็นชุดเดียว
+   (มุมโค้ง / เงา / โฟกัส / ปุ่ม) แล้วเพิ่มจังหวะ motion ให้ลื่นและมีชีวิต
+   เลเยอร์นี้อยู่ท้ายสุด = เป็นตัวตัดสินสุดท้ายของ "ผิวสัมผัส" ทั้งระบบ
+   ══════════════════════════════════════════════════════ */
+
+:root {
+  /* Radius scale — ใช้ค่าเดียวกันทั้งแอป */
+  --r-field: 12px;   /* input / select / textarea / ปุ่ม */
+  --r-card:  18px;   /* การ์ด */
+  --r-pill:  999px;  /* badge / chip */
+
+  /* Brand surface — ชุดเดียวกับ CTA บนหน้า Landing (ไล่เฉดเข้มขึ้นเพื่อคอนทราสต์) */
+  --grad-brand:     linear-gradient(135deg, #f4661f 0%, #e04f0d 55%, #cf3d05 100%);
+  --grad-brand-hot: linear-gradient(135deg, #ff7c36 0%, #f05a14 55%, #dc4506 100%);
+  --on-brand:       #ffffff;
+
+  /* Elevation */
+  --lift-1: 0 1px 2px rgba(38, 28, 20, .05), 0 6px 18px rgba(38, 28, 20, .05);
+  --lift-2: 0 2px 4px rgba(38, 28, 20, .06), 0 16px 40px rgba(38, 28, 20, .10);
+  --lift-brand:    0 8px 22px rgba(216, 66, 8, .26);
+  --lift-brand-hi: 0 14px 34px rgba(216, 66, 8, .34);
+
+  /* Focus */
+  --ring: 0 0 0 4px rgba(242, 90, 25, .18);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(.22, 1.15, .36, 1);
+  --ease-soft:   cubic-bezier(.32, .72, 0, 1);
+}
+
+/* ── 31.1 FIELDS — ทรงเดียวกันทุกพอร์ทัล ──────────────
+   เดิม: หน้า auth มุมโค้ง 8px แต่ในแดชบอร์ด (.sp-page) เป็นมุมเหลี่ยม 0
+   ตอนนี้: โค้ง 12px เท่ากันหมด เส้นขอบและ focus ring ชุดเดียว          */
+.sp-input,
+.sp-input-otp,
+.sp-page .sp-input,
+.sp-page .sp-input-otp,
+.sp-page select.sp-input,
+.sp-page textarea.sp-input {
+  border-radius: var(--r-field);
+  border: 1.5px solid rgba(55, 48, 40, .16);
+  border-bottom-width: 1.5px;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(38, 28, 20, .035);
+  transition: border-color .2s var(--ease-soft),
+              box-shadow  .24s var(--ease-soft),
+              background  .2s var(--ease-soft);
+}
+.sp-input:hover,
+.sp-page .sp-input:hover,
+.sp-page select.sp-input:hover { border-color: rgba(55, 48, 40, .3); }
+
+.sp-input:focus,
+.sp-input-otp:focus,
+.sp-page .sp-input:focus,
+.sp-page .sp-input-otp:focus,
+.sp-page select.sp-input:focus,
+.sp-page textarea.sp-input:focus {
+  border-color: var(--brand-solid);
+  background: #fff;
+  box-shadow: var(--ring), 0 6px 18px rgba(36, 28, 22, .06);
+  outline: none;
+}
+.sp-input-otp { border-radius: var(--r-card); }
+
+/* Label ขยับสีตามสถานะ focus ของช่องกรอก */
+.sp-label { transition: color .2s var(--ease-soft); }
+.sp-field:focus-within .sp-label { color: var(--brand-600); }
+
+/* ── 31.2 ปุ่มหลัก — ไล่เฉดชุดเดียว + แสงกวาดตอน hover ── */
+.sp-btn-primary,
+.sp-btn-brand {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: var(--r-field);
+  background: var(--grad-brand);
+  color: var(--on-brand);
+  text-shadow: 0 1px 0 rgba(120, 40, 0, .28);
+  box-shadow: var(--lift-brand), inset 0 1px 0 rgba(255, 255, 255, .22);
+  transition: background .24s var(--ease-soft),
+              box-shadow .28s var(--ease-soft),
+              transform  .18s var(--ease-spring);
+}
+/* แถบแสงกวาดจากซ้ายไปขวา */
+.sp-btn-primary::after,
+.sp-btn-brand::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateX(-120%) skewX(-18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .38), transparent);
+  transition: transform .65s var(--ease-soft);
+  pointer-events: none;
+}
+.sp-btn-primary:hover:not(:disabled)::after,
+.sp-btn-brand:hover:not(:disabled)::after { transform: translateX(120%) skewX(-18deg); }
+
+.sp-btn-primary:hover:not(:disabled),
+.sp-btn-brand:hover:not(:disabled) {
+  background: var(--grad-brand-hot);
+  box-shadow: var(--lift-brand-hi), inset 0 1px 0 rgba(255, 255, 255, .3);
+  transform: translateY(-2px);
+}
+.sp-btn-primary:active:not(:disabled),
+.sp-btn-brand:active:not(:disabled) {
+  transform: translateY(0) scale(.975);
+  box-shadow: var(--lift-brand);
+  transition-duration: .08s;
+}
+.sp-btn-primary:disabled,
+.sp-btn-brand:disabled {
+  background: var(--n-200);
+  color: var(--n-400);
+  text-shadow: none;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ── 31.3 ปุ่มรอง ─────────────────────────────────── */
+.sp-btn-ghost {
+  border-radius: var(--r-field);
+  transition: color .18s var(--ease-soft),
+              border-color .18s var(--ease-soft),
+              background .18s var(--ease-soft),
+              box-shadow .24s var(--ease-soft),
+              transform .18s var(--ease-spring);
+}
+.sp-btn-ghost:hover:not(:disabled) {
+  border-color: rgba(242, 90, 25, .45);
+  color: var(--brand-700);
+  background: #fff;
+  box-shadow: var(--lift-1);
+  transform: translateY(-2px);
+}
+.sp-btn-ghost:active:not(:disabled) { transform: scale(.98); transition-duration: .08s; }
+.sp-btn-danger { border-radius: var(--r-field); transition: color .18s, background .18s; }
+.sp-btn-danger:hover { background: var(--error-bg); }
+.sp-btn-touch,
+.sp-btn-touch-full,
+.sp-btn-touch-ghost,
+.sp-btn-touch-danger { border-radius: var(--r-field); }
+
+/* กดแล้วรู้สึกได้ + ไม่มีกล่องไฮไลต์สีฟ้าบนมือถือ */
+button, a, [role="button"] { -webkit-tap-highlight-color: transparent; }
+button:disabled { cursor: not-allowed; }
+
+/* ── 31.4 การ์ด — ยกตัวนุ่ม ๆ + ขอบอุ่นขึ้นตอน hover ── */
+.sp-card {
+  border-radius: var(--r-card);
+  box-shadow: var(--lift-1);
+  transition: box-shadow .3s var(--ease-soft),
+              transform .3s var(--ease-spring),
+              border-color .3s var(--ease-soft);
+}
+.sp-card:hover {
+  box-shadow: var(--lift-2);
+  border-color: rgba(242, 90, 25, .22);
+  transform: translateY(-3px);
+}
+.sp-card-dark { border-radius: var(--r-card); }
+.sp-card-brand-strip { background: var(--grad-brand); }
+
+/* ── 31.5 NAV — เงาโผล่เมื่อเลื่อนหน้าลง ──────────── */
+.sp-nav { transition: box-shadow .3s var(--ease-soft), background .3s var(--ease-soft); }
+@supports (animation-timeline: scroll()) {
+  @keyframes sp-nav-raise {
+    from { box-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 10px 35px rgba(48, 35, 25, .04); }
+    to   { box-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 10px 30px rgba(48, 35, 25, .13); }
+  }
+  .sp-nav {
+    animation: sp-nav-raise linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 90px;
+  }
+}
+
+/* ── 31.6 โฟกัสคีย์บอร์ด — วงเดียวทั้งระบบ ────────── */
+:focus-visible {
+  outline: 2px solid var(--brand-solid);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ── 31.7 ลิงก์ — เส้นใต้วิ่งจากซ้าย ──────────────── */
+.sp-link, .sp-link-muted { position: relative; text-decoration: none; }
+.sp-link::after, .sp-link-muted::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1.5px;
+  background: currentColor;
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform .3s var(--ease-soft);
+}
+.sp-link:hover::after, .sp-link-muted:hover::after { transform: scaleX(1); }
+
+/* ── 31.8 BADGE — ทรงแคปซูล + จุดเต้นสำหรับสถานะที่ยังวิ่งอยู่ ── */
+.sp-badge {
+  border-radius: var(--r-pill);
+  gap: .35rem;
+  padding: .25rem .65rem;
+  border: 1px solid rgba(0, 0, 0, .05);
+  box-shadow: none;
+}
+.sp-badge-pending::before,
+.sp-badge-accepted::before,
+.sp-badge-picked::before,
+.sp-badge-shipping::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: sp-live-dot 1.6s var(--ease-soft) infinite;
+}
+@keyframes sp-live-dot {
+  0%, 100% { opacity: 1; }
+  60%      { opacity: .35; }
+}
+
+/* ── 31.9 TIMELINE — จุดปัจจุบันมีคลื่นกระจาย ─────── */
+.sp-timeline-dot { transition: background .3s var(--ease-soft), box-shadow .3s var(--ease-soft); }
+.sp-timeline-dot-active { background: var(--brand-solid); position: relative; }
+.sp-timeline-dot-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  animation: sp-ripple 2s var(--ease-soft) infinite;
+}
+@keyframes sp-ripple {
+  0%   { box-shadow: 0 0 0 0 rgba(242, 90, 25, .45); }
+  70%  { box-shadow: 0 0 0 12px rgba(242, 90, 25, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(242, 90, 25, 0); }
+}
+
+/* ── 31.10 ตาราง — ไฮไลต์แถวพร้อมแถบสีด้านซ้าย ──── */
+.sp-tr, .sp-table tbody tr {
+  transition: background .18s var(--ease-soft), box-shadow .18s var(--ease-soft);
+}
+.sp-table tbody tr:hover {
+  background: rgba(242, 90, 25, .045);
+  box-shadow: inset 3px 0 0 var(--brand-solid);
+}
+.sp-table-industrial tbody tr:hover { box-shadow: inset 3px 0 0 var(--brand-solid); }
+
+/* ── 31.11 SKELETON — เงาวิ่งสำหรับสถานะกำลังโหลด ── */
+.sp-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--n-150);
+  border-radius: 8px;
+}
+.sp-skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+  animation: sp-sweep 1.4s var(--ease-soft) infinite;
+}
+@keyframes sp-sweep { to { transform: translateX(100%); } }
+
+/* ── 31.12 SPINNER ────────────────────────────────── */
+.sp-spinner, .sp-spinner-lg { animation: sp-spin .8s cubic-bezier(.6, .1, .4, .9) infinite; }
+
+/* ── 31.13 CHAT — เด้งเข้าแบบสปริง + ข้อความป๊อป ─── */
+.sp-chat-panel {
+  border-radius: var(--r-card);
+  box-shadow: var(--lift-2);
+  animation: sp-chat-spring .42s var(--ease-spring) both;
+}
+@keyframes sp-chat-spring {
+  from { opacity: 0; transform: translateY(18px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.sp-msg { animation: sp-msg-pop .32s var(--ease-spring) both; }
+@keyframes sp-msg-pop {
+  from { opacity: 0; transform: translateY(8px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.sp-chat-input { border-radius: var(--r-pill); }
+
+/* ── 31.14 PAGE TRANSITION — ใช้ opacity อย่างเดียว ──
+   (ห้าม transform: จะทำให้ Leaflet map / ปุ่มลอย เพี้ยน — ดูหัวข้อ 28) */
+.sp-route {
+  flex: 1 1 auto;
+  animation: sp-page-enter .34s var(--ease-soft) both;
+  will-change: opacity;
+}
+
+/* ── 31.15 STAGGER — รองรับลูกได้ถึง 10 ตัว ───────── */
+.sp-stagger > *:nth-child(6)  { animation-delay: 300ms; }
+.sp-stagger > *:nth-child(7)  { animation-delay: 360ms; }
+.sp-stagger > *:nth-child(8)  { animation-delay: 420ms; }
+.sp-stagger > *:nth-child(9)  { animation-delay: 470ms; }
+.sp-stagger > *:nth-child(10) { animation-delay: 510ms; }
+
+/* ── 31.16 EMPTY STATE — ไอคอนลอยเบา ๆ ───────────── */
+.sp-empty-icon { animation: sp-float 4s ease-in-out infinite; }
+@keyframes sp-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* ── 31.17 TOAST (react-hot-toast) ───────────────── */
+.sp-toast {
+  border-radius: var(--r-field) !important;
+  box-shadow: var(--lift-2) !important;
+  font-family: var(--font-body) !important;
+  font-size: .875rem !important;
+  font-weight: 600 !important;
+}
+
+/* ── 31.18 NIGHT MODE — ผิวใหม่ต้องอ่านออกในโหมดมืด ── */
+html.driver-dark .sp-input,
+html.driver-dark .sp-page .sp-input,
+html.driver-dark .sp-page select.sp-input,
+html.driver-dark .sp-page textarea.sp-input {
+  background: var(--n-100) !important;
+  border-color: var(--n-300) !important;
+  color: var(--n-900) !important;
+  box-shadow: none;
+}
+html.driver-dark .sp-card:hover { border-color: rgba(242, 90, 25, .4) !important; }
+html.driver-dark .sp-btn-ghost:hover:not(:disabled) {
+  background: var(--n-100);
+  color: var(--n-900);
+}
+html.driver-dark .sp-skeleton { background: var(--n-200); }
+html.driver-dark .sp-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .10), transparent);
+}
+html.driver-dark .sp-table tbody tr:hover { background: rgba(242, 90, 25, .1); }
+
+/* ── 31.19 ลดการเคลื่อนไหว / โหมดพิมพ์ ───────────── */
+@media (prefers-reduced-motion: reduce) {
+  .sp-badge-pending::before,
+  .sp-badge-accepted::before,
+  .sp-badge-picked::before,
+  .sp-badge-shipping::before,
+  .sp-timeline-dot-active::after,
+  .sp-empty-icon,
+  .sp-skeleton::after { animation: none !important; }
+  .sp-card:hover,
+  .sp-btn-ghost:hover,
+  .sp-btn-primary:hover,
+  .sp-btn-brand:hover { transform: none !important; }
+}
+@media print {
+  .sp-card { box-shadow: none !important; transform: none !important; }
+  .sp-btn-primary,
+  .sp-btn-brand { background: #eee !important; color: #000 !important; text-shadow: none !important; }
+}
+
+/* ── 31.20 ตารางที่กว้างกว่าจอ — เลื่อนแนวนอนได้จริง ──
+   เดิม .sp-table-wrap ถูกประกาศไว้แต่ไม่มีหน้าไหนเรียกใช้
+   ทำให้ตารางแดชบอร์ดร้านค้า/แอดมินโดนตัดหายบนมือถือ (การ์ดตั้ง overflow:hidden) */
+.sp-table-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.sp-table-wrap > table { min-width: 560px; }
+.sp-table-wrap::-webkit-scrollbar { height: 6px; }
+.sp-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--n-200);
+  border-radius: var(--r-pill);
+}
+
+/* ── 31.21 NAV ITEMS — กดโดนนิ้ว + มีปฏิกิริยาตอน hover ──
+   เดิมปุ่มไอคอนบน nav บางตัวมีขนาดจริงแค่ 16–31px ซึ่งเล็กเกินกว่าจะกดบนมือถือ */
+.sp-nav button,
+.sp-nav a:not(.sp-logo):not(.sp-logo-dark),
+.sp-nav-dark button,
+.sp-nav-dark a:not(.sp-logo):not(.sp-logo-dark) {
+  min-height: 38px;
+  min-width: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  transition: background .18s var(--ease-soft),
+              color .18s var(--ease-soft),
+              transform .18s var(--ease-spring);
+}
+.sp-nav button:hover:not(:disabled),
+.sp-nav a:not(.sp-logo):not(.sp-logo-dark):hover {
+  background: rgba(242, 90, 25, .09);
+  color: var(--brand-700);
+}
+.sp-nav-dark button:hover:not(:disabled),
+.sp-nav-dark a:not(.sp-logo):not(.sp-logo-dark):hover {
+  background: rgba(255, 255, 255, .09);
+  color: #fff;
+}
+.sp-nav button:active:not(:disabled),
+.sp-nav-dark button:active:not(:disabled) { transform: scale(.94); }
+
+@media (max-width: 640px) {
+  .sp-nav button,
+  .sp-nav a:not(.sp-logo):not(.sp-logo-dark),
+  .sp-nav-dark button,
+  .sp-nav-dark a:not(.sp-logo):not(.sp-logo-dark) {
+    min-height: 42px;
+    min-width: 42px;
+  }
+}
+
+/* ── 31.22 KEYFRAMES ที่โค้ดเรียกใช้แต่ไม่เคยถูกประกาศ ──
+   หลายหน้าอ้างชื่อ animation ที่ไม่มีอยู่จริง ทำให้เอฟเฟกต์เงียบไปเฉย ๆ:
+     • pulse    → จุดสถานะ "สด" บนหน้า Radar คนขับ และหน้าติดตามพัสดุ
+     • fade-in  → EmptyState
+   (spin มาจาก Tailwind อยู่แล้ว จึงไม่ต้องประกาศซ้ำ) */
+@keyframes pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.88); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ต้องมี selector อ้างถึง keyframes เหล่านี้ใน CSS ด้วย
+   ไม่งั้น Tailwind v4 จะตัดทิ้งตอน build (เพราะมองไม่เห็นการใช้งานใน inline style ของ TSX) */
+.sp-pulse   { animation: pulse 2s var(--ease-soft) infinite; }
+.sp-fade-in { animation: fade-in .3s var(--ease-soft) both; }
+
+/* ══════════════════════════════════════════════════════
+   32. NIGHT MODE — ปุ่มโครง (ghost) ต้องมองเห็น
+   บั๊กเดิม: .sp-btn-ghost มีพื้นหลัง rgba(255,255,255,.66) จาก UI v3
+   พอเปิด Night Mode จึงกลายเป็นกล่องขาวทึบ ส่วนไอคอนสี --n-600 (#b3b3b3)
+   จมหายไปกับพื้น = ปุ่มย้อนกลับบนหน้า Radar ดูเป็นสี่เหลี่ยมเทาว่าง ๆ
+   ══════════════════════════════════════════════════════ */
+html.driver-dark .sp-btn-ghost {
+  background: rgba(255, 255, 255, .04);
+  border-color: var(--n-300);
+  color: var(--n-800);
+}
+html.driver-dark .sp-btn-ghost:hover:not(:disabled) {
+  background: rgba(242, 90, 25, .16);
+  border-color: var(--brand-solid);
+  color: #fff;
+}
+html.driver-dark .sp-btn-danger { color: var(--n-600); }
+html.driver-dark .sp-btn-danger:hover { background: rgba(229, 72, 77, .18); color: #ff9a9a; }
+
+/* ปุ่มไอคอนล้วน — วงกลมขนาดเท่ากันทุกที่ */
+.sp-btn-icon {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════
+   33. DRIVER RADAR — แผนที่ความต้องการ
+   เดิมเป็นแผ่นสีดำเต็มความกว้างสูง 380px ที่มีข้อความเล็ก ๆ ลอยตรงกลาง
+   ซึ่งดูเหมือนหน้าโหลดค้าง โดยเฉพาะตอนไม่มี hotspot
+   ══════════════════════════════════════════════════════ */
+.sp-radar-map {
+  position: relative;
+  height: clamp(200px, 30vh, 300px);
+  margin: 1.25rem clamp(1rem, 3vw, 2rem) 0;
+  border-radius: var(--r-card);
+  border: 1px solid var(--n-200);
+  background: #0f1114;
+  overflow: hidden;
+  box-shadow: var(--lift-1);
+  isolation: isolate;
+}
+.sp-radar-canvas { width: 100%; height: 100%; }
+
+/* ไล่เฉดขอบล่างให้แผนที่กลืนกับหน้า แทนที่จะเป็นแผ่นดำตัดขาด */
+.sp-radar-scrim {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 45%;
+  z-index: 500;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(10, 11, 13, .85), transparent);
+}
+
+/* ป้ายกำกับมุมบนซ้าย */
+.sp-radar-chip {
+  position: absolute;
+  top: .75rem;
+  left: .75rem;
+  z-index: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .7rem;
+  border-radius: var(--r-pill);
+  background: rgba(12, 13, 16, .72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  color: #f2ede9;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  pointer-events: none;
+}
+.sp-radar-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-solid);
+  box-shadow: 0 0 0 3px rgba(242, 90, 25, .25);
+  animation: pulse 1.8s var(--ease-soft) infinite;
+}
+
+/* สถานะไม่มี hotspot — วงกวาดเรดาร์ ให้รู้ว่าระบบยังทำงานอยู่ */
+.sp-radar-idle {
+  position: absolute;
+  inset: 0;
+  z-index: 550;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .9rem;
+  pointer-events: none;
+}
+.sp-radar-sweep {
+  position: relative;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 90, 25, .28);
+}
+.sp-radar-sweep::before,
+.sp-radar-sweep::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  border: 1px solid rgba(242, 90, 25, .45);
+  animation: sp-radar-ping 2.8s var(--ease-soft) infinite;
+}
+.sp-radar-sweep::after { animation-delay: 1.4s; }
+@keyframes sp-radar-ping {
+  0%   { transform: scale(.55); opacity: .9; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+.sp-radar-idle-text {
+  margin: 0;
+  color: rgba(245, 240, 236, .78);
+  font-size: .68rem;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, .8);
+}
+
+/* Legend ของ hotspot */
+.sp-radar-legend {
+  position: absolute;
+  bottom: .75rem;
+  left: .75rem;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  padding: .7rem .9rem;
+  border-radius: var(--r-field);
+  background: rgba(12, 13, 16, .78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  color: #f2ede9;
+  box-shadow: var(--lift-2);
+}
+.sp-radar-legend p,
+.sp-radar-legend span { color: #f2ede9; }
+
+/* attribution ของผู้ให้บริการแผนที่ — เล็กและไม่รบกวน แต่ยังอ่านออก */
+.sp-radar-map .leaflet-control-attribution {
+  background: rgba(12, 13, 16, .6) !important;
+  color: rgba(240, 235, 231, .65) !important;
+  font-size: .58rem !important;
+  border-radius: var(--r-pill) 0 0 0;
+  padding: 1px 7px !important;
+}
+.sp-radar-map .leaflet-control-attribution a { color: rgba(240, 235, 231, .8) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-radar-sweep::before,
+  .sp-radar-sweep::after,
+  .sp-radar-chip-dot { animation: none !important; }
+}
+
+/* แผนที่ Radar เป็นธีมมืดโดยตั้งใจ — ทับ rule isolation ในหัวข้อ 25 เฉพาะกล่องนี้ */
+.sp-radar-map .leaflet-container { background: #0f1114 !important; }
+.sp-radar-map .leaflet-tile-pane { background: #0f1114; }

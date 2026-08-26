@@ -222,6 +222,7 @@ export default function MerchantDashboard() {
             </div>
           ) : (
             <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="sp-table-wrap">
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ background: 'var(--n-50)', borderBottom: '1px solid var(--n-200)' }}>
                   <tr>
@@ -260,6 +261,7 @@ export default function MerchantDashboard() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>

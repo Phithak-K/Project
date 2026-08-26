@@ -284,7 +284,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Table */}
-          <div className="sp-table-industrial">
+          <div className="sp-table-industrial sp-table-wrap">
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr>

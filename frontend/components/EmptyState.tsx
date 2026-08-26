@@ -25,7 +25,7 @@ export default function EmptyState({
       animation: 'fade-in 0.3s ease-out'
     }}>
       {icon && (
-        <div style={{ 
+        <div className="sp-empty-icon" style={{ 
           marginBottom: '1.5rem', 
           color: 'var(--n-300)',
           background: 'var(--n-50)',

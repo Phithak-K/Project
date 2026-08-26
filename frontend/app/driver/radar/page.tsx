@@ -98,12 +98,14 @@ export default function DriverRadarPage() {
       center: [13.0, 101.5],
       zoom: 6,
       zoomControl: true,
-      attributionControl: false,
+      attributionControl: true,
     });
+    map.attributionControl.setPrefix(false);
 
     // Dark-themed tile layer
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
     }).addTo(map);
 
     mapInstanceRef.current = map;
@@ -231,14 +233,14 @@ export default function DriverRadarPage() {
 
       {/* Nav */}
       <nav className="sp-nav">
-        <button onClick={() => router.push('/driver')} className="sp-btn-ghost" style={{ padding: '0.5rem', color: 'var(--n-600)', borderColor: 'var(--n-300)' }}>
+        <button onClick={() => router.push('/driver')} className="sp-btn-ghost sp-btn-icon" aria-label="กลับหน้าหลัก">
           <ArrowLeft size={18} />
         </button>
         <span className="sp-logo">Fleet<span className="sp-logo-accent">Radar</span></span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
           <ThemeToggle />
           <span className="sp-caps" style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'sp-in 1.2s ease-in-out infinite alternate' }} />
+            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'pulse 1.6s ease-in-out infinite' }} />
             Live
           </span>
           <button
@@ -253,28 +255,26 @@ export default function DriverRadarPage() {
       </nav>
 
       {/* Leaflet Map */}
-      <div style={{ position: 'relative', height: '380px', background: '#111' }}>
-        <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <div className="sp-radar-map">
+        <div ref={mapRef} className="sp-radar-canvas" />
+        <div className="sp-radar-scrim" aria-hidden="true" />
 
-        {/* Map overlay: ไม่มี Hotspot */}
+        <span className="sp-radar-chip">
+          <span className="sp-radar-chip-dot" />
+          แผนที่ความต้องการทั่วประเทศ
+        </span>
+
+        {/* Map overlay: ไม่มี Hotspot — ให้เห็นว่าระบบยัง "กวาดหา" อยู่ ไม่ใช่หน้าค้าง */}
         {mapReady && hotspots.length === 0 && (
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', pointerEvents: 'none'
-          }}>
-            <p className="sp-caps" style={{ color: 'var(--n-700)' }}>ไม่มี Surge Hotspot ในขณะนี้</p>
+          <div className="sp-radar-idle">
+            <span className="sp-radar-sweep" aria-hidden="true" />
+            <p className="sp-caps sp-radar-idle-text">ไม่มี Surge Hotspot ในขณะนี้</p>
           </div>
         )}
 
         {/* Legend */}
         {hotspots.length > 0 && (
-          <div style={{
-            position: 'absolute', bottom: '1rem', left: '1rem', zIndex: 1000,
-            background: 'var(--n-50)', backdropFilter: 'blur(8px)',
-            border: '1px solid var(--n-200)', borderRadius: '10px',
-            padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.375rem',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-          }}>
+          <div className="sp-radar-legend">
             <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '0.25rem' }}>Surge Hotspots ({hotspots.length})</p>
             {hotspots.map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -298,7 +298,7 @@ export default function DriverRadarPage() {
             </div>
             <h1 className="sp-font-display sp-text-md" style={{ fontWeight: 900, color: 'var(--n-900)' }}>งานใกล้คุณ</h1>
           </div>
-          <button onClick={fetchOrders} className="sp-btn-ghost" style={{ padding: '0.5rem', borderRadius: '50%', color: 'var(--n-600)' }}>
+          <button onClick={fetchOrders} className="sp-btn-ghost sp-btn-icon" aria-label="รีเฟรชรายการงาน">
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
           </button>
         </div>
