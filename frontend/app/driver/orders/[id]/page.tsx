@@ -231,6 +231,13 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   }
   if (!order) return null;
 
+  // ออเดอร์ที่ร้านค้าสร้างเองอาจไม่มีบัญชีลูกค้า (customerId = null)
+  // กรณีนั้นให้คนขับคุยกับร้านค้าที่มอบหมายงานแทน
+  const chatPeer: { role: 'Customer' | 'Merchant'; id: number } | null =
+    order.customerId ? { role: 'Customer', id: order.customerId }
+  : order.merchantId ? { role: 'Merchant', id: order.merchantId }
+  : null;
+
   // สีสัญญาณ GPS ตาม State
   const gpsColor: Record<string, string> = {
     idle: 'var(--n-600)',
@@ -257,8 +264,10 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
         </div>
         <button 
           onClick={() => setIsChatOpen(true)}
+          disabled={!chatPeer}
+          title={chatPeer ? `แชทกับ${chatPeer.role === 'Customer' ? 'ลูกค้า' : 'ร้านค้า'}` : 'ยังไม่มีคู่สนทนาสำหรับออเดอร์นี้'}
           className="sp-btn-brand" 
-          style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0 }}
+          style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0, opacity: chatPeer ? 1 : 0.4, cursor: chatPeer ? 'pointer' : 'not-allowed' }}
         >
           <MessageSquare size={18} />
         </button>
@@ -534,12 +543,12 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
       </main>
 
       {/* ChatBox Widget */}
-      {order.customerId && (
+      {chatPeer && (
         <ChatBox 
           orderId={order.id}
           currentRole="Driver"
-          receiverRole="Customer"
-          receiverId={order.customerId}
+          receiverRole={chatPeer.role}
+          receiverId={chatPeer.id}
           isOpen={isChatOpen}
           onClose={() => setIsChatOpen(false)}
         />
