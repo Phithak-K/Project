@@ -20,8 +20,6 @@ export default function DriverDashboard() {
     setTimeout(() => setNotice(null), 4000);
   };
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -224,7 +222,7 @@ export default function DriverDashboard() {
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
+                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', background: 'var(--n-100)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
                       <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.1rem', flexShrink: 0 }} />
                       <p style={{ color: 'var(--n-600)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 500 }}>
                         <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{order.receiverName}</strong><br/>

@@ -6,6 +6,7 @@ import {
   CheckCircle, Navigation, LogOut, RefreshCw, Clock, Shield, ArrowRight
 } from 'lucide-react';
 import Link from 'next/link';
+import toast from 'react-hot-toast';
 
 interface Order {
   id: number;
@@ -26,7 +27,6 @@ export default function DriverDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -66,9 +66,9 @@ export default function DriverDashboard() {
         fetchJobs();
       } else {
         const err = await res.json();
-        alert(err.message || 'รับงานไม่สำเร็จ');
+        toast.error(err.message || 'รับงานไม่สำเร็จ');
       }
-    } catch (err) { alert('Network Error'); }
+    } catch (err) { toast.error('Network Error'); }
   };
 
   const handleLogout = async () => {

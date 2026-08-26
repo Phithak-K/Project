@@ -26,7 +26,6 @@ export default function OrderHistoryPage() {
   const [totalPages, setTotalPages] = useState(1);
   const limit = 10;
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);

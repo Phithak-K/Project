@@ -29,7 +29,6 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   const watchIdRef = useRef<number | null>(null);
   const simulatorRef = useRef<NodeJS.Timeout | null>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const { id: orderId } = use(params);
 

@@ -338,7 +338,7 @@ export default function CreateOrderPage() {
                   if (match) {
                     setFormData({ ...formData, lat: match[1], lng: match[2] });
                     e.target.value = '';
-                    alert("📍 ดึงพิกัดสำเร็จ!");
+                    toast.success("ดึงพิกัดสำเร็จ!", { icon: '📍' });
                   }
                 }}
               />

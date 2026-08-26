@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 interface Product {
   id: number;
@@ -59,7 +60,7 @@ export default function CatalogPage() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { alert('กรุณาระบุชื่อสินค้า'); return; }
+    if (!form.name.trim()) { toast.error('กรุณาระบุชื่อสินค้า'); return; }
     setSaving(true);
     try {
       const payload = { name: form.name.trim(), unit: form.unit.trim() || null, defaultPrice: parseFloat(form.defaultPrice) || 0 };
@@ -78,9 +79,9 @@ export default function CatalogPage() {
         fetchProducts();
       } else {
         const err = await res.json();
-        alert(err.message || 'บันทึกไม่สำเร็จ');
+        toast.error(err.message || 'บันทึกไม่สำเร็จ');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setSaving(false); }
   };
 
@@ -91,13 +92,13 @@ export default function CatalogPage() {
       const res = await fetch(`/api/proxy/products/${id}`, { method: 'DELETE' });
       if (res.ok) {
         const result = await res.json();
-        if (!result.deleted) alert(result.message);
+        if (!result.deleted) toast.error(result.message);
         fetchProducts();
       } else {
         const err = await res.json();
-        alert(err.message || 'ลบไม่สำเร็จ');
+        toast.error(err.message || 'ลบไม่สำเร็จ');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setDeleting(null); }
   };
 
@@ -109,8 +110,8 @@ export default function CatalogPage() {
         body: JSON.stringify({ isActive: !product.isActive }),
       });
       if (res.ok) fetchProducts();
-      else alert('อัปเดตไม่สำเร็จ');
-    } catch { alert('Network Error'); }
+      else toast.error('อัปเดตไม่สำเร็จ');
+    } catch { toast.error('Network Error'); }
   };
 
   if (loading) return (

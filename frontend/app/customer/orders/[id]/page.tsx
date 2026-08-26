@@ -23,7 +23,6 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
   const [hasRated, setHasRated] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
   const { id: orderId } = use(params);
 
@@ -85,9 +84,9 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
       });
       if (res.ok) {
         setHasRated(true);
-        alert('ขอบคุณสำหรับคะแนนประเมิน!');
+        toast.success('ขอบคุณสำหรับคะแนนประเมิน!');
       }
-    } catch { alert('เกิดข้อผิดพลาด'); }
+    } catch { toast.error('ส่งคะแนนไม่สำเร็จ กรุณาลองใหม่'); }
   };
 
   const handleDownloadPdf = async () => {
@@ -331,3 +330,4 @@ function StatusLabel({ status }: { status: string }) {
   };
   return map[status] || status;
 }
+

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
 import { Users, Package, TrendingUp, CheckCircle, Clock, XCircle, LogOut, RefreshCw } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
         setSuspendReason('');
         await fetchAll();
       } else {
-        alert('Failed to suspend user');
+        toast.error('Failed to suspend user');
       }
     } catch (err) {
       console.error(err);
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         await fetchAll();
       } else {
-        alert('Failed to approve user');
+        toast.error('Failed to approve user');
       }
     } catch (err) {
       console.error(err);

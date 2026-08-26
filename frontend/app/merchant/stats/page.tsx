@@ -7,6 +7,7 @@ import {
   ArrowUpRight, ArrowDownLeft, Wallet, Activity, CheckCircle, Printer
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import toast from 'react-hot-toast';
 
 export default function MerchantStatsPage() {
   const router = useRouter();
@@ -16,8 +17,6 @@ export default function MerchantStatsPage() {
   const [exportLoading, setExportLoading] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const getCookie = (name: string) => {
     const value = `; ${document.cookie}`;
@@ -60,7 +59,7 @@ export default function MerchantStatsPage() {
       if (dateFrom) params.set('dateFrom', dateFrom);
       if (dateTo) params.set('dateTo', dateTo);
       const res = await fetch(`/api/proxy/orders/export/csv?${params.toString()}`);
-      if (!res.ok) { alert('ดาวน์โหลดไม่สำเร็จ'); return; }
+      if (!res.ok) { toast.error('ดาวน์โหลดไม่สำเร็จ'); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -68,7 +67,7 @@ export default function MerchantStatsPage() {
       a.download = `swiftpath-orders-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setExportLoading(false); }
   };
 

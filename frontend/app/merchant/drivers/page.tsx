@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Truck, UserPlus, UserMinus, Search, CheckCircle, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export default function DriversPage() {
   const router = useRouter();
@@ -44,9 +45,9 @@ export default function DriversPage() {
         setSearchResult(await res.json());
       } else {
         const err = await res.json();
-        alert(err.message || 'ไม่พบคนขับจากข้อมูลที่ระบุ');
+        toast.error(err.message || 'ไม่พบคนขับจากข้อมูลที่ระบุ');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setSearching(false); }
   };
 
@@ -56,15 +57,15 @@ export default function DriversPage() {
     try {
       const res = await fetch(`/api/proxy/users/drivers/${searchResult.id}/link`, { method: 'PATCH' });
       if (res.ok) {
-        alert(`เพิ่มคนขับ "${searchResult.name}" เข้าร้านเรียบร้อย`);
+        toast.success(`เพิ่มคนขับ "${searchResult.name}" เข้าร้านเรียบร้อย`);
         setSearchResult(null);
         setSearchContact('');
         fetchDrivers();
       } else {
         const err = await res.json();
-        alert(err.message || 'เพิ่มคนขับไม่สำเร็จ');
+        toast.error(err.message || 'เพิ่มคนขับไม่สำเร็จ');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setLinking(false); }
   };
 
@@ -77,9 +78,9 @@ export default function DriversPage() {
         fetchDrivers();
       } else {
         const err = await res.json();
-        alert(err.message || 'ยกเลิกไม่สำเร็จ');
+        toast.error(err.message || 'ยกเลิกไม่สำเร็จ');
       }
-    } catch { alert('Network Error'); }
+    } catch { toast.error('Network Error'); }
     finally { setUnlinking(null); }
   };
 

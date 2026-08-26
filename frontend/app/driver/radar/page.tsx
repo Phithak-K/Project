@@ -38,7 +38,6 @@ export default function DriverRadarPage() {
   const [accepting, setAccepting] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
 
   const getCookie = (name: string) => {

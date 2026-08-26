@@ -317,6 +317,10 @@ export function proxy(request: NextRequest) {
     const cleanPath = pathname.replace('/driver', '')
     return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'fleet'), request.url))
   }
+  if (currentHost === 'app' && pathname.startsWith('/customer')) {
+    const cleanPath = pathname.replace('/customer', '')
+    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'app'), request.url))
+  }
 
 
   // ════════════════════════════════════════════════════════════════════════════
