@@ -98,6 +98,12 @@ sequenceDiagram
 ### 4.6 Flexible Payment & Workflow
 - **ชำระเงินยืดหยุ่น:** คนขับเลือกได้ระหว่างรับชำระผ่าน PromptPay QR หรือ "รับเงินสด/ชำระล่วงหน้าแล้ว" ช่วยให้ปิดงานได้ทันทีไม่ติดขัด
 - **Mock POD:** ฟังก์ชันถ่ายภาพจำลองเพื่อความรวดเร็วในการนำเสนอ (Demo) โดยไม่ต้องพึ่งพา Cloud Storage
+
+### 4.7 HttpOnly Cookie Proxy Pattern
+- **Edge Security:** การป้องกันการเข้าถึงข้อมูล Backend จากหน้าเว็บ (XSS) โดยการซ่อน API ผ่าน Endpoint ภายใน `/api/proxy/[...path]` ของ Next.js และส่ง Cookie อย่างปลอดภัย
+
+### 4.8 Decimal Quantity Support
+- **รองรับทศนิยม:** รองรับธุรกิจที่ขายสินค้าที่ไม่ได้นับเป็นชิ้น (เช่น ปูน 1.5 ตัน, อาหารทะเล 2.3 กิโลกรัม) ผ่านการส่งค่า `step="any"` ลงสู่ระบบ Prisma Decimal อย่างสมบูรณ์
 ---
 
 ## 5. การติดตั้งสำหรับการพัฒนาในเครื่อง
@@ -121,6 +127,7 @@ npm install
 # สร้างไฟล์ .env โดยมี: DATABASE_URL, JWT_SECRET
 npx prisma generate
 npx prisma db push
+npx prisma db seed
 npm run start:dev
 ```
 

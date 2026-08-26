@@ -6,20 +6,20 @@
 
 ## สถาปัตยกรรมซับโดเมนและการ Rewrite
 
-`middleware.ts` คือหัวใจของระบบ Frontend ทำหน้าที่เป็น Edge Security Gateway ที่ประมวลผลก่อน React component จะ render แม้แต่ครั้งเดียว
+`proxy.ts` คือหัวใจของระบบ Frontend ทำหน้าที่เป็น Edge Security Gateway ที่ประมวลผลก่อน React component จะ render แม้แต่ครั้งเดียว
 
 ### ตรรกะการ Rewrite
 
 ระบบแปลงซับโดเมนให้เป็นโฟลเดอร์ภายใน `app/` โดยอัตโนมัติ:
 
 ```
-app.localhost:3000/dashboard   →  app/customer/dashboard/page.tsx
+app.localhost:3000/track/[id]  →  app/track/[id]/page.tsx
 store.localhost:3000/orders    →  app/merchant/orders/page.tsx
 fleet.localhost:3000/orders    →  app/driver/orders/page.tsx
 localhost:3000/admin           →  app/admin/ (ต้องผ่าน Admin Gate ก่อน)
 ```
 
-### ลำดับการตรวจสอบของ Middleware (8 ขั้นตอน)
+### ลำดับการตรวจสอบของ Proxy (8 ขั้นตอน)
 
 | ขั้นตอน | ชื่อ | หน้าที่ |
 | :--- | :--- | :--- |
@@ -62,7 +62,7 @@ frontend/
 │   ├── FCMProvider.tsx  # Provider สำหรับ Firebase Cloud Messaging
 │   └── ...              # UI components อื่นๆ
 ├── lib/                 # Utility functions และ API client
-├── middleware.ts        # Edge Security Gateway (ไฟล์สำคัญที่สุด)
+├── proxy.ts             # Edge Security Gateway (ไฟล์สำคัญที่สุด)
 └── next.config.ts       # Next.js configuration
 ```
 
@@ -72,7 +72,7 @@ frontend/
 
 ### BUG-001: Admin Infinite Redirect Loop (แก้ไขแล้ว)
 
-ฟังก์ชัน `checkAdminAccess` ถูกยกขึ้นมาเป็น **Step 1** ในลำดับ middleware แยกการประเมิน Admin ออกจาก logic ของผู้ใช้ทั่วไปอย่างเด็ดขาด บัญชี Admin จะไม่ถูกส่งเข้า pipeline ของ `checkCustomerAccess` อีกต่อไป จึงไม่มีการเรียก `clearBadCookies` อย่างผิดพลาด
+ฟังก์ชัน `checkAdminAccess` ถูกยกขึ้นมาเป็น **Step 1** ในลำดับ proxy แยกการประเมิน Admin ออกจาก logic ของผู้ใช้ทั่วไปอย่างเด็ดขาด บัญชี Admin จะไม่ถูกส่งเข้า pipeline ของ `checkCustomerAccess` อีกต่อไป จึงไม่มีการเรียก `clearBadCookies` อย่างผิดพลาด
 
 ```typescript
 // STEP 1: ตรวจสอบ Admin ก่อนทุก check
@@ -82,7 +82,7 @@ if (adminResult) return adminResult  // short-circuit — ไม่ผ่าน 
 
 ### BUG-003: Double Prefix 404 (แก้ไขแล้ว)
 * **ปัญหา:** พอร์ทัลภายใต้ซับโดเมน (เช่น `store.localhost:3000`) มีการเผลอเขียนลิงก์แบบระบุเส้นทางซ้ำซ้อน เช่น `/merchant/create-order` ซึ่งทำให้ Middleware เขียนเส้นทางซ้อนไปเป็น `/merchant/merchant/create-order` และเกิดข้อผิดพลาด 404 Not Found
-* **การแก้ไข:** เพิ่มขั้นตอน **Step 6.1 (Subdomain self-cleanup)** ใน Middleware เพื่อดักจับคำนำหน้าโดเมนที่ซ้ำซ้อน (`/merchant`, `/driver`, `/customer`) แล้วทำการ Redirect ไปยังเส้นทางที่สะอาดขึ้นโดยอัตโนมัติ
+* **การแก้ไข:** เพิ่มขั้นตอน **Step 6.1 (Subdomain self-cleanup)** ใน Proxy เพื่อดักจับคำนำหน้าโดเมนที่ซ้ำซ้อน (`/merchant`, `/driver`, `/customer`) แล้วทำการ Redirect ไปยังเส้นทางที่สะอาดขึ้นโดยอัตโนมัติ
 
 ### BUG-004: Paginated Dashboard Crash (แก้ไขแล้ว)
 * **ปัญหา:** API หลังบ้านมีการปรับรูปแบบข้อมูลของหน้าประวัติออเดอร์ให้รองรับการแบ่งหน้า (Pagination) ทำให้ค่าส่งกลับมีลักษณะเป็น Object `{ data: [...], total: N }` แต่หน้าแดชบอร์ดฝั่ง Merchant และ Customer พยายามลูป (`.slice()` / `.map()`) บนตัวแปรตรงๆ ทำให้เกิด `TypeError: slice is not a function` (แสดงผลหน้า 500)

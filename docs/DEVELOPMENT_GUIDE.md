@@ -46,8 +46,9 @@ cd backend
 ```
 
 1. **ซิงก์โครงสร้างฐานข้อมูล (Prisma Sync)**:
-   รันคำสั่งด้านล่างเพื่อสร้างตารางทั้งหมดใน PostgreSQL ให้ตรงกับ Prisma Schema:
+   รันคำสั่งด้านล่างเพื่อสร้าง Prisma Client และสร้างตารางทั้งหมดใน PostgreSQL:
    ```bash
+   npx prisma generate
    npx prisma db push
    ```
 2. **สร้างข้อมูลทดสอบ (Demo Seeding)**:
@@ -88,7 +89,7 @@ cd backend
 | พอร์ทัล (Portal) | ลิงก์สำหรับเข้าใช้งาน (URL) | บทบาทที่ได้รับอนุญาต | หน้าที่หลัก |
 | :--- | :--- | :--- | :--- |
 | **Root / Admin** | [http://localhost:3000/admin/login](http://localhost:3000/admin/login) | Admin | หน้าแดชบอร์ดควบคุมระบบกลาง และจัดการผู้ใช้ |
-| **Customer** | [http://app.localhost:3000](http://app.localhost:3000) | Customer | ลูกค้าเข้าสั่งงาน จัดการกระเป๋าเงิน และติดตามพัสดุ |
+| **Customer** | [http://app.localhost:3000](http://app.localhost:3000) | Customer | ลูกค้าติดตามสถานะพัสดุและเวลาถึงโดยประมาณ (ETA) แบบเรียลไทม์ |
 | **Merchant** | [http://store.localhost:3000](http://store.localhost:3000) | Merchant | ร้านค้าสร้างออเดอร์ คำนวณราคาจัดส่ง และดูรายงาน |
 | **Driver** | [http://fleet.localhost:3000](http://fleet.localhost:3000) | Driver | คนขับรับออเดอร์ ส่งอัปเดตพิกัดตำแหน่ง และเก็บสะสมรายได้ |
 
