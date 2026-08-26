@@ -1,4 +1,7 @@
 # แพลตฟอร์มบริหารจัดการโลจิสติกส์แบบหลายพอร์ทัลที่มีระบบติดตามแบบเรียลไทม์สำหรับธุรกิจขนาดกลางและขนาดย่อม (SwiftPath)
+
+[![CI — Build, Lint & Test](https://github.com/Phithak-K/Project/actions/workflows/ci.yml/badge.svg)](https://github.com/Phithak-K/Project/actions/workflows/ci.yml)
+
 ### Real-time Delivery Tracking and Catalog Management System for In-house SME Logistics (SwiftPath)
 
 > **โครงงานวิทยาการคอมพิวเตอร์ / เทคโนโลยีสารสนเทศ** — แพลตฟอร์มบริหารจัดการงานจัดส่งสินค้าสำหรับร้านค้าขนาดกลางถึงเล็กที่มี "พนักงานขับรถเป็นของตัวเอง" (เช่น ร้านวัสดุก่อสร้าง, ร้านขายส่งของสด) บนสถาปัตยกรรม Multi-tenant แบบแยกซับโดเมนและระบบตรวจสอบความปลอดภัยที่ขอบเขตของเครือข่าย (Edge Security)
