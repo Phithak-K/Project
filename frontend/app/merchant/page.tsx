@@ -143,7 +143,7 @@ export default function MerchantDashboard() {
         </div>
       )}
 
-      <main style={{ maxWidth: '1100px', margin: '0 auto', padding: '3rem 2rem' }}>
+      <main style={{ maxWidth: '1100px', margin: '0 auto' }} className="sp-main-fluid">
 
         {/* ── Header ── */}
         <div className="sp-animate" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1.5rem', marginBottom: '3rem' }}>
@@ -154,25 +154,29 @@ export default function MerchantDashboard() {
               ยอดขายสะสม <Link href="/merchant/stats" style={{ color: 'var(--brand-600)', fontWeight: 900, marginLeft: '0.5rem', fontSize: '1.2rem', textDecoration: 'none' }}>฿{stats.todaySales.toLocaleString()}</Link>
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
             <Link href="/merchant/history">
-              <button style={{ background: '#fff', border: '1px solid var(--n-200)', color: 'var(--n-700)', padding: '0.75rem 1.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', fontSize: '0.8rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                ประวัติร้านค้า
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Search size={14} />
+                <span className="sp-nav-label">ประวัติร้านค้า</span>
               </button>
             </Link>
             <Link href="/merchant/catalog">
-              <button style={{ background: '#fff', border: '1px solid var(--n-200)', color: 'var(--n-700)', padding: '0.75rem 1.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <BookOpen size={14} /> สินค้า
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <BookOpen size={14} />
+                <span className="sp-nav-label">สินค้า</span>
               </button>
             </Link>
             <Link href="/merchant/drivers">
-              <button style={{ background: '#fff', border: '1px solid var(--n-200)', color: 'var(--n-700)', padding: '0.75rem 1.25rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <Users size={14} /> คนขับ
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={14} />
+                <span className="sp-nav-label">คนขับ</span>
               </button>
             </Link>
             <Link href="/merchant/create-order">
-              <button id="btn-create-order" className="sp-btn-touch sp-btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px' }}>
-                <Plus size={16} /> สร้างออเดอร์
+              <button id="btn-create-order" className="sp-btn-primary sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px', padding: '0.75rem 1.25rem' }}>
+                <Plus size={16} />
+                <span className="sp-nav-label">สร้างออเดอร์</span>
               </button>
             </Link>
           </div>

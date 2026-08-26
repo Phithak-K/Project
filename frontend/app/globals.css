@@ -1673,3 +1673,168 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   font-weight: 600;
   color: var(--n-900);
 }
+
+/* ══════════════════════════════════════════════════════
+   28. PAGE TRANSITION
+   ใช้ opacity + translateY เท่านั้น — ห้าม transform: scale
+   เพื่อป้องกัน Leaflet map/pin เพี้ยนเมื่อ stacking context เปลี่ยน
+   ══════════════════════════════════════════════════════ */
+@keyframes sp-page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sp-page-enter {
+  animation: sp-page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ══════════════════════════════════════════════════════
+   29. GLOBAL RESPONSIVE UTILITIES
+   Mobile-first utilities ที่ใช้ร่วมกันทุก Portal
+   ══════════════════════════════════════════════════════ */
+
+/* Fluid padding — ใช้แทน padding: 3rem 2rem แบบ fixed */
+.sp-main-fluid {
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 3vw, 2rem);
+}
+
+/* Nav: hide text labels on small screens, keep icons */
+.sp-nav-label {
+  display: inline;
+}
+
+/* Touch-friendly: minimum 44px tap target for mobile */
+.sp-btn-touch-safe {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Mobile: hide certain nav items */
+@media (max-width: 640px) {
+  .sp-nav-label {
+    display: none;
+  }
+
+  /* Nav actions: reduce gap, smaller padding */
+  .sp-nav {
+    height: 56px;
+    padding-inline: 1rem;
+  }
+
+  /* Merchant header buttons: icon-only */
+  .sp-merchant-nav-btn {
+    padding: 0.625rem;
+  }
+  .sp-merchant-nav-btn .sp-nav-label {
+    display: none;
+  }
+
+  /* KPI border fix: remove left-borders on mobile since they wrap */
+  .sp-kpi-row > * + * {
+    padding-left: 0;
+  }
+  .sp-kpi-row > * + *:nth-child(odd) {
+    border-left: none;
+    padding-left: 0;
+  }
+  .sp-kpi-row > * + *:nth-child(even) {
+    border-left: 1px solid var(--n-800);
+    padding-left: 1rem;
+  }
+
+  /* KPI row: 2 columns with padding */
+  .sp-kpi-row {
+    gap: 1rem;
+    padding: 1.25rem 0;
+  }
+  .sp-kpi-row > * {
+    padding-right: 0;
+  }
+
+  /* Cards: reduce border-radius on very small screens */
+  .sp-card {
+    border-radius: 12px;
+  }
+
+  /* Table: allow horizontal scroll */
+  .sp-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Main content: reduce top padding */
+  .sp-main-fluid {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Tablet: medium adjustments */
+@media (max-width: 900px) {
+  .sp-nav {
+    height: 60px;
+  }
+
+  /* Admin table: scrollable on tablet */
+  .sp-table-wrap {
+    overflow-x: auto;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   30. ERROR PAGES — Premium Visual Treatment
+   ══════════════════════════════════════════════════════ */
+
+.sp-error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(242, 90, 25, 0.06), transparent 35rem),
+    radial-gradient(circle at 80% 80%, rgba(99, 102, 241, 0.04), transparent 30rem),
+    var(--surface);
+  padding: 2rem;
+}
+
+.sp-error-code {
+  font-family: var(--font-display);
+  font-size: clamp(6rem, 20vw, 12rem);
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: transparent;
+  background: linear-gradient(135deg, var(--n-200) 0%, var(--n-150) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  user-select: none;
+  pointer-events: none;
+}
+
+.sp-error-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  animation: sp-page-enter 0.4s var(--ease-expo) both;
+}
+
+.sp-error-icon-wrap-brand {
+  background: linear-gradient(135deg, var(--brand-100), var(--brand-50));
+  border: 1.5px solid var(--brand-200);
+}
+
+.sp-error-icon-wrap-danger {
+  background: linear-gradient(135deg, #fee2e2, #fef2f2);
+  border: 1.5px solid #fca5a5;
+}
+
