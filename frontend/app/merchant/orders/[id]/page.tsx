@@ -169,7 +169,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             </p>
           </div>
           <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
-            <button onClick={handleShareLine} className="sp-btn-primary" style={{ background: '#06c755', borderColor: '#06c755' }}>
+            <button onClick={handleShareLine} className="sp-btn-primary sp-btn-line">
               <Share2 size={16} /> คัดลอกลิงก์ส่งลูกค้า
             </button>
             {/* [BUG-04 FIX] ปุ่มแชทเปิดหน้า messages แทนไม่ทำอะไร */}
@@ -194,7 +194,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '1.5rem', alignItems: 'start' }}>
+        <div className="sp-detail-grid">
           
           <div className="sp-stagger">
             {/* Timeline Row */}
@@ -220,7 +220,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             {/* Details Table */}
             <div className="sp-card">
               <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem' }}>ข้อมูลการจัดส่ง</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+              <div className="sp-split-2">
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <User size={18} style={{ color: 'var(--n-300)', marginTop: '0.125rem' }} />
                   <div>

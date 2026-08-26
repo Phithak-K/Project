@@ -2448,3 +2448,199 @@ html.driver-dark .sp-btn-danger:hover { background: rgba(229, 72, 77, .18); colo
 /* แผนที่ Radar เป็นธีมมืดโดยตั้งใจ — ทับ rule isolation ในหัวข้อ 25 เฉพาะกล่องนี้ */
 .sp-radar-map .leaflet-container { background: #0f1114 !important; }
 .sp-radar-map .leaflet-tile-pane { background: #0f1114; }
+
+/* ══════════════════════════════════════════════════════
+   34. AUDIT FIXES — จากการไล่ตรวจทุกหน้าอัตโนมัติ
+   (ล้นแนวนอน / เป้าสัมผัส / คอนทราสต์ / คลาสที่ไม่มีสไตล์)
+   ══════════════════════════════════════════════════════ */
+
+/* ── 34.1 ปุ่ม touch เต็มความกว้าง ทับช่องกรอกข้างๆ ────
+   บั๊ก: @media (max-width:640px) บังคับ .sp-btn-touch { width:100% }
+   ทำให้ปุ่ม "ค้นหา" บนหน้าแรกของลูกค้ากินพื้นที่ทั้งแถว
+   ช่องกรอกเลขพัสดุเหลือกว้าง 0px = พิมพ์ไม่ได้เลยบนมือถือ
+   แก้: เต็มความกว้างเฉพาะตอนที่ปุ่มอยู่ลำพังในกล่องของมันเท่านั้น */
+@media (max-width: 640px) {
+  .sp-btn-touch { width: auto; }
+  .sp-btn-touch:only-child,
+  .sp-btn-touch-full { width: 100%; }
+}
+/* ช่องกรอกในแถวแนวนอนต้องหดได้ ไม่ถูกปุ่มเบียดจนหาย */
+form > div:has(> .sp-input),
+form > .sp-input-wrap { min-width: 0; }
+
+/* ── 34.2 NAV ล้นจอ ───────────────────────────────────
+   หน้าแรกคนขับ: กลุ่มปุ่มขวามือกว้าง 404px ในแถบ 527px → ล้น 37px */
+.sp-nav, .sp-nav-dark { gap: .5rem; }
+.sp-nav > *, .sp-nav-dark > * { min-width: 0; }
+@media (max-width: 760px) {
+  .sp-nav, .sp-nav-dark {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 56px;
+    padding-block: .45rem;
+    row-gap: .4rem;
+  }
+  .sp-nav > div, .sp-nav-dark > div { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* ── 34.3 ปุ่มไอคอนบน nav ให้เป็นวงกลมเหมือนที่อื่น ──
+   (.sp-nav button มี specificity สูงกว่า .sp-btn-icon จึงต้องระบุคู่กัน) */
+.sp-nav .sp-btn-icon,
+.sp-nav-dark .sp-btn-icon { border-radius: 50%; }
+
+/* ── 34.4 ปุ่มสลับการมองเห็นรหัสผ่าน — เดิม 16×16px ── */
+.sp-input-toggle {
+  width: 36px;
+  height: 36px;
+  right: .5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color .18s var(--ease-soft), background .18s var(--ease-soft);
+}
+.sp-input-toggle:hover { background: rgba(242, 90, 25, .1); }
+
+/* ── 34.5 กริดหน้ารายละเอียดออเดอร์ร้านค้า ───────────
+   เดิม 1fr 340px ตายตัว → ล้นจอ 71px บนหน้าจอแคบ */
+.sp-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .sp-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+.sp-split-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+}
+
+/* ── 34.6 การ์ดพอร์ทัลลูกค้าบนหน้าแรก ────────────────
+   .landing-portal-customer ถูกใช้ใน TSX แต่ไม่เคยมีสไตล์
+   ทำให้การ์ดใบที่สามดูจืดกว่าอีกสองใบ */
+.landing-portal-customer {
+  border-color: var(--n-200);
+  background: linear-gradient(145deg, #fff, #fff7f1);
+}
+.landing-portal-customer .landing-portal-icon {
+  color: var(--brand-700);
+  background: #ffe9d9;
+  border-color: #ffd3b8;
+}
+.landing-portal-customer .landing-portal-label { color: var(--n-500); }
+
+/* ══════════════════════════════════════════════════════
+   35. คอนทราสต์ตัวอักษร — ปรับที่ token ทีเดียวทั้งระบบ
+   เพราะหน้าเว็บส่วนใหญ่กำหนดสีผ่าน inline style ที่อ้าง var()
+   ── ค่าเดิมวัดได้ต่ำกว่าเกณฑ์ WCAG AA (4.5:1) บนพื้นขาว ──
+      --n-400   #8c8883  →  3.5:1  ใช้กับ label เล็ก 10–12px ทั่วแอป
+      --brand-600 #ef6c00 →  2.9:1  ใช้กับตัวเลข KPI และ eyebrow
+   ══════════════════════════════════════════════════════ */
+:root {
+  --n-400:     #757069;   /* ≈ 4.6:1 บนพื้นขาว */
+  --brand-600: #b35200;   /* ≈ 4.9:1 บนพื้นขาว */
+}
+
+/* ══════════════════════════════════════════════════════
+   36. ลูกเล่นเพิ่มเติม
+   ══════════════════════════════════════════════════════ */
+
+/* ตัวเลขสถิติค่อย ๆ คมชัดขึ้นตอนเข้าหน้า */
+.sp-stat-number {
+  font-variant-numeric: tabular-nums;
+  animation: sp-count-in .55s var(--ease-spring) both;
+}
+@keyframes sp-count-in {
+  from { opacity: 0; transform: translateY(10px) scale(.94); filter: blur(4px); }
+  to   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+
+/* แถบแบรนด์บนหัวการ์ดมีแสงไหลผ่าน */
+.sp-card-brand-strip {
+  position: relative;
+  overflow: hidden;
+}
+.sp-card-brand-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .75), transparent);
+  transform: translateX(-100%);
+  animation: sp-sweep 2.6s var(--ease-soft) infinite;
+}
+
+/* badge ขยับรับเมื่อชี้ */
+.sp-badge:hover { transform: translateY(-1px) scale(1.03); }
+
+/* ช่องกรอกที่เบราว์เซอร์เติมอัตโนมัติ ไม่ต้องเป็นสีเหลืองอีก */
+.sp-input:-webkit-autofill,
+.sp-input:-webkit-autofill:hover,
+.sp-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--n-900);
+  -webkit-box-shadow: 0 0 0 100px #fff inset;
+  caret-color: var(--n-900);
+}
+html.driver-dark .sp-input:-webkit-autofill {
+  -webkit-text-fill-color: var(--n-900);
+  -webkit-box-shadow: 0 0 0 100px var(--n-100) inset;
+}
+
+/* เลื่อนไปยัง anchor แล้วไม่โดนแถบ nav บัง */
+:target { scroll-margin-top: 5rem; }
+
+/* การ์ดที่มีช่องกรอกอยู่ข้างใน จะเรืองขอบตอนกำลังกรอก */
+.sp-card:focus-within { border-color: rgba(242, 90, 25, .35); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-stat-number { animation: none !important; }
+  .sp-card-brand-strip::after { animation: none !important; }
+  .sp-badge:hover { transform: none !important; }
+}
+
+/* ══════════════════════════════════════════════════════
+   37. AUDIT FIXES รอบสอง
+   ══════════════════════════════════════════════════════ */
+
+/* ── 37.1 .sp-animate-d4 / d5 ถูกใช้ในหน้า Admin แต่ไม่เคยมีนิยาม ──
+   ผลคือการ์ดใบนั้นโผล่ทันทีขณะที่ใบอื่นค่อย ๆ เลื่อนเข้า */
+.sp-animate-d4, .sp-animate-d5 { animation: sp-rise var(--t-slow) var(--ease-expo) both; }
+.sp-animate-d4 { animation-delay: 240ms; }
+.sp-animate-d5 { animation-delay: 300ms; }
+
+/* ── 37.2 ปุ่มแชร์ LINE — ขาวบน #06c755 วัดได้ 2.26:1 อ่านยาก ── */
+.sp-btn-line {
+  background: #05873c !important;
+  border-color: #05873c !important;
+  color: #fff !important;
+  text-shadow: 0 1px 0 rgba(0, 40, 15, .3);
+}
+.sp-btn-line:hover:not(:disabled) {
+  background: #06a049 !important;
+  border-color: #06a049 !important;
+}
+
+/* ── 37.3 ลิงก์ไอคอนในตาราง — เดิมเป็นเป้าขนาด 18px ── */
+.sp-table td a,
+.sp-table-industrial td a,
+.sp-table-wrap td a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  transition: background .18s var(--ease-soft), transform .18s var(--ease-spring);
+}
+.sp-table-wrap td a:hover { background: rgba(242, 90, 25, .1); transform: translateX(2px); }
+
+/* ── 37.4 ตัวอักษรเทาบนหน้าแรก — วัดได้ 3.2–3.8:1 ────── */
+.landing-proof-row { color: #6b635d; }
+.landing-visual-topbar { color: #6b635d; }
+.landing-visual-stats span { color: #6b635d; }
+.landing-footer { color: #6b635d; }
+
+/* ── 37.5 ตัวเลขเขียวขนาดเล็กใน mockup หน้าแรก (10px, 3.18:1) ── */
+.landing-visual-stats small,
+.landing-visual-live { color: #12864b; }
