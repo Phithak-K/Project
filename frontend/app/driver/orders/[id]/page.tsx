@@ -426,7 +426,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                       setProofImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
                       toast.success('บันทึกภาพหลักฐานสำเร็จ (Mock PNG)');
                     }}
-                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-300)', borderRadius: '1rem', background: '#ffffff', color: 'var(--n-500)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-300)', borderRadius: '1rem', background: 'var(--surface-raised)', color: 'var(--n-500)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
                   >
                     <Camera size={32} style={{ marginBottom: '0.5rem' }} />
                     <p style={{ fontSize: '0.8rem' }}>คลิกเพื่อจำลองการถ่ายรูปหลักฐาน (Demo)</p>
@@ -450,24 +450,24 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                 <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
                   <button 
                     onClick={() => setPaymentTab('qr')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-50)' : '#fff', color: paymentTab === 'qr' ? 'var(--brand-600)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-300)'}`, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-100)', color: paymentTab === 'qr' ? '#fff' : 'var(--n-500)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-300)'}`, cursor: 'pointer' }}
                   >
                     ลูกค้าสแกน QR
                   </button>
                   <button 
                     onClick={() => setPaymentTab('cash')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'rgba(46, 125, 50, 0.1)' : '#fff', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-300)'}`, cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'var(--success-bg)' : 'var(--n-100)', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-300)'}`, cursor: 'pointer' }}
                   >
                     รับเงินสด/โอนแล้ว
                   </button>
                 </div>
 
                 {paymentTab === 'qr' ? (
-                  <div style={{ textAlign: 'center', background: 'var(--brand-50)', border: '1px solid var(--brand-200)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
+                  <div style={{ textAlign: 'center', background: 'var(--n-100)', border: '1px solid var(--brand-200)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
                     <Zap size={24} style={{ color: 'var(--brand-600)', marginBottom: '0.75rem', margin: '0 auto' }} />
                     <h3 style={{ fontWeight: 700, color: 'var(--n-900)' }}>รอสแกน QR รับเงิน</h3>
                     <p style={{ fontSize: '0.8rem', color: 'var(--n-600)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
-                    <div style={{ padding: '1rem', background: '#fff', display: 'inline-block', borderRadius: '10px' }}>
+                    <div style={{ padding: '1rem', background: 'var(--n-50)', display: 'inline-block', borderRadius: '10px' }}>
                       <QRScanner 
                         onScanSuccess={async (text) => {
                           try {

@@ -32,15 +32,16 @@ export default function MerchantDashboard() {
     if (isManualRefresh) setIsRefreshing(true);
     
     try {
-      const res = await fetch('/api/proxy/orders/merchant/dashboard');
+      const res = await fetch('/api/proxy/orders/my-orders');
       if (res.ok) {
-        const data = await res.json();
-        setOrders(data.orders || []);
+        const resData = await res.json();
+        const ordersList = resData.data || [];
+        setOrders(ordersList);
         
         let pending = 0, shipping = 0, delivered = 0, todaySales = 0;
         const today = new Date().toDateString();
         
-        (data.orders || []).forEach((o: any) => {
+        ordersList.forEach((o: any) => {
           if (o.status === 'PENDING') pending++;
           if (['ACCEPTED', 'PICKED_UP', 'SHIPPING'].includes(o.status)) shipping++;
           if (o.status === 'DELIVERED') {
@@ -63,10 +64,10 @@ export default function MerchantDashboard() {
 
   const fetchDrivers = useCallback(async () => {
     try {
-      const res = await fetch('/api/proxy/users/merchant/drivers');
+      const res = await fetch('/api/proxy/users/my-drivers');
       if (res.ok) {
         const data = await res.json();
-        setMyDrivers(data.drivers || []);
+        setMyDrivers(Array.isArray(data) ? data : []);
       }
     } catch (err) { console.error(err); }
   }, []);
@@ -92,7 +93,7 @@ export default function MerchantDashboard() {
     setAssignLoading(true);
     try {
       const res = await fetch(`/api/proxy/orders/${assignModal.orderId}/assign`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ driverId })
       });

@@ -68,7 +68,6 @@ export default function DriverDashboard() {
   if (isLoading) return (
     <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-800)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
         <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
         <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading Fleet Portal</p>
       </div>

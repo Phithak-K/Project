@@ -270,9 +270,10 @@ export default function DriverRadarPage() {
         {hotspots.length > 0 && (
           <div style={{
             position: 'absolute', bottom: '1rem', left: '1rem', zIndex: 1000,
-            background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)',
+            background: 'var(--n-50)', backdropFilter: 'blur(8px)',
             border: '1px solid var(--n-200)', borderRadius: '10px',
-            padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.375rem'
+            padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.375rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '0.25rem' }}>Surge Hotspots ({hotspots.length})</p>
             {hotspots.map((s, i) => (

@@ -144,7 +144,7 @@ body {
 }
 
 /* ── DRIVER NIGHT MODE ── */
-.driver-dark {
+html.driver-dark {
   --n-50: #1a1a1a;
   --n-100: #242424;
   --n-150: #2a2a2a;
@@ -159,19 +159,21 @@ body {
   --surface: #121212;
 }
 
-.driver-dark .sp-page {
+html.driver-dark .sp-page {
   background: var(--surface) !important;
   color: var(--n-900);
 }
-.driver-dark .sp-nav {
+html.driver-dark .sp-nav {
   background: rgba(18, 18, 18, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border-bottom-color: var(--n-200) !important;
 }
-.driver-dark .sp-card {
+html.driver-dark .sp-card {
   background: var(--n-50) !important;
   border-color: var(--n-200) !important;
 }
-.driver-dark .sp-input {
+html.driver-dark .sp-input {
   background: var(--n-100) !important;
   color: var(--n-900) !important;
   border-color: var(--n-300) !important;
@@ -1676,22 +1678,20 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
 
 /* ══════════════════════════════════════════════════════
    28. PAGE TRANSITION
-   ใช้ opacity + translateY เท่านั้น — ห้าม transform: scale
-   เพื่อป้องกัน Leaflet map/pin เพี้ยนเมื่อ stacking context เปลี่ยน
+   ใช้ opacity เท่านั้น — ห้ามใช้ transform เด็ดขาด
+   เพื่อป้องกัน Leaflet map/pin หาย หรือ Night Mode พังจาก Stacking Context
    ══════════════════════════════════════════════════════ */
 @keyframes sp-page-enter {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .sp-page-enter {
-  animation: sp-page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: sp-page-enter 0.4s ease-out both;
 }
 
 /* ══════════════════════════════════════════════════════

@@ -46,9 +46,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-body" suppressHydrationWarning>
         <GoogleOAuthProvider clientId={googleClientId}>
           <FCMProvider>
-            <div className="sp-page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              {children}
-            </div>
+            {children}
           </FCMProvider>
         </GoogleOAuthProvider>
         <Toaster position="top-center" reverseOrder={false} />
