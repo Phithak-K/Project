@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { FaFacebook, FaLine } from 'react-icons/fa';
+import { toast } from 'react-hot-toast';
 
 export default function CustomerRegisterPage() {
   const [form, setForm] = useState({ firstName: '', lastName: '', nationalId: '', username: '', email: '', phone: '', password: '', confirmPassword: '' });
@@ -93,11 +94,11 @@ export default function CustomerRegisterPage() {
   });
 
   const handleFacebookLogin = () => {
-    alert("Facebook Login is currently in sandbox mode. Please configure App ID in .env.local");
+    toast.error("Facebook Login is currently in sandbox mode. Please configure App ID in .env.local");
   };
 
   const handleLineLogin = () => {
-    alert("LINE Login is currently in sandbox mode. Please configure Channel ID in .env.local");
+    toast.error("LINE Login is currently in sandbox mode. Please configure Channel ID in .env.local");
   };
 
   return (

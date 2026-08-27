@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Send, X, Image as ImageIcon, Camera, Loader2, Paperclip } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 interface ChatBoxProps {
   orderId: number;
@@ -23,7 +24,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '');
 
 
   useEffect(() => {
@@ -113,7 +114,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
     // จำกัดขนาดรูปไม่เกิน 5MB กันรูปใหญ่เกินทำให้ WebSocket เด้ง
     const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      alert('รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดไม่เกิน 5MB');
+      toast.error('รูปภาพใหญ่เกินไป กรุณาเลือกรูปที่มีขนาดไม่เกิน 5MB');
       e.target.value = '';
       return;
     }

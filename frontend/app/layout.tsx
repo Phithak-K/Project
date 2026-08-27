@@ -40,7 +40,7 @@ export default function RootLayout({
                 if (localStorage.getItem('driver-theme') === 'dark') {
                   document.documentElement.classList.add('driver-dark');
                 }
-              } catch (_) {}
+              } catch (e) { console.warn('Theme init error:', e); }
             `,
           }}
         />

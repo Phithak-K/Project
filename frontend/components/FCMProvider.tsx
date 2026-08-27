@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { requestFCMToken, onMessageListener } from '../lib/firebase';
+import { toast } from 'react-hot-toast';
 
 export default function FCMProvider({ children }: { children: React.ReactNode }) {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
@@ -46,7 +47,7 @@ export default function FCMProvider({ children }: { children: React.ReactNode })
          const payload: any = await onMessageListener();
          console.log('FCM Foreground Notification Received:', payload);
          // You could trigger a toast notification here
-         alert(`🔔 แจ้งเตือน: ${payload?.notification?.title}\n${payload?.notification?.body}`);
+         toast(`${payload?.notification?.title}\n${payload?.notification?.body}`, { icon: '🔔', duration: 5000 });
          listen(); // Recursive listen
       } catch (err) {
          console.log('FCM Listenter error', err);

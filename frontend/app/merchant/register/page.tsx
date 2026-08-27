@@ -131,7 +131,7 @@ export default function MerchantRegisterPage() {
             <div className="sp-checkbox">
               <input type="checkbox" id="terms" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} />
               <label className="sp-checkbox-label" htmlFor="terms">
-                ฉันยอมรับ <a href="#">เงื่อนไขการให้บริการ</a> และนโยบายของ SwiftPath
+                ฉันยอมรับ <button type="button" onClick={(e) => e.preventDefault()} style={{ background: 'none', border: 'none', color: 'var(--brand-500)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}>เงื่อนไขการให้บริการ</button> และนโยบายของ SwiftPath
               </label>
             </div>
 

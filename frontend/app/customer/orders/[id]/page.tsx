@@ -23,7 +23,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
   const [hasRated, setHasRated] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
 
 

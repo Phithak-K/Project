@@ -11,11 +11,13 @@ import QRScanner from '@/components/QRScanner';
 import { toast } from 'react-hot-toast';
 import OrderSkeleton from '@/components/OrderSkeleton';
 import ChatBox from '@/components/ChatBox';
+import PremiumModal from '@/components/PremiumModal';
 
 export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, placeholder?: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'prompt', title: '', message: '', placeholder: '', onConfirm: () => {} });
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -29,7 +31,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   const watchIdRef = useRef<number | null>(null);
   const simulatorRef = useRef<NodeJS.Timeout | null>(null);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
 
   const getCookie = (name: string) => {
@@ -523,11 +525,19 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
               <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                 <button 
                   onClick={() => {
-                    const reason = prompt('กรุณาระบุปัญหาที่พบ (เช่น ลูกค้าไม่อยู่, พัสดุเสียหาย):');
-                    if (reason) {
-                      toast.success('บันทึกการแจ้งปัญหาและแจ้งให้ร้านค้าทราบเรียบร้อยแล้ว');
-                      setTimeout(() => router.push('/driver/radar'), 1500);
-                    }
+                    setModalConfig({
+                      isOpen: true,
+                      type: 'prompt',
+                      title: 'รายงานปัญหา',
+                      message: 'กรุณาระบุปัญหาที่พบเพื่อแจ้งให้ร้านค้าทราบ:',
+                      placeholder: 'เช่น ลูกค้าไม่อยู่, พัสดุเสียหาย',
+                      onConfirm: (reason?: string) => {
+                        if (reason) {
+                          toast.success('บันทึกการแจ้งปัญหาและแจ้งให้ร้านค้าทราบเรียบร้อยแล้ว');
+                          setTimeout(() => router.push('/driver/radar'), 1500);
+                        }
+                      }
+                    });
                   }}
                   style={{ background: 'none', border: 'none', color: 'var(--error-text)', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer' }}
                 >
@@ -552,6 +562,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
           onClose={() => setIsChatOpen(false)}
         />
       )}
+      <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
     </div>
   );
 }

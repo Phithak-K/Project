@@ -10,6 +10,7 @@ import {
 import { toast } from 'react-hot-toast';
 import OrderMap from '@/components/OrderMap';
 import ChatBox from '@/components/ChatBox';
+import PremiumModal from '@/components/PremiumModal';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -19,8 +20,9 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
 
   const getCookie = (name: string) => {
@@ -123,25 +125,30 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
     }
   };
 
-  const handleCancelOrder = async () => {
-    if (!window.confirm(`ยืนยันการยกเลิกออเดอร์ ${order.trackingNumber} ใช่หรือไม่?`)) return;
-    setCancelling(true);
-    try {
-      const res = await fetch(`/api/proxy/orders/${orderId}/cancel`, {
-        method: 'PATCH'
-      });
-      if (res.ok) {
-        toast.success('ยกเลิกออเดอร์เรียบร้อยแล้ว');
-        await fetchOrder();
-      } else {
-        const errData = await res.json();
-        toast.error(errData.message || 'ไม่สามารถยกเลิกออเดอร์ได้');
+  const handleCancelOrder = () => {
+    setModalConfig({
+      isOpen: true,
+      type: 'danger',
+      title: 'ยกเลิกออเดอร์',
+      message: `ยืนยันการยกเลิกออเดอร์ ${order.trackingNumber} ใช่หรือไม่?`,
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          const res = await fetch(`/api/proxy/orders/${orderId}/cancel`, { method: 'PATCH' });
+          if (res.ok) {
+            toast.success('ยกเลิกออเดอร์เรียบร้อยแล้ว');
+            await fetchOrder();
+          } else {
+            const errData = await res.json();
+            toast.error(errData.message || 'ไม่สามารถยกเลิกออเดอร์ได้');
+          }
+        } catch {
+          toast.error('Network Error');
+        } finally {
+          setCancelling(false);
+        }
       }
-    } catch {
-      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-    } finally {
-      setCancelling(false);
-    }
+    });
   };
 
   return (
@@ -328,6 +335,8 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
           onClose={() => setIsChatOpen(false)}
         />
       )}
+
+      <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
     </div>
   );
 }

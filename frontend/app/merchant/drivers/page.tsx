@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Truck, UserPlus, UserMinus, Search, CheckCircle, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PremiumModal from '@/components/PremiumModal';
 
 export default function DriversPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function DriversPage() {
   const [searching, setSearching] = useState(false);
   const [linking, setLinking] = useState(false);
   const [unlinking, setUnlinking] = useState<number | null>(null);
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
 
   const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
@@ -69,19 +71,26 @@ export default function DriversPage() {
     finally { setLinking(false); }
   };
 
-  const handleUnlink = async (driverId: number, driverName: string) => {
-    if (!confirm(`ยืนยันการยกเลิกความสัมพันธ์กับ "${driverName}"?`)) return;
-    setUnlinking(driverId);
-    try {
-      const res = await fetch(`/api/proxy/users/drivers/${driverId}/unlink`, { method: 'PATCH' });
-      if (res.ok) {
-        fetchDrivers();
-      } else {
-        const err = await res.json();
-        toast.error(err.message || 'ยกเลิกไม่สำเร็จ');
+  const handleUnlink = (driverId: number, driverName: string) => {
+    setModalConfig({
+      isOpen: true,
+      type: 'danger',
+      title: 'ยืนยันการยกเลิก',
+      message: `ยืนยันการยกเลิกความสัมพันธ์กับ "${driverName}" ใช่หรือไม่?`,
+      onConfirm: async () => {
+        setUnlinking(driverId);
+        try {
+          const res = await fetch(`/api/proxy/users/drivers/${driverId}/unlink`, { method: 'PATCH' });
+          if (res.ok) {
+            fetchDrivers();
+          } else {
+            const err = await res.json();
+            toast.error(err.message || 'ยกเลิกไม่สำเร็จ');
+          }
+        } catch { toast.error('Network Error'); }
+        finally { setUnlinking(null); }
       }
-    } catch { toast.error('Network Error'); }
-    finally { setUnlinking(null); }
+    });
   };
 
   if (loading) return (
@@ -202,6 +211,7 @@ export default function DriversPage() {
           )}
         </div>
       </main>
+      <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
     </div>
   );
 }

@@ -154,7 +154,7 @@ export default function OrderMap({
   useEffect(() => {
     if (!orderId && !trackingNumber) return;
     
-    const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
     let socket: any = null;
     
     async function initSocket() {

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PremiumModal from '@/components/PremiumModal';
 
 interface Product {
   id: number;
@@ -21,6 +22,7 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
   const [editingId, setEditingId] = useState<number | 'new' | null>(null);
   const [form, setForm] = useState(emptyForm());
 
@@ -85,21 +87,28 @@ export default function CatalogPage() {
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`ลบสินค้า "${name}" ออกจาก catalog?`)) return;
-    setDeleting(id);
-    try {
-      const res = await fetch(`/api/proxy/products/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        const result = await res.json();
-        if (!result.deleted) toast.error(result.message);
-        fetchProducts();
-      } else {
-        const err = await res.json();
-        toast.error(err.message || 'ลบไม่สำเร็จ');
+  const handleDelete = (id: number, name: string) => {
+    setModalConfig({
+      isOpen: true,
+      type: 'danger',
+      title: 'ลบสินค้า',
+      message: `ยืนยันการลบสินค้า "${name}" ออกจากแคตตาล็อก ใช่หรือไม่?`,
+      onConfirm: async () => {
+        setDeleting(id);
+        try {
+          const res = await fetch(`/api/proxy/products/${id}`, { method: 'DELETE' });
+          if (res.ok) {
+            const result = await res.json();
+            if (!result.deleted) toast.error(result.message);
+            fetchProducts();
+          } else {
+            const err = await res.json();
+            toast.error(err.message || 'ลบไม่สำเร็จ');
+          }
+        } catch { toast.error('Network Error'); }
+        finally { setDeleting(null); }
       }
-    } catch { toast.error('Network Error'); }
-    finally { setDeleting(null); }
+    });
   };
 
   const handleToggleActive = async (product: Product) => {
@@ -265,6 +274,7 @@ export default function CatalogPage() {
           )}
         </div>
       </main>
+      <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
     </div>
   );
 }

@@ -38,7 +38,7 @@ export default function DriverRadarPage() {
   const [accepting, setAccepting] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
 
   const getCookie = (name: string) => {
     const v = `; ${document.cookie}`;
@@ -108,6 +108,11 @@ export default function DriverRadarPage() {
     }).addTo(map);
 
     mapInstanceRef.current = map;
+
+    // Trigger resize to fix grey/black screen issues
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 400);
   }, [mapReady]);
 
   // อัปเดต Marker เมื่อ Hotspots เปลี่ยน
