@@ -359,7 +359,7 @@ export default function DriverRadarPage() {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', background: '#fff', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', background: 'var(--n-50)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
                     <MapPin size={16} style={{ color: 'var(--brand-500)', flexShrink: 0, marginTop: '0.1rem' }} />
                     <div>
                       <p style={{ color: 'var(--n-900)', fontSize: '0.9rem', fontWeight: 700 }}>{order.receiverName}</p>

@@ -54,7 +54,7 @@ export default function CreateOrderPage() {
         return;
       }
       if (res.ok) setProducts(await res.json());
-    } catch { /* catalog is optional */ }
+    } catch (e) { console.warn('Failed to load catalog (optional)', e); }
   }, []);
 
   useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
