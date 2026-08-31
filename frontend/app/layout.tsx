@@ -4,6 +4,7 @@ import "./globals.css";
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import FCMProvider from '../components/FCMProvider';
 import { Toaster } from 'react-hot-toast';
+import { getSiteUrl } from '../lib/site-url';
 import RouteTransition from '../components/RouteTransition';
 
 const kanit = Kanit({
@@ -14,6 +15,7 @@ const kanit = Kanit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: "SwiftPath — Enterprise Logistics",
   description: "ระบบจัดการขนส่งระดับ Enterprise",
 };

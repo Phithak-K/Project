@@ -90,11 +90,15 @@ export default function OrderMap({
         center: [centerLat, centerLng],
         zoom: 14,
         zoomControl: true,
-        attributionControl: false,
+        attributionControl: true,
       });
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      // ใช้ OpenStreetMap แทน CARTO เพราะ CARTO บังคับใช้ API key แล้ว
+      // ถ้าไม่มี key มันยังส่งภาพมาให้ แต่แปะลายน้ำ "API KEY REQUIRED" ทับ
+      // ซึ่งหน้านี้เป็นหน้าที่ลูกค้าเห็นตอนกดลิงก์ติดตามพัสดุ
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map);
 
       mapInstanceRef.current = map;

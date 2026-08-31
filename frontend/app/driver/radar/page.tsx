@@ -101,11 +101,17 @@ export default function DriverRadarPage() {
     });
     map.attributionControl.setPrefix(false);
 
-    // Dark-themed tile layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // ใช้ OpenStreetMap แทน CARTO เพราะ CARTO บังคับใช้ API key แล้ว
+    // OSM มีสไตล์เดียวคือโทนสว่าง จึงกลับสีด้วย CSS filter เพื่อคงธีมมืดของหน้านี้ไว้
+    const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(map);
+
+    const tilePane = tileLayer.getContainer();
+    if (tilePane) {
+      tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9)';
+    }
 
     mapInstanceRef.current = map;
 

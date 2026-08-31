@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search } from 'lucide-react';
+import { Package, Clock, MapPin, Truck, CheckCircle, AlertTriangle, ArrowLeft, Search, Share2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import OrderMap from '@/components/OrderMap';
+import { shareTracking } from '@/lib/share';
 
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = { PENDING: 'sp-badge sp-badge-pending', ACCEPTED: 'sp-badge sp-badge-accepted', PICKED_UP: 'sp-badge sp-badge-picked', SHIPPING: 'sp-badge sp-badge-shipping', DELIVERED: 'sp-badge sp-badge-delivered', CANCELLED: 'sp-badge sp-badge-cancelled' };
@@ -80,6 +82,17 @@ export default function TrackingDetailPage() {
     ? statuses.findIndex(s => s.key === order.status) 
     : (order.status === 'CANCELLED' ? -1 : 0);
 
+  // ส่งต่อหน้านี้ให้คนที่บ้าน — บนมือถือจะเด้ง share sheet ที่มี LINE ให้เลือก
+  // บนเดสก์ท็อปที่ไม่มี share sheet จะตกไปคัดลอกลงคลิปบอร์ดแทน
+  const handleShare = async () => {
+    const result = await shareTracking(order.trackingNumber);
+    if (result === 'copied') {
+      toast.success('คัดลอกลิงก์แล้ว นำไปวางส่งต่อได้เลย');
+    } else if (result === 'failed') {
+      toast.error('ไม่สามารถคัดลอกลิงก์ได้');
+    }
+  };
+
   return (
     <div className="sp-page">
       {/* Nav */}
@@ -106,8 +119,16 @@ export default function TrackingDetailPage() {
                 <Package size={16} /> {order.productName}
               </p>
             </div>
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.75rem' }}>
                <StatusBadge status={order.status} />
+               <button
+                 onClick={handleShare}
+                 className="sp-btn-ghost"
+                 aria-label="ส่งต่อลิงก์ติดตามพัสดุ"
+                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem' }}
+               >
+                 <Share2 size={16} /> ส่งต่อ
+               </button>
             </div>
           </div>
 

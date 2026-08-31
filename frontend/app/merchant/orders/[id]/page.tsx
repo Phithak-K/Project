@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import OrderMap from '@/components/OrderMap';
 import ChatBox from '@/components/ChatBox';
 import PremiumModal from '@/components/PremiumModal';
+import { shareTracking } from '@/lib/share';
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'PICKED_UP', 'SHIPPING', 'DELIVERED'];
 
@@ -81,19 +82,19 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
   const currentStepIndex = STATUS_FLOW.indexOf(order.status);
 
-  const handleShareLine = () => {
-    // [BUG-03 FIX] ใช้ NEXT_PUBLIC_BASE_DOMAIN แทน window.location.origin
-    // เพื่อให้ลิงก์ชี้ไปที่ Root Domain (localhost:3000) ไม่ใช่ store.localhost:3000
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-    const protocol = window.location.protocol; // http: หรือ https:
-    const trackingUrl = `${protocol}//${baseDomain}/track/${order.trackingNumber}`;
-    const text = `ร้านได้รับออเดอร์ของคุณแล้ว!\nตรวจสอบสถานะการจัดส่งได้ที่ลิงก์นี้เลยครับ:\n${trackingUrl}`;
+  const handleShareLine = async () => {
+    // [BUG-03 FIX] ห้ามใช้ window.location.origin เพราะหน้านี้อยู่บน store.localhost:3000
+    // ลิงก์ติดตามต้องชี้ Root Domain — ใช้ getTrackingUrl() ตัวเดียว
+    // กับที่ og:image ใช้ ไม่งั้นการ์ดพรีวิวจะชี้คนละ URL กับลิงก์ที่ส่งจริง
+    const text = `ร้านได้รับออเดอร์ของคุณแล้ว!\nตรวจสอบสถานะการจัดส่งได้ที่ลิงก์นี้เลยครับ:`;
     
-    navigator.clipboard.writeText(text).then(() => {
+    const result = await shareTracking(order.trackingNumber, text);
+    if (result === 'copied') {
       toast.success('คัดลอกลิงก์สำเร็จ นำไปวางในแชท LINE ได้เลย');
-    }).catch(() => {
+    } else if (result === 'failed') {
       toast.error('ไม่สามารถคัดลอกข้อความได้');
-    });
+    }
+    // 'shared' / 'cancelled' — share sheet ของเครื่องบอกผลเองอยู่แล้ว ไม่ต้อง toast ซ้ำ
   };
 
   const handleDownloadPdf = async () => {
@@ -176,7 +177,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
           </div>
           <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
             <button onClick={handleShareLine} className="sp-btn-primary sp-btn-line">
-              <Share2 size={16} /> คัดลอกลิงก์ส่งลูกค้า
+              <Share2 size={16} /> ส่งลิงก์ให้ลูกค้า
             </button>
             {/* [BUG-04 FIX] ปุ่มแชทเปิดหน้า messages แทนไม่ทำอะไร */}
             <button
