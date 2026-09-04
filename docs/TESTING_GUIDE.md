@@ -46,10 +46,11 @@ ADMIN_SEED_PASSWORD=<ADMIN_SEED_PASSWORD>
 3. กด Open แล้วเลือกไฟล์ไปที่: `C:\Windows\System32\drivers\etc\hosts` (หากไม่เห็นไฟล์ ให้เปลี่ยนฟิลเตอร์มุมล่างขวาจาก `Text Documents (*.txt)` เป็น `All Files (*.*)`)
 4. เพิ่มบรรทัดต่อไปนี้ลงไปด้านล่างสุดของไฟล์ แล้วทำการกดบันทึก (Save):
    ```text
-   127.0.0.1 admin.localhost
+   127.0.0.1 app.localhost
    127.0.0.1 store.localhost
    127.0.0.1 fleet.localhost
    ```
+   > **หมายเหตุ:** Admin Portal ไม่ใช้ Subdomain — เข้าถึงได้ที่ `http://localhost:3000/admin/login` โดยตรง ไม่ต้องเพิ่ม `admin.localhost` ในไฟล์ hosts
 
 ---
 
@@ -61,8 +62,9 @@ ADMIN_SEED_PASSWORD=<ADMIN_SEED_PASSWORD>
 ```bash
 cd backend
 npm install
-npx prisma db push   # เพื่อเตรียมโครงสร้างตารางของ Database
-npx prisma db seed   # เพื่อจำลองข้อมูลทดสอบ (Merchant, Driver, สินค้า)
+npx prisma generate   # สร้าง Prisma TypeScript Client (ต้องทำก่อนเสมอ)
+npx prisma db push    # ซิงค์โครงสร้างตารางเข้า PostgreSQL
+npx prisma db seed    # สร้างข้อมูลทดสอบ (Merchant, Driver, Customer, Admin)
 npm run start:dev
 ```
 *ระบบจะเปิดทำงานที่: http://localhost:8000*
@@ -81,7 +83,7 @@ npm run dev
 
 | พอร์ทัลระบบ (Portal) | ลิงก์ทดสอบบนเบราว์เซอร์ | อีเมลผู้ใช้ | รหัสผ่าน |
 | :--- | :--- | :--- | :--- |
-| **Admin Portal** | [admin.localhost:3000](http://admin.localhost:3000) | `admin@swiftpath.com` | `<ADMIN_SEED_PASSWORD>` |
+| **Admin Portal** | [localhost:3000/admin/login](http://localhost:3000/admin/login) | `admin@swiftpath.com` | `<ADMIN_SEED_PASSWORD>` |
 | **Merchant Portal** | [store.localhost:3000](http://store.localhost:3000) | `merchant@test.com` | `Test@1234` |
 | **Driver Portal** | [fleet.localhost:3000](http://fleet.localhost:3000) | `driver@test.com` | `Test@1234` |
 | **Customer Web** | [localhost:3000](http://localhost:3000) | *ไม่ต้องล็อกอิน* | ใช้ค้นหาผ่านเบอร์โทรศัพท์ หรือ เลขพัสดุ (เช่น `SP26CC206CEE`) |

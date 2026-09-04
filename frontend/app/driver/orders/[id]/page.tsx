@@ -12,6 +12,8 @@ import { toast } from 'react-hot-toast';
 import OrderSkeleton from '@/components/OrderSkeleton';
 import ChatBox from '@/components/ChatBox';
 import PremiumModal from '@/components/PremiumModal';
+import { getCookie } from '@/lib/cookies';
+import { createAuthenticatedSocket } from '@/lib/socket';
 
 export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -31,15 +33,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   const watchIdRef = useRef<number | null>(null);
   const simulatorRef = useRef<NodeJS.Timeout | null>(null);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
-
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return null;
-  };
 
   const fetchOrder = useCallback(async () => {
     const role = getCookie('role');
@@ -58,22 +52,14 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
     
     let socket: Socket | null = null;
     async function initSocket() {
-      let token = '';
-      try {
-        const tokenRes = await fetch('/api/auth/token');
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          token = tokenData.token;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch token for socket", err);
-      }
-
-      if (token) {
-        socket = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
+      socket = await createAuthenticatedSocket();
+      if (socket) {
         socketRef.current = socket;
         socket.emit('join_order', { orderId: Number(orderId) });
-        socket.on('order_status_update', () => fetchOrder());
+        // [RT-03 FIX] Update status locally instead of full refetch
+        socket.on('order_status_update', ({ status }: { status: string }) => {
+          setOrder((prev: any) => prev ? { ...prev, status } : prev);
+        });
       }
     }
     
@@ -84,7 +70,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
       if (socket) socket.disconnect();
       socketRef.current = null;
     };
-  }, [orderId, fetchOrder, SOCKET_URL]);
+  }, [orderId, fetchOrder]);
   // ─── ส่งพิกัดผ่าน Socket.io ─────────────────────────────────────────────────
   const emitLocation = useCallback((lat: number, lng: number, heading?: number) => {
     if (!socketRef.current) return;

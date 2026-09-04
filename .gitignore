@@ -6,3 +6,6 @@ get_users.sql
 
 # Local secrets
 .env
+edge_security.mmd
+edge_security.png
+edge_security.svg

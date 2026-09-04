@@ -98,7 +98,7 @@ if (adminResult) return adminResult  // short-circuit — ไม่ผ่าน 
 
 | เทคโนโลยี | เวอร์ชัน | การใช้งาน |
 | :--- | :--- | :--- |
-| Next.js | 15+ | App Router, Server Components, Edge Middleware |
+| Next.js | **16.2.2** | App Router, Server Components, Edge Middleware (`proxy.ts` — Next.js 16 feature) |
 | TypeScript | 5.x | Type safety ระดับ compile-time |
 | Tailwind CSS | v4 | Design system ระดับ production |
 | Socket.io-client | ล่าสุด | Real-time WebSocket connection |

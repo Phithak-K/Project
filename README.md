@@ -138,7 +138,10 @@ npm run start:dev
 ```bash
 cd frontend
 npm install
-# สร้างไฟล์ .env.local โดยมี: NEXT_PUBLIC_API_URL, NEXT_PUBLIC_BASE_DOMAIN
+# สร้างไฟล์ .env.local โดยมีตัวแปรดังต่อไปนี้:
+# NEXT_PUBLIC_API_URL=http://127.0.0.1:8000       (สำหรับ Auth endpoints โดยตรง)
+# NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:8000   (สำหรับ Socket.io WebSocket)
+# NEXT_PUBLIC_BASE_DOMAIN=localhost:3000           (สำหรับ Subdomain routing)
 npm run dev
 ```
 

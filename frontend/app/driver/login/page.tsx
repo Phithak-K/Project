@@ -18,9 +18,9 @@ export default function DriverLoginPage() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/auth/login`, {
-        method: 'POST', mode: 'cors',
+      // [SEC-01 FIX] Route through Next.js proxy — backend URL never exposed to browser
+      const response = await fetch('/api/proxy/auth/login', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role: 'Driver' }),
       });
@@ -38,6 +38,7 @@ export default function DriverLoginPage() {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="sp-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

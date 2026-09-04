@@ -285,11 +285,11 @@ export default function DriverRadarPage() {
         {/* Legend */}
         {hotspots.length > 0 && (
           <div className="sp-radar-legend">
-            <p className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '0.25rem' }}>Surge Hotspots ({hotspots.length})</p>
+            <p className="sp-caps" style={{ marginBottom: '0.25rem', opacity: 0.8 }}>Surge Hotspots ({hotspots.length})</p>
             {hotspots.map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CloudRain size={11} style={{ color: 'var(--brand-400)' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--n-800)' }}>{s.city}</span>
+                <span style={{ fontSize: '0.8rem' }}>{s.city}</span>
                 <Zap size={10} style={{ color: 'var(--brand-400)' }} />
                 <span className="sp-caps" style={{ fontSize: '0.7rem', color: 'var(--brand-400)' }}>+20%</span>
               </div>

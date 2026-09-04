@@ -86,7 +86,7 @@
 * **วิธีแก้:** เช็ก Docker ว่าเปิดอยู่หรือไม่ หากยังไม่เปิดให้รัน `docker start logistics_db` แล้ว Restart Backend
 
 ### ปัญหาที่ 2: สร้างออเดอร์ หรือ ล็อกอิน แล้วขึ้น "Table does not exist" หรือ Error 500
-* **วิธีแก้:** ไปที่โฟลเดอร์ Backend แล้วรัน `npx prisma db push` ตามด้วย `npx prisma generate`
+* **วิธีแก้:** ไปที่โฟลเดอร์ Backend แล้วรันคำสั่งตามลำดับนี้: `npx prisma generate` ก่อน แล้วตามด้วย `npx prisma db push` (generate ต้องมาก่อนเสมอ เพื่อสร้าง TypeScript client ก่อนที่จะ push schema)
 
 ### ปัญหาที่ 3: Backend หรือ Frontend รันไม่ได้ ติด Error "EADDRINUSE: port ... is already in use"
 * **วิธีแก้ (สำหรับ Windows):**

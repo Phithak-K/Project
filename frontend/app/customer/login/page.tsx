@@ -23,10 +23,9 @@ export default function CustomerLoginPage() {
     setNeedsVerification(false);
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const response = await fetch(`${apiUrl}/auth/login`, {
+      // [SEC-01 FIX] Route through Next.js proxy — backend URL never exposed to browser
+      const response = await fetch('/api/proxy/auth/login', {
         method: 'POST',
-        mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, role: 'Customer' }),
       });
@@ -57,7 +56,8 @@ export default function CustomerLoginPage() {
   const handleGoogleSuccess = async (tokenResponse: any) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google-login`, {
+      // [SEC-01 FIX] Route through Next.js proxy
+      const response = await fetch('/api/proxy/auth/google-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: tokenResponse.access_token }),

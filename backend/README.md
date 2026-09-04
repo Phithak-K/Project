@@ -112,8 +112,8 @@ npx prisma generate
 # ดัน schema ขึ้นฐานข้อมูล
 npx prisma db push
 
-# สร้างบัญชี Admin เริ่มต้น
-npx ts-node prisma/seed-admin.ts
+# สร้างข้อมูลเริ่มต้น (Admin, Merchant, Driver, Orders จำลอง)
+npx prisma db seed
 
 # เริ่มต้นในโหมดพัฒนา (watch mode)
 npm run start:dev

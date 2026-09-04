@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
+import { createAuthenticatedSocket } from '@/lib/socket';
 import { Send, X, Image as ImageIcon, Camera, Loader2, Paperclip } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -24,9 +25,6 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '');
-
-
   useEffect(() => {
     if (!isOpen) return;
     
@@ -34,17 +32,6 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
     let newSocket: Socket | null = null;
 
     async function initChat() {
-      let token = '';
-      try {
-        const tokenRes = await fetch('/api/auth/token');
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          token = tokenData.token;
-        }
-      } catch (err) {
-        console.warn("Failed to fetch client token for chat", err);
-      }
-
       // Fetch messages via Next.js Proxy (no Authorization header required as proxy handles it)
       fetch(`/api/proxy/orders/${orderId}/messages`)
         .then(res => res.json())
@@ -59,11 +46,8 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
           setLoading(false);
         });
 
-      if (token) {
-        newSocket = io(SOCKET_URL, { 
-          auth: { token: `Bearer ${token}` },
-          withCredentials: true 
-        });
+      newSocket = await createAuthenticatedSocket();
+      if (newSocket) {
         newSocket.emit('join_order', { orderId });
 
         newSocket.on('receive_message', (msg: any) => {
@@ -73,7 +57,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
           });
         });
 
-        setSocket(newSocket);
+        if (isMounted) setSocket(newSocket);
       }
     }
 
@@ -83,7 +67,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
       isMounted = false;
       if (newSocket) newSocket.disconnect();
     };
-  }, [isOpen, orderId, SOCKET_URL]);
+  }, [isOpen, orderId]);
 
   useEffect(() => {
     if (bottomRef.current) {
