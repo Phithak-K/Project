@@ -1450,6 +1450,20 @@ body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; 
   padding-right: 1.5rem;
 }
 
+/* Admin KPI row: 6 ตัวชี้วัด — ให้คอลัมน์ Revenue กว้างกว่าเพื่อไม่ให้ตัวเลขทับกัน */
+.sp-kpi-row--admin > * {
+  min-width: 0;
+}
+.sp-kpi-row--admin .sp-stat-number {
+  font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+  white-space: nowrap;
+}
+@media (min-width: 641px) {
+  .sp-kpi-row--admin {
+    grid-template-columns: minmax(0, 1fr) max-content repeat(4, minmax(0, 1fr));
+  }
+}
+
 /* Amber accent สำหรับตัวเลขสำคัญ (COD, Warning) */
 .sp-stat-number.amber { color: oklch(73% 0.19 50); }
 

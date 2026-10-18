@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area, PieChart, Pie } from 'recharts';
 import { Users, Package, TrendingUp, CheckCircle, Clock, XCircle, LogOut, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [range, setRange] = useState<7 | 30 | 90>(90);
 
   const [suspendingUser, setSuspendingUser] = useState<any>(null);
   const [suspendReason, setSuspendReason] = useState('');
@@ -109,6 +110,25 @@ export default function AdminDashboard() {
 
   const tabLabel: Record<string, string> = { customers: 'Customer', merchants: 'Merchant', drivers: 'Driver' };
 
+  // ข้อมูลกราฟจริงจาก API — ตัดตามช่วงวันที่เลือก
+  const revenueData: { date: string; revenue: number }[] = (stats?.revenueChart ?? []).slice(-range);
+  const userGrowthData: { date: string; users: number }[] = (stats?.userGrowth ?? []).slice(-range);
+  const rangeRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0);
+  const orderVolumeData: { date: string; orders: number }[] = (stats?.orderVolume ?? []).slice(-range);
+  const rangeOrders = orderVolumeData.reduce((sum, d) => sum + d.orders, 0);
+
+  const STATUS_META: { key: string; label: string; color: string }[] = [
+    { key: 'DELIVERED', label: 'ส่งสำเร็จ', color: '#10b981' },
+    { key: 'SHIPPING', label: 'กำลังจัดส่ง', color: '#3b82f6' },
+    { key: 'PICKED_UP', label: 'รับพัสดุแล้ว', color: '#8b5cf6' },
+    { key: 'ACCEPTED', label: 'คนขับรับงาน', color: '#f59e0b' },
+    { key: 'PENDING', label: 'รอดำเนินการ', color: '#64748b' },
+    { key: 'CANCELLED', label: 'ยกเลิก', color: '#ef4444' },
+  ];
+  const statusData = STATUS_META
+    .map(s => ({ name: s.label, value: stats?.statusDistribution?.[s.key] ?? 0, color: s.color }))
+    .filter(s => s.value > 0);
+
   if (loading) return (
     <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ textAlign: 'center' }}>
@@ -155,7 +175,7 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         {stats && (
-          <div className="sp-kpi-row sp-animate-d2" style={{ marginBottom: '3rem' }}>
+          <div className="sp-kpi-row sp-kpi-row--admin sp-animate-d2" style={{ marginBottom: '3rem' }}>
             {[
               { label: 'Total Orders', value: stats.totalOrders, color: 'var(--brand-500)' },
               { label: 'Total Revenue', value: `฿${Number(stats.totalRevenue).toLocaleString()}`, color: 'oklch(65% 0.15 150)' },
@@ -172,69 +192,156 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Range selector */}
+        {stats && (
+          <div className="sp-animate-d3" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1rem' }}>
+            {([7, 30, 90] as const).map(d => (
+              <button key={d} id={`btn-range-${d}`} onClick={() => setRange(d)}
+                style={{
+                  padding: '0.375rem 0.875rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
+                  border: '1px solid var(--n-200)',
+                  background: range === d ? 'var(--brand-500)' : 'transparent',
+                  color: range === d ? '#fff' : 'var(--n-600)',
+                }}>
+                {d} Days
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Revenue Chart */}
         {stats?.revenueChart && (
           <div className="sp-animate-d3" style={{ marginBottom: '4rem' }}>
             <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
               <div>
-                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Revenue</p>
-                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>7-Day Overview</h2>
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Revenue by Delivery Date</p>
+                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>
+                  {range}-Day Overview
+                </h2>
               </div>
-              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)', textAlign: 'right' }}>
+                Period Revenue: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>฿{rangeRevenue.toLocaleString()}</strong>
+                <br />
                 Success Rate: <strong style={{ color: 'oklch(65% 0.15 150)', fontSize: '1rem' }}>{stats.successRate}%</strong>
               </span>
             </div>
             <div style={{ padding: '2rem 0', background: 'var(--n-50)', borderTop: '2px solid var(--n-200)' }}>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={stats.revenueChart} barSize={40}>
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
+              <ResponsiveContainer width="100%" height={240} minWidth={0} initialDimension={{ width: 600, height: 240 }}>
+                <BarChart data={revenueData} barCategoryGap="20%">
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
                   <YAxis hide />
                   <Tooltip
                     contentStyle={{ background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: '0', color: 'var(--n-900)', fontFamily: 'monospace' }}
                     formatter={(v: any) => [`฿${Number(v).toLocaleString()}`, 'REVENUE']}
                     labelStyle={{ color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem' }}
                   />
-                  <Bar dataKey="revenue">
-                    {stats.revenueChart.map((_: any, i: number) => (
-                      <Cell key={i} fill={i === stats.revenueChart.length - 1 ? 'var(--brand-500)' : 'var(--n-200)'} />
+                  <Bar dataKey="revenue" minPointSize={0}>
+                    {revenueData.map((d, i) => (
+                      <Cell key={i} fill={d.revenue > 0 ? 'var(--brand-500)' : 'var(--n-200)'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              {rangeRevenue === 0 && (
+                <p className="sp-mono" style={{ textAlign: 'center', color: 'var(--n-400)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                  ไม่มีออเดอร์ที่ส่งสำเร็จในช่วง {range} วันที่ผ่านมา
+                </p>
+              )}
             </div>
           </div>
         )}
 
-        {/* User Growth Area Chart (Simulated Data) */}
-        {stats && (
+        {/* Order Volume + Delivery Status */}
+        {stats?.orderVolume && stats?.statusDistribution && (
+          <div className="sp-animate-d3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+
+            <div className="sp-card" style={{ padding: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+                <div>
+                  <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Order Volume</p>
+                  <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>ปริมาณคำสั่งซื้อรายวัน</h3>
+                </div>
+                <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+                  {range} Days: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{rangeOrders}</strong>
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={220} minWidth={0} initialDimension={{ width: 500, height: 220 }}>
+                <BarChart data={orderVolumeData} barCategoryGap="20%">
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
+                  <YAxis hide allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: '0', color: 'var(--n-900)', fontFamily: 'monospace' }}
+                    formatter={(v: any) => [`${v} รายการ`, 'ORDERS']}
+                    labelStyle={{ color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem' }}
+                  />
+                  <Bar dataKey="orders" fill="var(--brand-500)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="sp-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Delivery Status</p>
+                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>สัดส่วนสถานะการจัดส่ง</h3>
+              </div>
+              {statusData.length === 0 ? (
+                <p className="sp-mono" style={{ color: 'var(--n-400)', fontSize: '0.8rem', margin: 'auto' }}>ยังไม่มีออเดอร์ในระบบ</p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={180} minWidth={0} initialDimension={{ width: 300, height: 180 }}>
+                    <PieChart>
+                      <Pie data={statusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} stroke="none">
+                        {statusData.map((s, i) => <Cell key={i} fill={s.color} />)}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        formatter={(v: any, n: any) => [`${v} รายการ`, n]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '1rem' }}>
+                    {statusData.map(s => (
+                      <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--n-600)' }}>
+                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                        {s.name}: <strong style={{ color: 'var(--n-900)' }}>{s.value}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* User Growth Area Chart (real signup data) */}
+        {stats?.userGrowth && (
           <div className="sp-card sp-animate-d3" style={{ marginBottom: '3rem', padding: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
               <div>
                 <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Platform Adoption</p>
                 <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>User Growth</h3>
               </div>
+              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+                Verified Users: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{userGrowthData[userGrowthData.length - 1]?.users ?? 0}</strong>
+              </span>
             </div>
             <div style={{ width: '100%', height: '200px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={[
-                  { name: 'Mon', users: 120 }, { name: 'Tue', users: 150 }, 
-                  { name: 'Wed', users: 200 }, { name: 'Thu', users: 280 },
-                  { name: 'Fri', users: 350 }, { name: 'Sat', users: 420 },
-                  { name: 'Sun', users: 550 }
-                ]}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0} initialDimension={{ width: 600, height: 200 }}>
+                <AreaChart data={userGrowthData}>
                   <defs>
                     <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="oklch(65% 0.15 150)" stopOpacity={0.3}/>
                       <stop offset="95%" stopColor="oklch(65% 0.15 150)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'var(--n-400)', fontSize: 12 }} />
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} axisLine={false} tickLine={false} tick={{ fill: 'var(--n-400)', fontSize: 12 }} />
+                  <YAxis hide allowDecimals={false} domain={[0, 'auto']} />
                   <Tooltip 
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                    formatter={(v: any) => [`${v} Users`, 'Adoption']}
+                    formatter={(v: any) => [`${v} Users`, 'Total']}
                   />
-                  <Area type="monotone" dataKey="users" stroke="oklch(65% 0.15 150)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                  <Area type="stepAfter" dataKey="users" stroke="oklch(65% 0.15 150)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

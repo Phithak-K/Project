@@ -20,6 +20,25 @@ import * as path from 'path';
 import * as fs from 'fs';
 const PDFDocument = require('pdfkit');
 
+// Dashboard charts: ช่วงเวลาและโซนเวลาที่ใช้จัดกลุ่มข้อมูลรายวัน (ข้อมูลจริงจากฐานข้อมูล)
+const CHART_DAYS = 90;
+const CHART_TZ = 'Asia/Bangkok';
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** แปลงเวลาเป็นวันที่ YYYY-MM-DD ตามเวลาไทย */
+function toBangkokDateKey(d: Date): string {
+  return d.toLocaleDateString('sv-SE', { timeZone: CHART_TZ });
+}
+
+/** สร้าง bucket รายวันย้อนหลัง `days` วัน (เก่า -> ใหม่) นับรวมวันนี้ */
+function buildDayKeys(days: number): string[] {
+  const now = Date.now();
+  return Array.from({ length: days }, (_, i) =>
+    toBangkokDateKey(new Date(now - (days - 1 - i) * DAY_MS)),
+  );
+}
+
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -750,14 +769,14 @@ export class OrdersService {
         _sum: { totalPrice: true },
         _count: { _all: true },
       }),
-      // 3. Last 7 days revenue — only fetch Delivered orders from the past week
+      // 3. Revenue chart — ออเดอร์ที่ส่งสำเร็จในช่วง CHART_DAYS วัน (ใช้ updatedAt = เวลาที่ส่งสำเร็จ)
       this.prisma.order.findMany({
         where: {
           merchantId: Number(merchantId),
           status: OrderStatus.DELIVERED,
-          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          updatedAt: { gte: new Date(Date.now() - CHART_DAYS * DAY_MS) },
         },
-        select: { totalPrice: true, createdAt: true },
+        select: { totalPrice: true, updatedAt: true },
       }),
     ]);
 
@@ -776,19 +795,15 @@ export class OrdersService {
       totalOrderCount += g._count._all;
     });
 
-    // Revenue chart (last 7 days)
-    const revenue7Days = Array(7)
-      .fill(0)
-      .map((_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return { date: d.toISOString().split('T')[0], revenue: 0 };
-      });
+    // Revenue chart (ตามวันที่ส่งสำเร็จ, เวลาไทย)
+    const revenue7Days = buildDayKeys(CHART_DAYS).map((date) => ({
+      date,
+      revenue: 0,
+    }));
     recentOrders.forEach((o) => {
-      const dateStr = o.createdAt.toISOString().split('T')[0];
-      const dayIndex = revenue7Days.findIndex((r) => r.date === dateStr);
-      if (dayIndex !== -1)
-        revenue7Days[dayIndex].revenue += Number(o.totalPrice || 0);
+      const dateStr = toBangkokDateKey(o.updatedAt);
+      const day = revenue7Days.find((r) => r.date === dateStr);
+      if (day) day.revenue += Number(o.totalPrice || 0);
     });
 
     const totalRevenue = Number(revenueResult._sum.totalPrice) || 0;
@@ -1357,27 +1372,74 @@ export class OrdersService {
       }),
     ]);
 
-    const days: { date: string; revenue: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      days.push({ date: d.toISOString().split('T')[0], revenue: 0 });
-    }
-    const rawRevenue = await this.prisma.$queryRaw<
-      { date: string; revenue: number }[]
-    >`
-      SELECT TO_CHAR("createdAt", 'YYYY-MM-DD') as date, SUM("totalPrice") as revenue
-      FROM "Order"
-      WHERE "status" = 'DELIVERED'
-        AND "createdAt" >= ${new Date(days[0].date)}
-      GROUP BY TO_CHAR("createdAt", 'YYYY-MM-DD')
-    `;
+    // Revenue chart — จัดกลุ่มตามวันที่ส่งสำเร็จ (updatedAt) เวลาไทย
+    const dayKeys = buildDayKeys(CHART_DAYS);
+    const windowStart = new Date(Date.now() - CHART_DAYS * DAY_MS);
+    const days = dayKeys.map((date) => ({ date, revenue: 0 }));
+    const deliveredInWindow = await this.prisma.order.findMany({
+      where: {
+        status: OrderStatus.DELIVERED,
+        updatedAt: { gte: windowStart },
+      },
+      select: { totalPrice: true, updatedAt: true },
+    });
+    deliveredInWindow.forEach((o) => {
+      const day = days.find((d) => d.date === toBangkokDateKey(o.updatedAt));
+      if (day) day.revenue += Number(o.totalPrice || 0);
+    });
 
-    rawRevenue.forEach((row) => {
-      const idx = days.findIndex((d) => d.date === row.date);
-      if (idx !== -1) {
-        days[idx].revenue = Number(row.revenue);
-      }
+    // Order volume — จำนวนออเดอร์ที่สร้างในแต่ละวัน (createdAt) เวลาไทย
+    const orderVolume = dayKeys.map((date) => ({ date, orders: 0 }));
+    const createdInWindow = await this.prisma.order.findMany({
+      where: { createdAt: { gte: windowStart } },
+      select: { createdAt: true },
+    });
+    createdInWindow.forEach((o) => {
+      const day = orderVolume.find(
+        (d) => d.date === toBangkokDateKey(o.createdAt),
+      );
+      if (day) day.orders += 1;
+    });
+
+    // Status distribution — สัดส่วนสถานะการจัดส่งทั้งระบบ (DB นับให้)
+    const statusGroups = await this.prisma.order.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    const statusDistribution: Record<string, number> = {
+      PENDING: 0,
+      ACCEPTED: 0,
+      PICKED_UP: 0,
+      SHIPPING: 0,
+      DELIVERED: 0,
+      CANCELLED: 0,
+    };
+    statusGroups.forEach((g) => {
+      statusDistribution[g.status] = g._count._all;
+    });
+
+    // User growth — จำนวนผู้ใช้ที่ยืนยันแล้วสะสม ตามวันที่สมัครจริง (createdAt)
+    const [custDates, merDates, drvDates] = await Promise.all([
+      this.prisma.customer.findMany({
+        where: { isVerified: true },
+        select: { createdAt: true },
+      }),
+      this.prisma.merchant.findMany({
+        where: { isVerified: true },
+        select: { createdAt: true },
+      }),
+      this.prisma.driver.findMany({
+        where: { isVerified: true },
+        select: { createdAt: true },
+      }),
+    ]);
+    const signupKeys = [...custDates, ...merDates, ...drvDates].map((u) =>
+      toBangkokDateKey(u.createdAt),
+    );
+    let cumulative = signupKeys.filter((k) => k < dayKeys[0]).length;
+    const userGrowth = dayKeys.map((date) => {
+      cumulative += signupKeys.filter((k) => k === date).length;
+      return { date, users: cumulative };
     });
 
     return {
@@ -1396,6 +1458,9 @@ export class OrdersService {
         total: totalCustomers + totalMerchants + totalDrivers,
       },
       revenueChart: days,
+      orderVolume,
+      statusDistribution,
+      userGrowth,
     };
   }
 

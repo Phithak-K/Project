@@ -102,7 +102,7 @@ export default function MerchantStatsPage() {
         <header className="sp-animate" style={{ marginBottom: '2.5rem' }}>
           <span className="sp-section-eyebrow">Enterprise Intelligence</span>
           <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>แผงควบคุมสถิติขั้นสูง</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>ภาพรวมทางธุรกิจและการกระจายตัวของสถานะออเดอร์ในเดือนนี้</p>
+          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>ภาพรวมทางธุรกิจและการกระจายตัวของสถานะออเดอร์ทั้งหมดของร้าน</p>
         </header>
 
         {/* ── CSV Export Panel ── */}
@@ -150,7 +150,7 @@ export default function MerchantStatsPage() {
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>รายได้รวมเดือนนี้</p>
+              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>รายได้รวมทั้งหมด</p>
               <h2 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginTop: '0.25rem', color: '#10b981' }}>฿{Number(data?.totalRevenue || 0).toLocaleString()}</h2>
             </div>
           </div>
@@ -182,15 +182,15 @@ export default function MerchantStatsPage() {
           <div className="sp-card sp-animate-d3" style={{ padding: '2rem' }}>
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>แนวโน้มรายได้ 7 วันย้อนหลัง</h3>
+                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>แนวโน้มรายได้ 90 วันย้อนหลัง</h3>
                 <p style={{ color: 'var(--n-500)', fontSize: '0.85rem' }}>แสดงรายได้จากออเดอร์ที่จัดส่งสำเร็จตามวันที่</p>
               </div>
             </div>
             <div style={{ width: '100%', height: '300px' }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={300} minWidth={0} initialDimension={{ width: 600, height: 300 }}>
                 <LineChart data={data?.revenueChart || []} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(5)} interval="preserveStartEnd" minTickGap={24} />
                   <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `฿${val}`} />
                   <RechartsTooltip 
                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -209,7 +209,7 @@ export default function MerchantStatsPage() {
               <p style={{ color: 'var(--n-500)', fontSize: '0.85rem' }}>Distribution of current statuses</p>
             </div>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '250px' }}>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={250} minWidth={0} initialDimension={{ width: 300, height: 250 }}>
                 <PieChart>
                   <Pie
                     data={pieData}
