@@ -1,10 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, AreaChart, Area, PieChart, Pie } from 'recharts';
 import { Users, Package, TrendingUp, CheckCircle, Clock, XCircle, LogOut, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// ── Recharts config (props ของไลบรารี ไม่ใช่ inline style ของ JSX) ──
+// ค่าสีอ้างอิง CSS Variables จาก globals.css เท่านั้น
+const AXIS_TICK = { fill: 'var(--n-400)', fontSize: 12 };
+const AXIS_TICK_MONO = { fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' };
+const AXIS_LINE = { stroke: 'var(--n-200)' };
+const TOOLTIP_SQUARE: CSSProperties = {
+  background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: 0,
+  color: 'var(--n-900)', fontFamily: 'monospace',
+};
+const TOOLTIP_SOFT: CSSProperties = {
+  borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+};
+const TOOLTIP_LABEL: CSSProperties = {
+  color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem',
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -118,23 +135,21 @@ export default function AdminDashboard() {
   const rangeOrders = orderVolumeData.reduce((sum, d) => sum + d.orders, 0);
 
   const STATUS_META: { key: string; label: string; color: string }[] = [
-    { key: 'DELIVERED', label: 'ส่งสำเร็จ', color: '#10b981' },
-    { key: 'SHIPPING', label: 'กำลังจัดส่ง', color: '#3b82f6' },
-    { key: 'PICKED_UP', label: 'รับพัสดุแล้ว', color: '#8b5cf6' },
-    { key: 'ACCEPTED', label: 'คนขับรับงาน', color: '#f59e0b' },
-    { key: 'PENDING', label: 'รอดำเนินการ', color: '#64748b' },
-    { key: 'CANCELLED', label: 'ยกเลิก', color: '#ef4444' },
+    { key: 'DELIVERED', label: 'ส่งสำเร็จ', color: 'var(--adm-status-delivered)' },
+    { key: 'SHIPPING', label: 'กำลังจัดส่ง', color: 'var(--adm-status-shipping)' },
+    { key: 'PICKED_UP', label: 'รับพัสดุแล้ว', color: 'var(--adm-status-picked_up)' },
+    { key: 'ACCEPTED', label: 'คนขับรับงาน', color: 'var(--adm-status-accepted)' },
+    { key: 'PENDING', label: 'รอดำเนินการ', color: 'var(--adm-status-pending)' },
+    { key: 'CANCELLED', label: 'ยกเลิก', color: 'var(--adm-status-cancelled)' },
   ];
   const statusData = STATUS_META
-    .map(s => ({ name: s.label, value: stats?.statusDistribution?.[s.key] ?? 0, color: s.color }))
+    .map(s => ({ key: s.key, name: s.label, value: stats?.statusDistribution?.[s.key] ?? 0, color: s.color }))
     .filter(s => s.value > 0);
 
   if (loading) return (
-    <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-        <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading Control Center</p>
-      </div>
+    <div className="sp-page-loading">
+      <span className="sp-spinner sp-spinner-lg" />
+      <p className="sp-caps adm-loading-caption">Loading Control Center</p>
     </div>
   );
 
@@ -143,31 +158,29 @@ export default function AdminDashboard() {
 
       {/* Nav */}
       <nav className="sp-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="adm-nav-brand">
           <span className="sp-logo">
             Swift<span className="sp-logo-accent">Path</span>
           </span>
-          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-200)', paddingLeft: '0.75rem' }}>
+          <span className="sp-caps adm-nav-tag">
             Control Center
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={fetchAll} disabled={refreshing}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-500)', display: 'flex' }}>
-            <RefreshCw size={16} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+        <div className="adm-nav-actions">
+          <button className="adm-icon-btn" onClick={fetchAll} disabled={refreshing} aria-label="Refresh">
+            <RefreshCw size={16} className={refreshing ? 'adm-spin' : undefined} />
           </button>
-          <button id="btn-admin-logout" onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'transparent', border: '1px solid var(--n-200)', padding: '0.5rem 1rem', color: 'var(--n-600)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+          <button id="btn-admin-logout" className="adm-logout-btn" onClick={handleLogout}>
             <LogOut size={14} /> Logout
           </button>
         </div>
       </nav>
 
-      <main style={{ maxWidth: '1280px', margin: '0 auto', padding: '3rem 2rem' }}>
+      <main className="adm-main">
 
         {/* Header */}
-        <div className="sp-animate-d1" style={{ marginBottom: '3rem' }}>
-          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>System Overview</span>
+        <div className="sp-animate-d1 adm-header">
+          <span className="sp-section-eyebrow adm-eyebrow">System Overview</span>
           <h1 className="sp-font-display sp-text-hero">
             Admin Dashboard
           </h1>
@@ -175,18 +188,18 @@ export default function AdminDashboard() {
 
         {/* Stats Grid */}
         {stats && (
-          <div className="sp-kpi-row sp-kpi-row--admin sp-animate-d2" style={{ marginBottom: '3rem' }}>
+          <div className="sp-kpi-row sp-kpi-row--admin sp-animate-d2 adm-section">
             {[
-              { label: 'Total Orders', value: stats.totalOrders, color: 'var(--brand-500)' },
-              { label: 'Total Revenue', value: `฿${Number(stats.totalRevenue).toLocaleString()}`, color: 'oklch(65% 0.15 150)' },
-              { label: 'Active Users', value: stats.activeUsers?.total ?? 0, color: 'oklch(65% 0.15 260)' },
-              { label: 'Delivered', value: stats.deliveredOrders, color: 'var(--success-text)' },
-              { label: 'Pending', value: stats.pendingOrders, color: 'var(--brand-500)' },
-              { label: 'Cancelled', value: stats.cancelledOrders, color: 'var(--error-text)' },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column' }}>
-                <span className="sp-stat-label" style={{ color: 'var(--n-500)' }}>{label}</span>
-                <div className="sp-stat-number sp-font-display" style={{ color }}>{value}</div>
+              { label: 'Total Orders', value: stats.totalOrders, tone: 'orders' },
+              { label: 'Total Revenue', value: `฿${Number(stats.totalRevenue).toLocaleString()}`, tone: 'revenue' },
+              { label: 'Active Users', value: stats.activeUsers?.total ?? 0, tone: 'users' },
+              { label: 'Delivered', value: stats.deliveredOrders, tone: 'delivered' },
+              { label: 'Pending', value: stats.pendingOrders, tone: 'pending' },
+              { label: 'Cancelled', value: stats.cancelledOrders, tone: 'cancelled' },
+            ].map(({ label, value, tone }) => (
+              <div key={label} className="adm-kpi-item">
+                <span className="sp-stat-label adm-kpi-label">{label}</span>
+                <div className={`sp-stat-number sp-font-display adm-kpi-num--${tone}`}>{value}</div>
               </div>
             ))}
           </div>
@@ -194,15 +207,14 @@ export default function AdminDashboard() {
 
         {/* Range selector */}
         {stats && (
-          <div className="sp-animate-d3" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginBottom: '1rem' }}>
+          <div className="sp-animate-d3 adm-range">
             {([7, 30, 90] as const).map(d => (
-              <button key={d} id={`btn-range-${d}`} onClick={() => setRange(d)}
-                style={{
-                  padding: '0.375rem 0.875rem', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer',
-                  border: '1px solid var(--n-200)',
-                  background: range === d ? 'var(--brand-500)' : 'transparent',
-                  color: range === d ? '#fff' : 'var(--n-600)',
-                }}>
+              <button
+                key={d}
+                id={`btn-range-${d}`}
+                className={`adm-range-btn${range === d ? ' is-active' : ''}`}
+                onClick={() => setRange(d)}
+              >
                 {d} Days
               </button>
             ))}
@@ -211,30 +223,30 @@ export default function AdminDashboard() {
 
         {/* Revenue Chart */}
         {stats?.revenueChart && (
-          <div className="sp-animate-d3" style={{ marginBottom: '4rem' }}>
-            <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+          <div className="sp-animate-d3 adm-section-lg">
+            <div className="sp-section-divider adm-divider" />
+            <div className="adm-panel-head">
               <div>
-                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Revenue by Delivery Date</p>
-                <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>
+                <p className="sp-caps adm-caps-muted">Revenue by Delivery Date</p>
+                <h2 className="sp-font-display adm-h2">
                   {range}-Day Overview
                 </h2>
               </div>
-              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)', textAlign: 'right' }}>
-                Period Revenue: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>฿{rangeRevenue.toLocaleString()}</strong>
+              <span className="sp-mono adm-meta">
+                Period Revenue: <strong>฿{rangeRevenue.toLocaleString()}</strong>
                 <br />
-                Success Rate: <strong style={{ color: 'oklch(65% 0.15 150)', fontSize: '1rem' }}>{stats.successRate}%</strong>
+                Success Rate: <strong className="is-positive">{stats.successRate}%</strong>
               </span>
             </div>
-            <div style={{ padding: '2rem 0', background: 'var(--n-50)', borderTop: '2px solid var(--n-200)' }}>
+            <div className="adm-chart-box">
               <ResponsiveContainer width="100%" height={240} minWidth={0} initialDimension={{ width: 600, height: 240 }}>
                 <BarChart data={revenueData} barCategoryGap="20%">
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={AXIS_TICK_MONO} axisLine={AXIS_LINE} tickLine={false} />
                   <YAxis hide />
                   <Tooltip
-                    contentStyle={{ background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: '0', color: 'var(--n-900)', fontFamily: 'monospace' }}
+                    contentStyle={TOOLTIP_SQUARE}
                     formatter={(v: any) => [`฿${Number(v).toLocaleString()}`, 'REVENUE']}
-                    labelStyle={{ color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem' }}
+                    labelStyle={TOOLTIP_LABEL}
                   />
                   <Bar dataKey="revenue" minPointSize={0}>
                     {revenueData.map((d, i) => (
@@ -244,7 +256,7 @@ export default function AdminDashboard() {
                 </BarChart>
               </ResponsiveContainer>
               {rangeRevenue === 0 && (
-                <p className="sp-mono" style={{ textAlign: 'center', color: 'var(--n-400)', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+                <p className="sp-mono adm-empty-note">
                   ไม่มีออเดอร์ที่ส่งสำเร็จในช่วง {range} วันที่ผ่านมา
                 </p>
               )}
@@ -254,39 +266,39 @@ export default function AdminDashboard() {
 
         {/* Order Volume + Delivery Status */}
         {stats?.orderVolume && stats?.statusDistribution && (
-          <div className="sp-animate-d3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
+          <div className="sp-animate-d3 adm-grid-2">
 
-            <div className="sp-card" style={{ padding: '2rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
+            <div className="sp-card adm-card">
+              <div className="adm-card-head">
                 <div>
-                  <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Order Volume</p>
-                  <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>ปริมาณคำสั่งซื้อรายวัน</h3>
+                  <p className="sp-caps adm-caps-muted">Order Volume</p>
+                  <h3 className="sp-font-display sp-text-md adm-card-title">ปริมาณคำสั่งซื้อรายวัน</h3>
                 </div>
-                <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
-                  {range} Days: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{rangeOrders}</strong>
+                <span className="sp-mono adm-meta">
+                  {range} Days: <strong>{rangeOrders}</strong>
                 </span>
               </div>
               <ResponsiveContainer width="100%" height={220} minWidth={0} initialDimension={{ width: 500, height: 220 }}>
                 <BarChart data={orderVolumeData} barCategoryGap="20%">
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={{ fill: 'var(--n-400)', fontSize: 12, fontFamily: 'monospace' }} axisLine={{ stroke: 'var(--n-200)' }} tickLine={false} />
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} tick={AXIS_TICK_MONO} axisLine={AXIS_LINE} tickLine={false} />
                   <YAxis hide allowDecimals={false} />
                   <Tooltip
-                    contentStyle={{ background: 'var(--n-50)', border: '1px solid var(--n-200)', borderRadius: '0', color: 'var(--n-900)', fontFamily: 'monospace' }}
+                    contentStyle={TOOLTIP_SQUARE}
                     formatter={(v: any) => [`${v} รายการ`, 'ORDERS']}
-                    labelStyle={{ color: 'var(--brand-500)', fontWeight: 700, marginBottom: '0.5rem' }}
+                    labelStyle={TOOLTIP_LABEL}
                   />
                   <Bar dataKey="orders" fill="var(--brand-500)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
-            <div className="sp-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Delivery Status</p>
-                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>สัดส่วนสถานะการจัดส่ง</h3>
+            <div className="sp-card adm-card adm-card--col">
+              <div className="adm-card-head adm-card-head--block">
+                <p className="sp-caps adm-caps-muted">Delivery Status</p>
+                <h3 className="sp-font-display sp-text-md adm-card-title">สัดส่วนสถานะการจัดส่ง</h3>
               </div>
               {statusData.length === 0 ? (
-                <p className="sp-mono" style={{ color: 'var(--n-400)', fontSize: '0.8rem', margin: 'auto' }}>ยังไม่มีออเดอร์ในระบบ</p>
+                <p className="sp-mono adm-empty">ยังไม่มีออเดอร์ในระบบ</p>
               ) : (
                 <>
                   <ResponsiveContainer width="100%" height={180} minWidth={0} initialDimension={{ width: 300, height: 180 }}>
@@ -295,16 +307,16 @@ export default function AdminDashboard() {
                         {statusData.map((s, i) => <Cell key={i} fill={s.color} />)}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        contentStyle={TOOLTIP_SOFT}
                         formatter={(v: any, n: any) => [`${v} รายการ`, n]}
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '1rem' }}>
+                  <div className="adm-legend">
                     {statusData.map(s => (
-                      <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--n-600)' }}>
-                        <span style={{ width: 10, height: 10, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                        {s.name}: <strong style={{ color: 'var(--n-900)' }}>{s.value}</strong>
+                      <div key={s.name} className="adm-legend-item">
+                        <span className={`adm-dot adm-dot--${s.key.toLowerCase()}`} />
+                        {s.name}: <strong>{s.value}</strong>
                       </div>
                     ))}
                   </div>
@@ -316,32 +328,32 @@ export default function AdminDashboard() {
 
         {/* User Growth Area Chart (real signup data) */}
         {stats?.userGrowth && (
-          <div className="sp-card sp-animate-d3" style={{ marginBottom: '3rem', padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+          <div className="sp-card sp-animate-d3 adm-card adm-card--spaced">
+            <div className="adm-card-head adm-card-head--roomy">
               <div>
-                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Platform Adoption</p>
-                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>User Growth</h3>
+                <p className="sp-caps adm-caps-muted">Platform Adoption</p>
+                <h3 className="sp-font-display sp-text-md adm-card-title">User Growth</h3>
               </div>
-              <span className="sp-mono" style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
-                Verified Users: <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{userGrowthData[userGrowthData.length - 1]?.users ?? 0}</strong>
+              <span className="sp-mono adm-meta">
+                Verified Users: <strong>{userGrowthData[userGrowthData.length - 1]?.users ?? 0}</strong>
               </span>
             </div>
-            <div style={{ width: '100%', height: '200px' }}>
+            <div className="adm-chart-fixed">
               <ResponsiveContainer width="100%" height={200} minWidth={0} initialDimension={{ width: 600, height: 200 }}>
                 <AreaChart data={userGrowthData}>
                   <defs>
                     <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="oklch(65% 0.15 150)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="oklch(65% 0.15 150)" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="var(--adm-green)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--adm-green)" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} axisLine={false} tickLine={false} tick={{ fill: 'var(--n-400)', fontSize: 12 }} />
+                  <XAxis dataKey="date" tickFormatter={d => d.slice(5)} interval="preserveStartEnd" minTickGap={24} axisLine={false} tickLine={false} tick={AXIS_TICK} />
                   <YAxis hide allowDecimals={false} domain={[0, 'auto']} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  <Tooltip
+                    contentStyle={TOOLTIP_SOFT}
                     formatter={(v: any) => [`${v} Users`, 'Total']}
                   />
-                  <Area type="stepAfter" dataKey="users" stroke="oklch(65% 0.15 150)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
+                  <Area type="stepAfter" dataKey="users" stroke="var(--adm-green)" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -350,41 +362,30 @@ export default function AdminDashboard() {
 
         {/* User Management */}
         <div className="sp-animate-d4">
-          <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
-          
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div className="sp-section-divider adm-divider" />
+
+          <div className="adm-mgmt-head">
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>Management</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>User Accounts</h2>
+              <p className="sp-caps adm-caps-muted">Management</p>
+              <h2 className="sp-font-display adm-h2">User Accounts</h2>
             </div>
             <input
               type="search"
+              className="adm-search"
               placeholder="Search by name or email..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              style={{
-                background: 'var(--n-50)', border: 'none', borderBottom: '2px solid var(--n-200)',
-                padding: '0.75rem 1rem', color: 'var(--n-900)', fontSize: '0.875rem', outline: 'none', width: '300px'
-              }}
             />
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem', borderBottom: '2px solid var(--n-850)' }}>
+          <div className="adm-tabs">
             {(['customers', 'merchants', 'drivers'] as const).map(tab => (
               <button
                 key={tab}
                 id={`tab-${tab}`}
+                className={`adm-tab${activeTab === tab ? ' is-active' : ''}`}
                 onClick={() => setActiveTab(tab)}
-                style={{
-                  padding: '0.75rem 0', fontSize: '0.875rem', fontWeight: 700,
-                  border: 'none', borderBottom: '2px solid',
-                  borderColor: activeTab === tab ? 'var(--brand-500)' : 'transparent',
-                  background: 'transparent',
-                  color: activeTab === tab ? 'var(--brand-500)' : 'var(--n-400)',
-                  cursor: 'pointer', letterSpacing: '0.05em', textTransform: 'uppercase',
-                  marginBottom: '-2px'
-                }}
               >
                 {tabLabel[tab]} <span className="sp-mono">[{users[tab].length}]</span>
               </button>
@@ -393,11 +394,11 @@ export default function AdminDashboard() {
 
           {/* Table */}
           <div className="sp-table-industrial sp-table-wrap">
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <table className="adm-table">
               <thead>
                 <tr>
                   {['ID', 'Name', 'Email', 'Balance', 'Verified', 'Phone', 'Status', 'Action'].map(h => (
-                    <th key={h} className="sp-caps" style={{ padding: '1rem', color: 'var(--n-500)' }}>
+                    <th key={h} className="sp-caps adm-th">
                       {h}
                     </th>
                   ))}
@@ -406,59 +407,43 @@ export default function AdminDashboard() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '3rem', textAlign: 'center', color: 'var(--n-500)', fontSize: '0.875rem' }}>
+                    <td colSpan={8} className="adm-td-empty">
                       No users found
                     </td>
                   </tr>
                 ) : filteredUsers.map((u: any) => (
                   <tr key={u.id}>
-                    <td className="sp-mono" style={{ color: 'var(--n-500)' }}>#{u.id}</td>
-                    <td style={{ fontWeight: 600, color: 'var(--n-900)' }}>{u.name || '—'}</td>
-                    <td style={{ color: 'var(--n-300)' }}>{u.email}</td>
-                    <td className="sp-mono" style={{ color: 'var(--brand-500)', fontWeight: 700 }}>
+                    <td className="sp-mono adm-td-id">#{u.id}</td>
+                    <td className="adm-td-name">{u.name || '—'}</td>
+                    <td className="adm-td-email">{u.email}</td>
+                    <td className="sp-mono adm-td-balance">
                       ฿{Number(u.balance || 0).toLocaleString()}
                     </td>
                     <td>
-                      <span style={{
-                        display: 'inline-flex', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-                        background: u.isVerified ? 'oklch(20% 0.06 150)' : 'var(--n-200)',
-                        color: u.isVerified ? 'oklch(65% 0.15 150)' : 'var(--n-400)',
-                      }}>
+                      <span className={`adm-badge ${u.isVerified ? 'adm-badge--ok' : 'adm-badge--muted'}`}>
                         {u.isVerified ? 'Verified' : 'Unverified'}
                       </span>
                     </td>
-                    <td className="sp-mono" style={{ color: 'var(--n-500)' }}>{u.phone || '—'}</td>
+                    <td className="sp-mono adm-td-phone">{u.phone || '—'}</td>
                     <td>
-                      <span style={{
-                        display: 'inline-flex', padding: '0.25rem 0.5rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-                        background: u.isActive !== false ? 'oklch(20% 0.06 150)' : 'var(--error-bg)',
-                        color: u.isActive !== false ? 'oklch(65% 0.15 150)' : 'var(--error-text)',
-                      }}>
+                      <span className={`adm-badge ${u.isActive !== false ? 'adm-badge--ok' : 'adm-badge--bad'}`}>
                         {u.isActive !== false ? 'Active' : 'Suspended'}
                       </span>
                     </td>
                     <td>
                       {u.isActive !== false ? (
                         <button
+                          className="adm-action adm-action--suspend"
                           onClick={() => setSuspendingUser(u)}
                           disabled={actionLoading === u.id}
-                          style={{
-                            background: 'var(--n-50)', border: 'none', color: 'var(--error-text)',
-                            padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
-                            opacity: actionLoading === u.id ? 0.5 : 1
-                          }}
                         >
                           Suspend
                         </button>
                       ) : (
                         <button
+                          className="adm-action adm-action--approve"
                           onClick={() => handleApprove(u.id)}
                           disabled={actionLoading === u.id}
-                          style={{
-                            background: 'var(--brand-500)', border: 'none', color: 'var(--n-900)',
-                            padding: '0.375rem 0.75rem', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
-                            opacity: actionLoading === u.id ? 0.5 : 1
-                          }}
                         >
                           Approve
                         </button>
@@ -474,37 +459,34 @@ export default function AdminDashboard() {
 
       {/* Suspend Modal */}
       {suspendingUser && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div className="sp-animate-d1" style={{ background: 'var(--n-50)', borderTop: '4px solid var(--error-text)', padding: '3rem', width: '100%', maxWidth: '500px' }}>
-            <h3 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--n-900)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Suspend User</h3>
-            <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginBottom: '2rem' }}>
-              You are about to suspend <strong style={{ color: 'var(--error-text)' }}>{suspendingUser.name || suspendingUser.email}</strong>.<br/>They will be logged out immediately.
+        <div className="adm-modal-overlay">
+          <div className="sp-animate-d1 adm-modal">
+            <h3 className="sp-font-display adm-modal-title">Suspend User</h3>
+            <p className="adm-modal-text">
+              You are about to suspend <strong>{suspendingUser.name || suspendingUser.email}</strong>.<br/>They will be logged out immediately.
             </p>
-            <div style={{ marginBottom: '2rem' }}>
-              <label className="sp-caps" style={{ display: 'block', color: 'var(--n-500)', marginBottom: '0.5rem' }}>Reason for Suspension</label>
+            <div className="adm-modal-field">
+              <label className="sp-caps adm-modal-label">Reason for Suspension</label>
               <input
                 type="text"
+                className="adm-modal-input"
                 value={suspendReason}
                 onChange={e => setSuspendReason(e.target.value)}
                 placeholder="e.g. Fraudulent activity"
                 autoFocus
-                style={{
-                  width: '100%', background: 'var(--n-50)', border: 'none', borderBottom: '2px solid var(--n-200)',
-                  padding: '1rem', color: 'var(--n-900)', fontSize: '0.95rem', outline: 'none'
-                }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+            <div className="adm-modal-actions">
               <button
+                className="adm-btn-cancel"
                 onClick={() => { setSuspendingUser(null); setSuspendReason(''); }}
-                style={{ background: 'transparent', border: '1px solid var(--n-700)', color: 'var(--n-300)', padding: '0.875rem 1.5rem', fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase' }}
               >
                 Cancel
               </button>
               <button
+                className="adm-btn-danger"
                 onClick={handleSuspend}
                 disabled={!suspendReason.trim() || actionLoading === suspendingUser.id}
-                style={{ background: 'var(--error-text)', border: 'none', color: '#fff', padding: '0.875rem 1.5rem', fontWeight: 800, cursor: actionLoading ? 'not-allowed' : 'pointer', textTransform: 'uppercase', opacity: !suspendReason.trim() || actionLoading ? 0.5 : 1 }}
               >
                 {actionLoading === suspendingUser.id ? 'Suspending...' : 'Confirm Suspend'}
               </button>
