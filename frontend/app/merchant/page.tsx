@@ -112,23 +112,23 @@ export default function MerchantDashboard() {
     }
   };
 
-  if (loading) return <div className="sp-page-loading" style={{ background: 'var(--n-50)' }}><span className="sp-spinner sp-spinner-lg" style={{ borderTopColor: 'var(--brand-500)' }} /></div>;
+  if (loading) return <div className="sp-page-loading bg-[var(--n-50)]"><span className="sp-spinner sp-spinner-lg border-t-[var(--brand-500)]" /></div>;
 
   return (
-    <div className="sp-page" style={{ minHeight: '100vh', background: 'var(--n-50)', paddingBottom: '4rem' }}>
+    <div className="sp-page min-h-screen bg-[var(--n-50)] pb-16">
       {/* ── Nav ── */}
-      <nav className="sp-nav" style={{ background: '#fff', borderBottom: '1px solid var(--n-200)', position: 'sticky', top: 0, zIndex: 10 }}>
+      <nav className="sp-nav bg-white border-b border-[var(--n-200)] sticky top-0 z-10">
         <span className="sp-logo">Store<span className="sp-logo-accent">Portal</span></span>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button id="btn-refresh" onClick={() => fetchData(true)} title="รีเฟรช" aria-label="รีเฟรชข้อมูล" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-500)', display: 'flex' }}>
-            <RefreshCcw size={16} className={isRefreshing ? 'sp-spinner' : ''} style={{ animation: isRefreshing ? 'spin 0.8s linear infinite' : 'none' }} />
+        <div className="flex items-center gap-4">
+          <button id="btn-refresh" onClick={() => fetchData(true)} title="รีเฟรช" aria-label="รีเฟรชข้อมูล" className="bg-transparent border-none cursor-pointer text-[var(--n-500)] flex">
+            <RefreshCcw size={16} className={isRefreshing ? 'sp-spinner animate-spin' : ''} />
           </button>
-          <Link href="/merchant/profile" style={{ padding: '0.4rem', color: 'var(--n-500)' }} aria-label="โปรไฟล์">
+          <Link href="/merchant/profile" className="p-1.5 text-[var(--n-500)]" aria-label="โปรไฟล์">
             <UserCheck size={18} />
           </Link>
-          <button id="btn-logout" onClick={handleLogout} aria-label="ออกจากระบบ" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', background: 'transparent', border: '1px solid var(--n-300)', padding: '0.5rem 1rem', color: 'var(--n-600)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', borderRadius: '8px' }}>
-            <LogOut size={14} /> <span style={{ display: 'none' }}>ออกจากระบบ</span>
+          <button id="btn-logout" onClick={handleLogout} aria-label="ออกจากระบบ" className="flex items-center gap-1.5 bg-transparent border border-[var(--n-300)] py-2 px-4 text-[var(--n-600)] cursor-pointer text-xs font-bold uppercase rounded-lg">
+            <LogOut size={14} /> <span className="hidden sm:inline">ออกจากระบบ</span>
           </button>
         </div>
       </nav>
@@ -137,45 +137,44 @@ export default function MerchantDashboard() {
       {notice && (
         <div
           role="alert"
-          style={{ position: 'fixed', top: '5rem', right: '1.5rem', zIndex: 9999, minWidth: '260px', maxWidth: '400px', background: notice.type === 'error' ? 'var(--error-bg)' : 'var(--success-bg)', color: notice.type === 'error' ? 'var(--error-text)' : 'var(--success-text)', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${notice.type === 'error' ? 'var(--error-text)' : 'var(--success-text)'}`, fontWeight: 700, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-          className="sp-animate"
+          className={`sp-animate fixed top-20 right-6 z-50 min-w-[260px] max-w-[400px] p-4 rounded-xl border-l-4 font-bold shadow-md ${notice.type === 'error' ? 'bg-[var(--error-bg)] text-[var(--error-text)] border-l-[var(--error-text)]' : 'bg-[var(--success-bg)] text-[var(--success-text)] border-l-[var(--success-text)]'}`}
         >
           {notice.msg}
         </div>
       )}
 
-      <main style={{ maxWidth: '1100px', margin: '0 auto' }} className="sp-main-fluid">
+      <main className="max-w-[1100px] mx-auto sp-main-fluid">
 
         {/* ── Header ── */}
-        <div className="sp-animate" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: '1.5rem', marginBottom: '3rem' }}>
+        <div className="sp-animate flex flex-wrap items-end justify-between gap-6 mb-12">
           <div>
-            <span className="sp-section-eyebrow" style={{ color: 'var(--brand-600)' }}>DASHBOARD</span>
-            <h1 className="sp-font-display sp-text-hero" style={{ marginTop: '0.5rem', color: 'var(--n-900)' }}>ออเดอร์วันนี้</h1>
-            <p style={{ color: 'var(--n-600)', fontSize: '1rem', marginTop: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
-              ยอดขายสะสม <Link href="/merchant/stats" style={{ color: 'var(--brand-600)', fontWeight: 900, marginLeft: '0.5rem', fontSize: '1.2rem', textDecoration: 'none' }}>฿{stats.todaySales.toLocaleString()}</Link>
+            <span className="sp-section-eyebrow text-[var(--brand-600)]">DASHBOARD</span>
+            <h1 className="sp-font-display sp-text-hero mt-2 text-[var(--n-900)]">ออเดอร์วันนี้</h1>
+            <p className="text-[var(--n-600)] text-base mt-4 uppercase tracking-wider font-semibold">
+              ยอดขายสะสม <Link href="/merchant/stats" className="text-[var(--brand-600)] font-black ml-2 text-xl no-underline">฿{stats.todaySales.toLocaleString()}</Link>
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="flex gap-3 flex-wrap items-center">
             <Link href="/merchant/history">
-              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe flex items-center gap-2">
                 <Search size={14} />
                 <span className="sp-nav-label">ประวัติร้านค้า</span>
               </button>
             </Link>
             <Link href="/merchant/catalog">
-              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe flex items-center gap-2">
                 <BookOpen size={14} />
                 <span className="sp-nav-label">สินค้า</span>
               </button>
             </Link>
             <Link href="/merchant/drivers">
-              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <button className="sp-btn-ghost sp-merchant-nav-btn sp-btn-touch-safe flex items-center gap-2">
                 <Users size={14} />
                 <span className="sp-nav-label">คนขับ</span>
               </button>
             </Link>
             <Link href="/merchant/create-order">
-              <button id="btn-create-order" className="sp-btn-primary sp-btn-touch-safe" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', borderRadius: '8px', padding: '0.75rem 1.25rem' }}>
+              <button id="btn-create-order" className="sp-btn-primary sp-btn-touch-safe flex items-center gap-2 rounded-lg py-3 px-5">
                 <Plus size={16} />
                 <span className="sp-nav-label">สร้างออเดอร์</span>
               </button>
@@ -184,77 +183,77 @@ export default function MerchantDashboard() {
         </div>
 
         {/* ── Stats ── */}
-        <div className="sp-kpi-row sp-animate-d1" style={{ marginBottom: '4rem' }}>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="sp-stat-label" style={{ color: 'var(--brand-600)' }}>รอดำเนินการ</span>
-            <div className="sp-stat-number sp-font-display" style={{ color: 'var(--brand-600)' }}>{stats.pending}</div>
+        <div className="sp-kpi-row sp-animate-d1 mb-16">
+          <div className="flex flex-col">
+            <span className="sp-stat-label text-[var(--brand-600)]">รอดำเนินการ</span>
+            <div className="sp-stat-number sp-font-display text-[var(--brand-600)]">{stats.pending}</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="sp-stat-label" style={{ color: 'oklch(60% 0.15 260)' }}>กำลังส่ง</span>
-            <div className="sp-stat-number sp-font-display" style={{ color: 'oklch(60% 0.15 260)' }}>{stats.shipping}</div>
+          <div className="flex flex-col">
+            <span className="sp-stat-label text-[oklch(60%_0.15_260)]">กำลังส่ง</span>
+            <div className="sp-stat-number sp-font-display text-[oklch(60%_0.15_260)]">{stats.shipping}</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span className="sp-stat-label" style={{ color: 'var(--success-text)' }}>สำเร็จวันนี้</span>
-            <div className="sp-stat-number sp-font-display" style={{ color: 'var(--success-text)' }}>{stats.delivered}</div>
+          <div className="flex flex-col">
+            <span className="sp-stat-label text-[var(--success-text)]">สำเร็จวันนี้</span>
+            <div className="sp-stat-number sp-font-display text-[var(--success-text)]">{stats.delivered}</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', borderLeft: '2px solid var(--n-200)', paddingLeft: '2rem' }}>
-            <span className="sp-stat-label" style={{ color: 'var(--n-500)' }}>ระบบปลอดภัย</span>
-            <div style={{ color: 'var(--n-700)', fontWeight: 600, fontSize: '0.95rem', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Shield size={16} style={{ color: 'var(--brand-500)' }} /> ประกันทุกออเดอร์
+          <div className="flex flex-col border-l-2 border-[var(--n-200)] pl-8">
+            <span className="sp-stat-label text-[var(--n-500)]">ระบบปลอดภัย</span>
+            <div className="text-[var(--n-700)] font-semibold text-sm mt-2 flex items-center gap-2">
+              <Shield size={16} className="text-[var(--brand-500)]" /> ประกันทุกออเดอร์
             </div>
           </div>
         </div>
 
         {/* ── Orders Table ── */}
         <div className="sp-animate-d2">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>RECENT</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>รายการล่าสุด</h2>
+              <p className="sp-caps text-[var(--n-500)]">RECENT</p>
+              <h2 className="sp-font-display text-2xl font-extrabold text-[var(--n-900)]">รายการล่าสุด</h2>
             </div>
-            <span className="sp-mono" style={{ color: 'var(--n-500)' }}>[{orders.length}]</span>
+            <span className="sp-mono text-[var(--n-500)]">[{orders.length}]</span>
           </div>
 
           {orders.length === 0 ? (
-            <div className="sp-card" style={{ padding: '4rem 0', textAlign: 'center', background: '#fff' }}>
-              <Package size={32} style={{ color: 'var(--n-400)', margin: '0 auto 1rem' }} />
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ยังไม่มีออเดอร์</p>
+            <div className="sp-card py-16 text-center bg-white">
+              <Package size={32} className="text-[var(--n-400)] mx-auto mb-4" />
+              <p className="sp-caps text-[var(--n-500)]">ยังไม่มีออเดอร์</p>
             </div>
           ) : (
-            <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="sp-card p-0 overflow-hidden">
               <div className="sp-table-wrap">
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ background: 'var(--n-50)', borderBottom: '1px solid var(--n-200)' }}>
+              <table className="w-full border-collapse text-left">
+                <thead className="bg-[var(--n-50)] border-b border-[var(--n-200)]">
                   <tr>
                     {['Tracking', 'สินค้า', 'ผู้รับ', 'ราคา', 'สถานะ', ''].map(h => (
-                      <th key={h} className="sp-caps" style={{ padding: '1rem', color: 'var(--n-500)', fontSize: '0.75rem' }}>{h}</th>
+                      <th key={h} className="sp-caps p-4 text-[var(--n-500)] text-xs">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {orders.slice(0, 10).map(order => (
-                    <tr key={order.id} style={{ borderBottom: '1px solid var(--n-150)' }}>
-                      <td className="sp-mono" style={{ padding: '1rem', fontWeight: 800, color: 'var(--brand-600)', fontSize: '0.85rem' }}>
+                    <tr key={order.id} className="border-b border-[var(--n-150)]">
+                      <td className="sp-mono p-4 font-extrabold text-[var(--brand-600)] text-sm">
                         {order.trackingNumber}
                       </td>
-                      <td style={{ padding: '1rem', fontWeight: 700, color: 'var(--n-900)', fontSize: '0.95rem' }}>
+                      <td className="p-4 font-bold text-[var(--n-900)] text-[0.95rem]">
                         {order.productName}
-                        {order.hasInsurance && <Shield size={14} style={{ display: 'inline', marginLeft: '0.5rem', color: 'var(--brand-500)', verticalAlign: 'middle' }} />}
+                        {order.hasInsurance && <Shield size={14} className="inline ml-2 text-[var(--brand-500)] align-middle" />}
                       </td>
-                      <td style={{ padding: '1rem', color: 'var(--n-600)', fontSize: '0.9rem', fontWeight: 500 }}>{order.receiverName}</td>
-                      <td className="sp-mono" style={{ padding: '1rem', fontWeight: 800, color: 'var(--n-900)' }}>฿{(order.totalPrice || order.price)?.toLocaleString()}</td>
-                      <td style={{ padding: '1rem' }}><StatusBadge status={order.status} /></td>
-                      <td style={{ padding: '1rem', textAlign: 'right', display: 'flex', gap: '1rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <td className="p-4 text-[var(--n-600)] text-sm font-medium">{order.receiverName}</td>
+                      <td className="sp-mono p-4 font-extrabold text-[var(--n-900)]">฿{(order.totalPrice || order.price)?.toLocaleString()}</td>
+                      <td className="p-4"><StatusBadge status={order.status} /></td>
+                      <td className="p-4 text-right flex gap-4 justify-end items-center">
                         {order.status === 'PENDING' && !order.driverId && (
                           <button
                             onClick={() => setAssignModal({ orderId: order.id, trackingNumber: order.trackingNumber })}
-                            style={{ background: 'var(--n-50)', border: '1px solid var(--n-300)', color: 'var(--n-700)', padding: '0.4rem 0.8rem', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem', borderRadius: '6px' }}
+                            className="bg-[var(--n-50)] border border-[var(--n-300)] text-[var(--n-700)] py-1.5 px-3 text-[0.7rem] font-extrabold uppercase cursor-pointer flex items-center gap-1.5 rounded-md"
                           >
                             <UserCheck size={14} /> มอบหมาย
                           </button>
                         )}
                         <Link href={`/merchant/orders/${order.id}`}>
-                          <ChevronRight size={18} style={{ color: 'var(--n-400)' }} />
+                          <ChevronRight size={18} className="text-[var(--n-400)]" />
                         </Link>
                       </td>
                     </tr>
@@ -269,49 +268,42 @@ export default function MerchantDashboard() {
 
       {/* ── Assign Driver Modal ── */}
       {assignModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)'
-        }}>
-          <div className="sp-animate-d1 sp-card" style={{ width: '100%', maxWidth: '480px', padding: '2.5rem', position: 'relative' }}>
-            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '6px', background: 'var(--brand-500)' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="sp-animate-d1 sp-card w-full max-w-[480px] p-10 relative">
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-[var(--brand-500)]" />
+            <div className="flex justify-between items-start mb-8">
               <div>
-                <h2 className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--n-900)', textTransform: 'uppercase' }}>มอบหมายคนขับ</h2>
-                <p className="sp-mono" style={{ color: 'var(--brand-600)', fontSize: '0.9rem', marginTop: '0.5rem', fontWeight: 800 }}>
+                <h2 className="sp-font-display font-black text-2xl text-[var(--n-900)] uppercase">มอบหมายคนขับ</h2>
+                <p className="sp-mono text-[var(--brand-600)] text-sm mt-2 font-extrabold">
                   ORDER: {assignModal.trackingNumber}
                 </p>
               </div>
-              <button onClick={() => setAssignModal(null)} style={{ background: 'var(--n-50)', border: 'none', cursor: 'pointer', color: 'var(--n-500)', padding: '0.5rem', borderRadius: '50%' }}>
+              <button onClick={() => setAssignModal(null)} className="bg-[var(--n-50)] border-none cursor-pointer text-[var(--n-500)] p-2 rounded-full">
                 <X size={20} />
               </button>
             </div>
 
             {myDrivers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '3rem 0', background: 'var(--n-50)', borderRadius: '8px' }}>
-                <Truck size={32} style={{ color: 'var(--n-400)', margin: '0 auto 1rem' }} />
-                <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ไม่มีคนขับในระบบ</p>
+              <div className="text-center py-12 bg-[var(--n-50)] rounded-lg">
+                <Truck size={32} className="text-[var(--n-400)] mx-auto mb-4" />
+                <p className="sp-caps text-[var(--n-500)]">ไม่มีคนขับในระบบ</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="flex flex-col gap-4">
                 {myDrivers.map(driver => (
-                  <div key={driver.id} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '1.25rem', background: '#fff', border: '1px solid var(--n-200)', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                  }}>
+                  <div key={driver.id} className="flex justify-between items-center p-5 bg-white border border-[var(--n-200)] rounded-xl shadow-xs">
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--n-900)' }}>{driver.name}</div>
-                      <div className="sp-mono" style={{ color: 'var(--n-500)', fontSize: '0.85rem', marginTop: '0.25rem', fontWeight: 600 }}>
+                      <div className="font-bold text-lg text-[var(--n-900)]">{driver.name}</div>
+                      <div className="sp-mono text-[var(--n-500)] text-sm mt-1 font-semibold">
                         {driver.vehiclePlate || '-'} · {driver.vehicleType || '-'}
                       </div>
                     </div>
                     <button
                       onClick={() => handleAssign(driver.id)}
                       disabled={assignLoading}
-                      className="sp-btn-touch sp-btn-primary"
-                      style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem', borderRadius: '8px' }}
+                      className="sp-btn-touch sp-btn-primary py-2.5 px-5 text-xs rounded-lg"
                     >
-                      {assignLoading ? <span className="sp-spinner" style={{ borderTopColor: 'var(--n-900)' }} /> : 'เลือกคนขับ'}
+                      {assignLoading ? <span className="sp-spinner border-t-[var(--n-900)]" /> : 'เลือกคนขับ'}
                     </button>
                   </div>
                 ))}

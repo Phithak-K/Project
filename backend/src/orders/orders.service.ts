@@ -1,16 +1,20 @@
 import {
   Injectable,
   BadRequestException,
+  ConflictException,
+  NotFoundException,
   ForbiddenException,
   InternalServerErrorException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
-import { ChatGateway } from '../chat/chat.gateway';
-import { NotificationsService } from '../notifications/notifications.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  ORDER_EVENTS,
+  OrderCreatedEvent,
+  OrderStatusUpdatedEvent,
+} from './events';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { randomUUID } from 'crypto';
@@ -45,9 +49,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private weatherService: WeatherService,
     private mailerService: MailerService,
-    @Inject(forwardRef(() => ChatGateway))
-    private chatGateway: ChatGateway,
-    private notificationsService: NotificationsService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   private async createTrackingLog(
@@ -64,36 +66,8 @@ export class OrdersService {
           location: 'ระบบ SwiftPath (Automatic)',
         },
       });
-      await this.notifyOrderParties(orderId, status);
     } catch (error) {
       console.error('Failed to create tracking log:', error);
-    }
-  }
-
-  private async notifyOrderParties(orderId: number, status: string) {
-    // [PERF-01 FIX] ใช้ include ดึงข้อมูล Customer และ Merchant ใน Query เดียวแทน 3 Queries
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        customer: { select: { fcmToken: true } },
-        merchant: { select: { fcmToken: true } },
-      },
-    });
-    if (!order) return;
-
-    if (order.customer?.fcmToken) {
-      await this.notificationsService.sendOrderStatusUpdate(
-        order.customer.fcmToken,
-        order.trackingNumber,
-        status,
-      );
-    }
-    if (order.merchant?.fcmToken) {
-      await this.notificationsService.sendOrderStatusUpdate(
-        order.merchant.fcmToken,
-        order.trackingNumber,
-        status,
-      );
     }
   }
 
@@ -298,16 +272,11 @@ export class OrdersService {
         productName: newOrder.productName ?? 'หลายรายการ',
       });
 
-      if (this.chatGateway && this.chatGateway.server) {
-        if (newOrder.merchantId) {
-          this.chatGateway.server
-            .to(`merchant_${newOrder.merchantId}_drivers`)
-            .emit('new_available_order', {
-              ...newOrder,
-              message: 'มีออเดอร์ความต้องการสูงเข้ามาในพื้นที่!',
-            });
-        }
-      }
+      // ปล่อย Event เมื่อสร้างคำสั่งซื้อสำเร็จ (Event-Driven Architecture)
+      this.eventEmitter.emit(
+        ORDER_EVENTS.CREATED,
+        new OrderCreatedEvent(newOrder),
+      );
 
       return newOrder;
     } catch (error: any) {
@@ -596,6 +565,17 @@ export class OrdersService {
       'CANCELLED',
       'ร้านค้ายกเลิกออเดอร์นี้แล้ว',
     );
+
+    this.eventEmitter.emit(
+      ORDER_EVENTS.STATUS_UPDATED,
+      new OrderStatusUpdatedEvent(
+        orderId,
+        OrderStatus.CANCELLED,
+        canceledOrder,
+        'ร้านค้ายกเลิกออเดอร์นี้แล้ว',
+      ),
+    );
+
     return canceledOrder;
   }
 
@@ -930,54 +910,81 @@ export class OrdersService {
     });
     if (!driver) throw new BadRequestException('Driver not found');
 
-    try {
-      const whereClause: any = {
-        id: orderId,
-        driverId: null,
-        status: OrderStatus.PENDING,
-      };
-      if (driver.merchantId) {
-        whereClause.merchantId = driver.merchantId;
-      }
-
-      // 1. Atomic Update: ฐานข้อมูลจะล็อคและอัปเดตบรรทัดนี้ได้ก็ต่อเมื่อยัง PENDING และ driverId เป็น null เท่านั้น
-      const updateResult = await this.prisma.order.updateMany({
-        where: whereClause,
-        data: { driverId, status: OrderStatus.ACCEPTED },
-      });
-
-      if (updateResult.count === 0) {
-        throw new BadRequestException(
-          'ออเดอร์นี้ถูกรับไปแล้ว ออเดอร์ถูกยกเลิก หรือคุณไม่มีสิทธิ์รับงานข้ามร้าน',
-        );
-      }
-
-      const updatedOrder = await this.prisma.order.findUnique({
+    // 2. ผูกการทำงานทั้งหมดอยู่ใน Database Transaction เดียวกัน ($transaction) ตามมาตรฐาน Atomic Transaction
+    const updatedOrder = await this.prisma.$transaction(async (tx) => {
+      // ขั้นตอนที่ 1: ตรวจสอบสถานะของ Order ก่อนอัปเดต
+      const order = await tx.order.findUnique({
         where: { id: orderId },
       });
 
-      await this.createTrackingLog(
-        orderId,
-        'ACCEPTED',
-        'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า',
-      );
-
-      if (this.chatGateway?.server && updatedOrder) {
-        this.chatGateway.server
-          .to(`order_${orderId}`)
-          .emit('order_status_update', updatedOrder);
-
-        if (updatedOrder.merchantId) {
-          this.chatGateway.server
-            .to(`merchant_${updatedOrder.merchantId}_drivers`)
-            .emit('order_taken', { orderId });
-        }
+      if (!order) {
+        throw new NotFoundException('ไม่พบออเดอร์นี้');
       }
 
-      return updatedOrder;
-    } catch (error: any) {
-      throw error;
-    }
+      // ข้อกำหนด 1: หากสถานะไม่ได้เป็น PENDING หรือมีคนขับรับไปแล้ว ต้องโยน ConflictException ทันที
+      if (order.status !== OrderStatus.PENDING || order.driverId !== null) {
+        throw new ConflictException(
+          'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
+        );
+      }
+
+      // ตรวจสอบสิทธิ์ร้านค้า (หากคนขับสังกัดร้านค้า จะรับได้เฉพาะออเดอร์ของร้านตนเอง)
+      if (driver.merchantId && order.merchantId !== driver.merchantId) {
+        throw new ForbiddenException('คุณไม่มีสิทธิ์รับงานข้ามร้านค้า');
+      }
+
+      // ขั้นตอนที่ 2: Atomic Update with Compound WHERE (Concurrency Guard)
+      // ป้องกันกรณี Concurrent Requests แข่งกันเข้ามารับงานพร้อมกันในช่วงเศษเสี้ยววินาที
+      const updateResult = await tx.order.updateMany({
+        where: {
+          id: orderId,
+          driverId: null,
+          status: OrderStatus.PENDING,
+          ...(driver.merchantId ? { merchantId: driver.merchantId } : {}),
+        },
+        data: {
+          driverId,
+          status: OrderStatus.ACCEPTED,
+        },
+      });
+
+      if (updateResult.count === 0) {
+        throw new ConflictException(
+          'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
+        );
+      }
+
+      // ดึงข้อมูล Order ล่าสุดหลังจากการอัปเดต
+      const orderUpdated = await tx.order.findUnique({
+        where: { id: orderId },
+      });
+
+      // ขั้นตอนที่ 3: บันทึกประวัติการเปลี่ยนสถานะ (Tracking Log) ใน Transaction เดียวกันแบบ Atomic
+      await tx.trackingLog.create({
+        data: {
+          orderId,
+          status: OrderStatus.ACCEPTED,
+          note: 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า',
+          location: 'ระบบ SwiftPath (Automatic)',
+        },
+      });
+
+      return orderUpdated;
+    });
+
+    // ขั้นตอนที่ 4: ปล่อย Event สู่ระบบ (Event-Driven Architecture)
+    // ส่งทั้ง Push Notification และ WebSocket Real-Time ผ่าน Event Listeners แบบแยกส่วน
+    this.eventEmitter.emit(
+      ORDER_EVENTS.STATUS_UPDATED,
+      new OrderStatusUpdatedEvent(
+        orderId,
+        OrderStatus.ACCEPTED,
+        updatedOrder,
+        'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า',
+      ),
+    );
+
+    return updatedOrder;
   }
 
   async pickupOrder(orderId: number, driverId: number) {
@@ -1001,11 +1008,15 @@ export class OrdersService {
       'PICKED_UP',
       'คนขับรับพัสดุจากร้านค้าเรียบร้อยแล้ว',
     );
-    if (this.chatGateway?.server) {
-      this.chatGateway.server
-        .to(`order_${orderId}`)
-        .emit('order_status_update', updatedOrder);
-    }
+    this.eventEmitter.emit(
+      ORDER_EVENTS.STATUS_UPDATED,
+      new OrderStatusUpdatedEvent(
+        orderId,
+        OrderStatus.PICKED_UP,
+        updatedOrder,
+        'คนขับรับพัสดุจากร้านค้าเรียบร้อยแล้ว',
+      ),
+    );
     return updatedOrder;
   }
 
@@ -1030,11 +1041,15 @@ export class OrdersService {
       'SHIPPING',
       'พัสดุกำลังเดินทางไปหาผู้รับพัสดุ',
     );
-    if (this.chatGateway?.server) {
-      this.chatGateway.server
-        .to(`order_${orderId}`)
-        .emit('order_status_update', updatedOrder);
-    }
+    this.eventEmitter.emit(
+      ORDER_EVENTS.STATUS_UPDATED,
+      new OrderStatusUpdatedEvent(
+        orderId,
+        OrderStatus.SHIPPING,
+        updatedOrder,
+        'พัสดุกำลังเดินทางไปหาผู้รับพัสดุ',
+      ),
+    );
     return updatedOrder;
   }
 
@@ -1082,11 +1097,15 @@ export class OrdersService {
       'DELIVERED',
       'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้วพร้อมหลักฐาน',
     );
-    if (this.chatGateway?.server) {
-      this.chatGateway.server
-        .to(`order_${orderId}`)
-        .emit('order_status_update', updatedOrder);
-    }
+    this.eventEmitter.emit(
+      ORDER_EVENTS.STATUS_UPDATED,
+      new OrderStatusUpdatedEvent(
+        orderId,
+        OrderStatus.DELIVERED,
+        updatedOrder,
+        'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้วพร้อมหลักฐาน',
+      ),
+    );
     return updatedOrder;
   }
 
@@ -1245,10 +1264,16 @@ export class OrdersService {
     const refreshedOrder = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
-    if (this.chatGateway?.server && refreshedOrder) {
-      this.chatGateway.server
-        .to(`order_${orderId}`)
-        .emit('order_status_update', refreshedOrder);
+    if (refreshedOrder) {
+      this.eventEmitter.emit(
+        ORDER_EVENTS.STATUS_UPDATED,
+        new OrderStatusUpdatedEvent(
+          orderId,
+          refreshedOrder.status,
+          refreshedOrder,
+          'ชำระเงินและโอนเข้า Wallet สำเร็จ',
+        ),
+      );
     }
 
     return { success: true, message: 'ชำระเงินและโอนเข้า Wallet สำเร็จ' };
@@ -1497,11 +1522,15 @@ export class OrdersService {
         `ร้านค้ามอบหมายงานให้ ${driver.name || 'คนขับ'} (ทะเบียน: ${driver.vehiclePlate || '-'})`,
       );
 
-      if (this.chatGateway?.server) {
-        this.chatGateway.server
-          .to(`order_${orderId}`)
-          .emit('order_status_update', updatedOrder);
-      }
+      this.eventEmitter.emit(
+        ORDER_EVENTS.STATUS_UPDATED,
+        new OrderStatusUpdatedEvent(
+          orderId,
+          OrderStatus.ACCEPTED,
+          updatedOrder,
+          `ร้านค้ามอบหมายงานให้ ${driver.name || 'คนขับ'} (ทะเบียน: ${driver.vehiclePlate || '-'})`,
+        ),
+      );
 
       return updatedOrder;
     } catch (error: any) {

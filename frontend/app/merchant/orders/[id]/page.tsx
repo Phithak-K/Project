@@ -155,27 +155,27 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <button onClick={() => router.push('/merchant')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}>
+        <button onClick={() => router.push('/merchant')} className="sp-link-muted flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-sm">
           <ArrowLeft size={16} /> กลับไปยังแดชบอร์ด
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-        <div style={{ width: '120px' }} />
+        <div className="w-[120px]" />
       </nav>
 
-      <main style={{ maxWidth: '900px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+      <main className="max-w-[900px] mx-auto py-10 px-6">
         
-        <div className="sp-animate" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2.5rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="sp-animate flex justify-between items-end mb-10 gap-4 flex-wrap">
           <div>
             <span className="sp-section-eyebrow">รายละเอียดออเดอร์</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>{order.trackingNumber}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="sp-font-display sp-text-lg font-black">{order.trackingNumber}</h1>
               <StatusBadge status={order.status} />
             </div>
-            <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
+            <p className="text-[var(--n-500)] text-[0.9rem] mt-1">
               สร้างเมื่อ {new Date(order.createdAt).toLocaleString('th-TH')}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
+          <div className="flex gap-2.5 flex-wrap">
             <button onClick={handleShareLine} className="sp-btn-primary sp-btn-line">
               <Share2 size={16} /> ส่งลิงก์ให้ลูกค้า
             </button>
@@ -190,8 +190,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             {/* [BUG-04 FIX] แสดงปุ่มยกเลิกเฉพาะ PENDING และมี onClick handler */}
             {order.status === 'PENDING' && (
               <button
-                className="sp-btn-danger"
-                style={{ background: 'var(--error-bg)', color: 'var(--error-text)' }}
+                className="sp-btn-danger bg-[var(--error-bg)] text-[var(--error-text)]"
                 onClick={handleCancelOrder}
                 disabled={cancelling}
               >
@@ -205,18 +204,18 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
           
           <div className="sp-stagger">
             {/* Timeline Row */}
-            <div className="sp-card" style={{ marginBottom: '1.5rem' }}>
-              <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.5rem' }}>สถานะการขนส่ง</h3>
-              <div className="sp-timeline" style={{ paddingLeft: '0.5rem' }}>
+            <div className="sp-card mb-6">
+              <h3 className="sp-caps text-[var(--n-400)] mb-6">สถานะการขนส่ง</h3>
+              <div className="sp-timeline pl-2">
                 {STATUS_FLOW.map((status, index) => {
                   const isDone = index <= currentStepIndex;
                   const isNow = index === currentStepIndex;
                   return (
-                    <div key={status} className="sp-timeline-item" style={{ marginBottom: '1.5rem', opacity: isDone ? 1 : 0.4 }}>
-                      <div className={`sp-timeline-dot ${isNow ? 'sp-timeline-dot-active' : ''}`} style={{ background: isDone ? 'var(--brand-500)' : 'var(--n-200)' }} />
+                    <div key={status} className={`sp-timeline-item mb-6 ${isDone ? 'opacity-100' : 'opacity-40'}`}>
+                      <div className={`sp-timeline-dot ${isNow ? 'sp-timeline-dot-active' : ''} ${isDone ? 'bg-[var(--brand-500)]' : 'bg-[var(--n-200)]'}`} />
                       <div>
-                        <p style={{ fontWeight: 700, color: 'var(--n-900)', fontSize: '0.95rem' }}><StatusLabel status={status} /></p>
-                        {isNow && <p style={{ fontSize: '0.75rem', color: 'var(--brand-600)', marginTop: '0.1rem' }}>กำลังดำเนินการในขั้นตอนนี้</p>}
+                        <p className="font-bold text-[var(--n-900)] text-[0.95rem]"><StatusLabel status={status} /></p>
+                        {isNow && <p className="text-xs text-[var(--brand-600)] mt-0.5">กำลังดำเนินการในขั้นตอนนี้</p>}
                       </div>
                     </div>
                   );
@@ -226,21 +225,21 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
             {/* Details Table */}
             <div className="sp-card">
-              <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem' }}>ข้อมูลการจัดส่ง</h3>
+              <h3 className="sp-caps text-[var(--n-400)] mb-5">ข้อมูลการจัดส่ง</h3>
               <div className="sp-split-2">
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <User size={18} style={{ color: 'var(--n-300)', marginTop: '0.125rem' }} />
+                <div className="flex gap-3">
+                  <User size={18} className="text-[var(--n-300)] mt-0.5" />
                   <div>
-                    <p className="sp-caps" style={{ color: 'var(--n-400)', fontSize: '0.7rem' }}>ผู้รับ</p>
-                    <p style={{ fontWeight: 700 }}>{order.receiverName}</p>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--n-600)' }}>{order.receiverPhone}</p>
+                    <p className="sp-caps text-[var(--n-400)] text-[0.7rem]">ผู้รับ</p>
+                    <p className="font-bold">{order.receiverName}</p>
+                    <p className="text-sm text-[var(--n-600)]">{order.receiverPhone}</p>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <MapPin size={18} style={{ color: 'var(--n-300)', marginTop: '0.125rem' }} />
+                <div className="flex gap-3">
+                  <MapPin size={18} className="text-[var(--n-300)] mt-0.5" />
                   <div>
-                    <p className="sp-caps" style={{ color: 'var(--n-400)', fontSize: '0.7rem' }}>ที่อยู่</p>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--n-700)', lineHeight: 1.5 }}>{order.address}</p>
+                    <p className="sp-caps text-[var(--n-400)] text-[0.7rem]">ที่อยู่</p>
+                    <p className="text-sm text-[var(--n-700)] leading-normal">{order.address}</p>
                   </div>
                 </div>
               </div>
@@ -248,7 +247,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
             {/* Map Card */}
             {order.status !== 'PENDING' && order.status !== 'CANCELLED' && (
-              <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div className="sp-card p-0 overflow-hidden">
                 <OrderMap 
                   lat={order.lat || 13.7563} 
                   lng={order.lng || 100.5018} 
@@ -260,34 +259,33 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             )}
           </div>
 
-          <aside className="sp-stagger" style={{ animationDelay: '100ms' }}>
+          <aside className="sp-stagger [animation-delay:100ms]">
             {/* Price Card */}
-            <div className="sp-card" style={{ marginBottom: '1.5rem', background: 'var(--brand-50)' }}>
-              <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.25rem' }}>สรุปยอดชำระ</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span style={{ color: 'var(--n-500)' }}>ยอดสินค้า</span>
-                  <span style={{ color: 'var(--n-900)' }}>฿{(order.price || 0).toLocaleString()}</span>
+            <div className="sp-card mb-6 bg-[var(--brand-50)]">
+              <h3 className="sp-caps text-[var(--n-600)] mb-5">สรุปยอดชำระ</h3>
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between text-[0.9rem]">
+                  <span className="text-[var(--n-500)]">ยอดสินค้า</span>
+                  <span className="text-[var(--n-900)]">฿{(order.price || 0).toLocaleString()}</span>
                 </div>
                 {order.hasInsurance && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'oklch(60% 0.15 270)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div className="flex justify-between text-[0.9rem]">
+                    <span className="text-[oklch(60%_0.15_270)] flex items-center gap-1.5">
                       <Shield size={14} /> ประกันสินค้า
                     </span>
-                    <span style={{ color: 'var(--n-900)' }}>+ ฿50</span>
+                    <span className="text-[var(--n-900)]">+ ฿50</span>
                   </div>
                 )}
-                <div style={{ height: '1px', background: 'var(--n-200)', margin: '0.5rem 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="sp-caps" style={{ color: 'var(--n-500)' }}>รวมสุทธิ</span>
-                  <span className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-900)' }}>
+                <div className="h-px bg-[var(--n-200)] my-2" />
+                <div className="flex justify-between items-baseline">
+                  <span className="sp-caps text-[var(--n-500)]">รวมสุทธิ</span>
+                  <span className="sp-stat-number text-[2rem] text-[var(--n-900)]">
                     ฿{(order.totalPrice || order.price).toLocaleString()}
                   </span>
                 </div>
                 <button 
                   onClick={handleDownloadPdf}
-                  className="sp-btn-ghost" 
-                  style={{ width: '100%', marginTop: '1rem', background: '#fff' }}
+                  className="sp-btn-ghost w-full mt-4 bg-white"
                 >
                   <Download size={16} /> ดาวน์โหลดใบส่งของ (PDF)
                 </button>
@@ -297,24 +295,24 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
             {/* Driver Card */}
             {order.driver ? (
               <div className="sp-card">
-                <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem' }}>คนขับที่รับงาน</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--n-100)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--n-400)' }}>
+                <h3 className="sp-caps text-[var(--n-400)] mb-5">คนขับที่รับงาน</h3>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[var(--n-100)] flex items-center justify-center text-[var(--n-400)]">
                     <Truck size={20} />
                   </div>
                   <div>
-                    <p style={{ fontWeight: 700 }}>{order.driver.name}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--n-400)' }}>{order.driver.vehiclePlate || 'ทะเบียน xxxx'}</p>
+                    <p className="font-bold">{order.driver.name}</p>
+                    <p className="text-xs text-[var(--n-400)]">{order.driver.vehiclePlate || 'ทะเบียน xxxx'}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="sp-card" style={{ border: '1px dashed var(--n-200)', background: 'var(--n-50)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Clock size={20} className="sp-spinner" style={{ color: 'var(--brand-500)' }} />
+              <div className="sp-card border border-dashed border-[var(--n-200)] bg-[var(--n-50)]">
+                <div className="flex items-center gap-4">
+                  <Clock size={20} className="sp-spinner text-[var(--brand-500)]" />
                   <div>
-                    <p style={{ fontWeight: 700, color: 'var(--n-500)' }}>กำลังจับคู่คนขับ</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--n-400)' }}>โปรดรอสักครู่ ระบบกำลังกระจายงาน</p>
+                    <p className="font-bold text-[var(--n-500)]">กำลังจับคู่คนขับ</p>
+                    <p className="text-xs text-[var(--n-400)]">โปรดรอสักครู่ ระบบกำลังกระจายงาน</p>
                   </div>
                 </div>
               </div>

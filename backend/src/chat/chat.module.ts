@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ChatGateway } from './chat.gateway';
+import { OrderChatListener } from './listeners/order-chat.listener';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { ChatGateway } from './chat.gateway';
       }),
     }),
   ],
-  providers: [ChatGateway],
+  providers: [ChatGateway, OrderChatListener],
   exports: [ChatGateway],
 })
 export class ChatModule {}
+

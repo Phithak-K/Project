@@ -52,21 +52,21 @@ export default function DriverRegisterPage() {
   return (
     <div className="sp-auth-wrap">
       <div className="sp-auth-form-panel">
-        <div style={{ maxWidth: '420px', width: '100%' }}>
-          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+        <div className="max-w-[420px] w-full">
+          <div className="sp-animate mb-10">
             <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
           </div>
 
-          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+          <div className="sp-animate-d1 mb-8">
             <span className="sp-section-eyebrow">สมัครคนขับ</span>
-            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>ร่วมทีมกับเรา</h1>
-            <p style={{ color: 'var(--n-500)', marginTop: '0.375rem', fontSize: '0.9rem' }}>สมัครเป็น Partner Driver ของ SwiftPath</p>
+            <h1 className="sp-font-display sp-text-xl font-black">ร่วมทีมกับเรา</h1>
+            <p className="text-[var(--n-500)] mt-1.5 text-sm">สมัครเป็น Partner Driver ของ SwiftPath</p>
           </div>
 
-          {error && <div className="sp-alert sp-alert-error sp-animate" style={{ marginBottom: '1.25rem' }}>{error}</div>}
+          {error && <div className="sp-alert sp-alert-error sp-animate mb-5">{error}</div>}
 
-          <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <form onSubmit={handleRegister} className="sp-animate-d2 flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">ชื่อจริง</label>
                 <input id="driver-first-name" type="text" required value={form.firstName} onChange={set('firstName')} className="sp-input" placeholder="สมชาย" />
@@ -77,7 +77,7 @@ export default function DriverRegisterPage() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">เลขบัตรประชาชน</label>
                 <input id="driver-national-id" type="text" required minLength={13} maxLength={13} value={form.nationalId} onChange={set('nationalId')} className="sp-input" placeholder="13 หลัก" />
@@ -93,7 +93,7 @@ export default function DriverRegisterPage() {
               <input id="driver-username" type="text" required minLength={4} maxLength={20} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น driver_somchai (a-z, 0-9, _)" autoComplete="username" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">เบอร์โทรศัพท์</label>
                 <input id="driver-phone" type="tel" required value={form.phone} onChange={set('phone')} className="sp-input" placeholder="08XXXXXXXX" />
@@ -105,7 +105,7 @@ export default function DriverRegisterPage() {
             </div>
 
             {/* Vehicle info */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">ทะเบียนรถ</label>
                 <input id="driver-plate" type="text" required value={form.vehiclePlate} onChange={set('vehiclePlate')} className="sp-input" placeholder="กข 1234" />
@@ -116,8 +116,7 @@ export default function DriverRegisterPage() {
                   id="driver-vehicle-type"
                   value={form.vehicleType}
                   onChange={set('vehicleType') as any}
-                  className="sp-input"
-                  style={{ cursor: 'pointer' }}
+                  className="sp-input cursor-pointer"
                 >
                   <option value="">เลือกประเภท</option>
                   <option value="motorcycle">มอเตอร์ไซค์</option>
@@ -143,13 +142,13 @@ export default function DriverRegisterPage() {
               <input id="driver-confirm-password" type={showPw ? 'text' : 'password'} required value={form.confirmPassword} onChange={set('confirmPassword')} className="sp-input" placeholder="พิมพ์รหัสผ่านอีกครั้ง" />
             </div>
 
-            <button id="btn-driver-register" type="submit" disabled={isLoading} className="sp-btn-primary sp-btn-full" style={{ padding: '0.875rem' }}>
+            <button id="btn-driver-register" type="submit" disabled={isLoading} className="sp-btn-primary sp-btn-full p-3.5">
               {isLoading ? <span className="sp-spinner" /> : <>สมัครเป็นพาร์ทเนอร์คนขับ <ArrowRight size={16} /></>}
             </button>
           </form>
 
-          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+          <div className="sp-animate-d3 mt-6">
+            <p className="text-sm text-[var(--n-500)]">
               เป็นคนขับอยู่แล้ว?{' '}
               <Link href="/login" className="sp-link">เข้าสู่ระบบ</Link>
             </p>
@@ -160,22 +159,22 @@ export default function DriverRegisterPage() {
       <div className="sp-auth-brand-panel">
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
         <div>
-          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>รายได้ดี ยืดหยุ่น</p>
-          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-900)', lineHeight: 1.1 }}>
+          <p className="sp-caps text-[var(--brand-400)] mb-4">รายได้ดี ยืดหยุ่น</p>
+          <p className="sp-font-display sp-text-xl font-black text-[var(--n-900)] leading-tight">
             ทำงาน<br />ตามเวลาคุณ
           </p>
-          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+          <p className="mt-6 text-[var(--n-500)] text-sm max-w-[32ch]">
             รับงานเมื่อพร้อม ปฏิเสธได้ตลอด มีระบบ Surge Pricing ช่วยเพิ่มรายได้ในวันที่อากาศไม่ดี
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '2rem' }}>
+        <div className="flex gap-8">
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>+20%</p>
-            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Rainy Day Bonus</p>
+            <p className="sp-font-display text-2xl sm:text-3xl font-black text-[var(--n-900)]">+20%</p>
+            <p className="sp-caps text-[var(--n-600)]">Rainy Day Bonus</p>
           </div>
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>COD</p>
-            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>รองรับเก็บเงินปลายทาง</p>
+            <p className="sp-font-display text-2xl sm:text-3xl font-black text-[var(--n-900)]">COD</p>
+            <p className="sp-caps text-[var(--n-600)]">รองรับเก็บเงินปลายทาง</p>
           </div>
         </div>
       </div>

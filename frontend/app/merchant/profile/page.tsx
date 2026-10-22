@@ -116,27 +116,22 @@ export default function MerchantProfilePage() {
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <Link href="/" className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+        <Link href="/" className="sp-link-muted flex items-center gap-2 text-sm">
           ← กลับหน้า Dashboard
         </Link>
-        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span> <span style={{fontSize: '0.75rem', padding: '0.125rem 0.375rem', background: 'var(--brand-100)', color: 'var(--brand-700)', borderRadius: '1rem', marginLeft: '0.5rem', verticalAlign: 'middle'}}>Store</span></span>
-        <button className="sp-btn-ghost" style={{ color: 'var(--danger-500)', fontSize: '0.875rem' }} onClick={handleLogout}>
+        <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span> <span className="text-xs px-1.5 py-0.5 bg-[var(--brand-100)] text-[var(--brand-700)] rounded-full ml-2 align-middle">Store</span></span>
+        <button className="sp-btn-ghost text-[var(--danger-500)] text-sm" onClick={handleLogout}>
           ออกจากระบบ
         </button>
       </nav>
 
-      <main style={{ maxWidth: '480px', margin: '0 auto', padding: '3rem 1.5rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--brand-500), var(--brand-700))',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem', boxShadow: '0 8px 24px -4px rgba(234,88,12,0.4)'
-          }}>
+      <main className="max-w-[480px] mx-auto py-12 px-6">
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--brand-500)] to-[var(--brand-700)] flex items-center justify-center mx-auto mb-5 shadow-[0_8px_24px_-4px_rgba(234,88,12,0.4)]">
             <Store size={36} color="white" />
           </div>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>โปรไฟล์ร้านค้า</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.5rem' }}>
+          <h1 className="sp-font-display sp-text-lg font-black">โปรไฟล์ร้านค้า</h1>
+          <p className="text-[var(--n-500)] mt-2">
             จัดการข้อมูลร้านค้าและการตั้งค่าบัญชี
           </p>
         </div>
@@ -146,59 +141,55 @@ export default function MerchantProfilePage() {
         ) : (
           <>
             <form onSubmit={handleSubmit} className="sp-card sp-animate">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', padding: '0.75rem', background: 'var(--success-50)', color: 'var(--success-700)', borderRadius: '0.75rem', fontSize: '0.875rem', fontWeight: 600 }}>
+              <div className="flex items-center gap-2 mb-6 p-3 bg-[var(--success-50)] text-[var(--success-700)] rounded-xl text-sm font-semibold">
                 <CheckCircle size={18} /> ยืนยันตัวตนสำเร็จแล้ว (Merchant)
               </div>
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>อีเมล (ไม่สามารถแก้ไขได้)</label>
-              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+              <label className="sp-label mb-2 block">อีเมล (ไม่สามารถแก้ไขได้)</label>
+              <div className="relative mb-5">
+                <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--n-400)]" />
                 <input
                   type="email"
                   value={profile?.email}
-                  className="sp-input"
-                  style={{ paddingLeft: '2.75rem', width: '100%', background: 'var(--n-50)', color: 'var(--n-500)' }}
+                  className="sp-input pl-11 w-full bg-[var(--n-50)] text-[var(--n-500)]"
                   disabled
                 />
               </div>
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อร้านค้า</label>
-              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                <Store size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+              <label className="sp-label mb-2 block">ชื่อร้านค้า</label>
+              <div className="relative mb-5">
+                <Store size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--n-400)]" />
                 <input
                   type="text"
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  className="sp-input"
-                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  className="sp-input pl-11 w-full"
                   placeholder="กรอกชื่อร้านค้าของคุณ"
                   required
                 />
               </div>
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>ชื่อ-นามสกุล (เจ้าของร้าน)</label>
-              <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
-                <User size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+              <label className="sp-label mb-2 block">ชื่อ-นามสกุล (เจ้าของร้าน)</label>
+              <div className="relative mb-5">
+                <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--n-400)]" />
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="sp-input"
-                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  className="sp-input pl-11 w-full"
                   placeholder="กรอกชื่อ-นามสกุลของคุณ"
                   required
                 />
               </div>
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>เบอร์โทรศัพท์ร้านค้า</label>
-              <div style={{ position: 'relative', marginBottom: '2rem' }}>
-                <Phone size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--n-400)' }} />
+              <label className="sp-label mb-2 block">เบอร์โทรศัพท์ร้านค้า</label>
+              <div className="relative mb-8">
+                <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--n-400)]" />
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="sp-input"
-                  style={{ paddingLeft: '2.75rem', width: '100%' }}
+                  className="sp-input pl-11 w-full"
                   placeholder="08XXXXXXXX"
                 />
               </div>
@@ -206,8 +197,7 @@ export default function MerchantProfilePage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="sp-btn-brand sp-btn-full"
-                style={{ padding: '0.875rem' }}
+                className="sp-btn-brand sp-btn-full p-3.5"
               >
                 {saving ? <span className="sp-spinner" /> : (
                   <>บันทึกข้อมูลร้านค้า <ArrowRight size={16} /></>
@@ -215,27 +205,25 @@ export default function MerchantProfilePage() {
               </button>
             </form>
 
-            <form onSubmit={handlePasswordSubmit} className="sp-card sp-animate" style={{ marginTop: '2rem' }}>
-              <h2 className="sp-font-display sp-text-md" style={{ marginBottom: '1.25rem' }}>เปลี่ยนรหัสผ่าน</h2>
+            <form onSubmit={handlePasswordSubmit} className="sp-card sp-animate mt-8">
+              <h2 className="sp-font-display sp-text-md mb-5">เปลี่ยนรหัสผ่าน</h2>
               
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>รหัสผ่านเดิม</label>
+              <label className="sp-label mb-2 block">รหัสผ่านเดิม</label>
               <input
                 type="password"
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
-                className="sp-input"
-                style={{ width: '100%', marginBottom: '1.25rem' }}
+                className="sp-input w-full mb-5"
                 placeholder="กรอกรหัสผ่านปัจจุบัน"
                 required
               />
 
-              <label className="sp-label" style={{ marginBottom: '0.5rem', display: 'block' }}>รหัสผ่านใหม่</label>
+              <label className="sp-label mb-2 block">รหัสผ่านใหม่</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="sp-input"
-                style={{ width: '100%', marginBottom: '2rem' }}
+                className="sp-input w-full mb-8"
                 placeholder="กรอกรหัสผ่านใหม่ (อย่างน้อย 6 ตัว)"
                 required
                 minLength={6}
@@ -244,8 +232,7 @@ export default function MerchantProfilePage() {
               <button
                 type="submit"
                 disabled={passwordSaving || !oldPassword || !newPassword}
-                className="sp-btn-ghost sp-btn-full"
-                style={{ padding: '0.875rem', background: 'var(--n-100)' }}
+                className="sp-btn-ghost sp-btn-full p-3.5 bg-[var(--n-100)]"
               >
                 {passwordSaving ? <span className="sp-spinner" /> : 'ยืนยันเปลี่ยนรหัสผ่าน'}
               </button>

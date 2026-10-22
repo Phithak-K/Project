@@ -57,20 +57,20 @@ export default function MerchantRegisterPage() {
   return (
     <div className="sp-auth-wrap">
       <div className="sp-auth-form-panel">
-        <div style={{ maxWidth: '420px', width: '100%' }}>
-          <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+        <div className="max-w-[420px] w-full">
+          <div className="sp-animate mb-10">
             <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
           </div>
 
-          <div className="sp-animate-d1" style={{ marginBottom: '2rem' }}>
+          <div className="sp-animate-d1 mb-8">
             <span className="sp-section-eyebrow">เปิดร้านค้า</span>
-            <h1 className="sp-font-display sp-text-xl" style={{ fontWeight: 900 }}>ลงทะเบียนร้านค้า</h1>
-            <p style={{ color: 'var(--n-500)', marginTop: '0.375rem', fontSize: '0.9rem' }}>เข้าร่วมเครือข่าย Merchant ของ SwiftPath</p>
+            <h1 className="sp-font-display sp-text-xl font-black">ลงทะเบียนร้านค้า</h1>
+            <p className="text-[var(--n-500)] mt-1.5 text-sm">เข้าร่วมเครือข่าย Merchant ของ SwiftPath</p>
           </div>
 
-          {error && <div className="sp-alert sp-alert-error sp-animate" style={{ marginBottom: '1.25rem' }}>{error}</div>}
+          {error && <div className="sp-alert sp-alert-error sp-animate mb-5">{error}</div>}
 
-          <form onSubmit={handleRegister} className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <form onSubmit={handleRegister} className="sp-animate-d2 flex flex-col gap-4">
             <div className="sp-field">
               <label className="sp-label">ชื่อร้านค้า</label>
               <input id="merchant-store-name" type="text" required value={form.storeName} onChange={set('storeName')} className="sp-input" placeholder="ร้านสมใจ ขนส่ง" />
@@ -81,7 +81,7 @@ export default function MerchantRegisterPage() {
               <input id="merchant-store-address" type="text" required value={form.storeAddress} onChange={set('storeAddress')} className="sp-input" placeholder="123 ถ.สุขุมวิท กรุงเทพฯ" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">ชื่อผู้ติดต่อ</label>
                 <input id="merchant-first-name" type="text" required value={form.firstName} onChange={set('firstName')} className="sp-input" placeholder="สมชาย" />
@@ -102,7 +102,7 @@ export default function MerchantRegisterPage() {
               <input id="merchant-username" type="text" required minLength={4} maxLength={20} pattern="[a-zA-Z0-9_]+" value={form.username} onChange={set('username')} className="sp-input" placeholder="เช่น mystore_shop (a-z, 0-9, _)" autoComplete="username" />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div className="grid grid-cols-2 gap-3">
               <div className="sp-field">
                 <label className="sp-label">เบอร์โทรศัพท์</label>
                 <input id="merchant-phone" type="tel" required value={form.phone} onChange={set('phone')} className="sp-input" placeholder="081XXXXXXX" />
@@ -131,17 +131,17 @@ export default function MerchantRegisterPage() {
             <div className="sp-checkbox">
               <input type="checkbox" id="terms" checked={agreeTerms} onChange={e => setAgreeTerms(e.target.checked)} />
               <label className="sp-checkbox-label" htmlFor="terms">
-                ฉันยอมรับ <button type="button" onClick={(e) => e.preventDefault()} style={{ background: 'none', border: 'none', color: 'var(--brand-500)', cursor: 'pointer', padding: 0, font: 'inherit', textDecoration: 'underline' }}>เงื่อนไขการให้บริการ</button> และนโยบายของ SwiftPath
+                ฉันยอมรับ <button type="button" onClick={(e) => e.preventDefault()} className="bg-transparent border-none text-[var(--brand-500)] cursor-pointer p-0 font-inherit underline">เงื่อนไขการให้บริการ</button> และนโยบายของ SwiftPath
               </label>
             </div>
 
-            <button id="btn-merchant-register" type="submit" disabled={isLoading} className="sp-btn-primary sp-btn-full" style={{ padding: '0.875rem' }}>
+            <button id="btn-merchant-register" type="submit" disabled={isLoading} className="sp-btn-primary sp-btn-full py-3.5">
               {isLoading ? <span className="sp-spinner" /> : <>สมัครเปิดร้านค้า <ArrowRight size={16} /></>}
             </button>
           </form>
 
-          <div className="sp-animate-d3" style={{ marginTop: '1.5rem' }}>
-            <p style={{ fontSize: '0.875rem', color: 'var(--n-500)' }}>
+          <div className="sp-animate-d3 mt-6">
+            <p className="text-sm text-[var(--n-500)]">
               มีบัญชีอยู่แล้ว?{' '}
               <Link href="/login" className="sp-link">เข้าสู่ระบบ</Link>
             </p>
@@ -152,22 +152,22 @@ export default function MerchantRegisterPage() {
       <div className="sp-auth-brand-panel">
         <span className="sp-logo-dark">Swift<span className="sp-logo-accent">Path</span></span>
         <div>
-          <p className="sp-caps" style={{ color: 'var(--brand-400)', marginBottom: '1rem' }}>เพิ่มยอดขาย</p>
-          <p className="sp-font-display sp-text-xl" style={{ fontWeight: 900, color: 'var(--n-50)', lineHeight: 1.1 }}>
+          <p className="sp-caps text-[var(--brand-400)] mb-4">เพิ่มยอดขาย</p>
+          <p className="sp-font-display sp-text-xl font-black text-[var(--n-50)] leading-tight">
             ขายได้มากขึ้น<br />ส่งได้เร็วขึ้น
           </p>
-          <p style={{ marginTop: '1.5rem', color: 'var(--n-500)', fontSize: '0.9rem', maxWidth: '32ch' }}>
+          <p className="mt-6 text-[var(--n-500)] text-sm max-w-[32ch]">
             ระบบ Surge Pricing ช่วยให้คนขับมาหาคุณเร็วขึ้นในชั่วโมงเร่งด่วน
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '2rem' }}>
+        <div className="flex gap-8">
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>Auto</p>
-            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>Surge Pricing</p>
+            <p className="sp-font-display text-3xl font-black text-[var(--n-50)]">Auto</p>
+            <p className="sp-caps text-[var(--n-600)]">Surge Pricing</p>
           </div>
           <div>
-            <p className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-50)' }}>PDF</p>
-            <p className="sp-caps" style={{ color: 'var(--n-600)' }}>รายงานยอดขาย</p>
+            <p className="sp-font-display text-3xl font-black text-[var(--n-50)]">PDF</p>
+            <p className="sp-caps text-[var(--n-600)]">รายงานยอดขาย</p>
           </div>
         </div>
       </div>

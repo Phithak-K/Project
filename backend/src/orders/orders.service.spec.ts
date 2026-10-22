@@ -1,11 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
-import { NotificationsService } from '../notifications/notifications.service';
-import { ChatGateway } from '../chat/chat.gateway';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ORDER_EVENTS } from './events';
 import { OrderStatus } from '@prisma/client';
 
 // Mock ทุก dependency เพื่อไม่ให้ต้องเชื่อม Database จริง
@@ -30,10 +35,10 @@ const mockPrismaService = {
 
 const mockWeatherService = { getWeather: jest.fn() };
 const mockMailerService = { sendMail: jest.fn() };
-const mockChatGateway = {
-  server: { emit: jest.fn(), to: jest.fn().mockReturnThis() },
+const mockEventEmitter = {
+  emit: jest.fn(),
+  emitAsync: jest.fn(),
 };
-const mockNotificationsService = { sendOrderStatusUpdate: jest.fn() };
 
 describe('OrdersService', () => {
   let service: OrdersService;
@@ -45,13 +50,18 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: WeatherService, useValue: mockWeatherService },
         { provide: MailerService, useValue: mockMailerService },
-        { provide: ChatGateway, useValue: mockChatGateway },
-        { provide: NotificationsService, useValue: mockNotificationsService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
     jest.clearAllMocks();
+    mockPrismaService.$transaction.mockImplementation(async (callback: any) => {
+      if (typeof callback === 'function') {
+        return callback(mockPrismaService);
+      }
+      return callback;
+    });
   });
 
   it('should be defined', () => {
@@ -197,22 +207,137 @@ describe('OrdersService', () => {
 
   // ===== acceptOrder Tests =====
   describe('acceptOrder()', () => {
+    const mockPendingOrder = {
+      id: 1,
+      driverId: null,
+      status: OrderStatus.PENDING,
+      merchantId: null,
+      trackingNumber: 'SP1234567890',
+    };
+
     it('ควร throw BadRequestException ถ้า orderId ไม่ใช่ตัวเลข', async () => {
       await expect(service.acceptOrder(NaN, 10)).rejects.toThrow(
         BadRequestException,
       );
     });
 
-    it('[Race Condition] ควร throw BadRequestException ถ้าออเดอร์ถูกรับไปแล้ว (Prisma P2025)', async () => {
-      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
-      mockPrismaService.order.updateMany.mockResolvedValue({ count: 0 });
+    it('ควร throw BadRequestException ถ้าไม่พบคนขับ', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue(null);
 
       await expect(service.acceptOrder(1, 10)).rejects.toThrow(
         BadRequestException,
       );
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow('Driver not found');
+    });
+
+    it('ควร throw NotFoundException ถ้าไม่พบออเดอร์', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.findUnique.mockResolvedValue(null);
+
       await expect(service.acceptOrder(1, 10)).rejects.toThrow(
-        'ออเดอร์นี้ถูกรับไปแล้ว ออเดอร์ถูกยกเลิก หรือคุณไม่มีสิทธิ์รับงานข้ามร้าน',
+        NotFoundException,
       );
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow('ไม่พบออเดอร์นี้');
+    });
+
+    it('[Concurrency Control] ควร throw ConflictException ถ้าสถานะออเดอร์ไม่ใช่ PENDING', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockPendingOrder,
+        status: OrderStatus.ACCEPTED,
+      });
+
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
+      );
+    });
+
+    it('[Concurrency Control] ควร throw ConflictException ถ้ามีคนขับรับงานไปแล้ว (driverId !== null)', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockPendingOrder,
+        driverId: 99,
+      });
+
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('ควร throw ForbiddenException ถ้าคนขับรับงานข้ามร้านค้า', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: 2 });
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockPendingOrder,
+        merchantId: 1,
+      });
+
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('[Race Condition] ควร throw ConflictException ถ้าเกิด Race Condition และอัปเดตไม่สำเร็จ (count = 0)', async () => {
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.findUnique.mockResolvedValue(mockPendingOrder);
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.acceptOrder(1, 10)).rejects.toThrow(
+        'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
+      );
+    });
+
+    it('[Atomic Transaction] รับงานสำเร็จ: อัปเดตออเดอร์และบันทึก TrackingLog ภายใน Transaction เดียวกัน', async () => {
+      const acceptedOrder = {
+        ...mockPendingOrder,
+        driverId: 10,
+        status: OrderStatus.ACCEPTED,
+      };
+
+      mockPrismaService.driver.findUnique.mockResolvedValue({ id: 10, merchantId: null });
+      mockPrismaService.order.findUnique
+        .mockResolvedValueOnce(mockPendingOrder)
+        .mockResolvedValueOnce(acceptedOrder);
+      mockPrismaService.order.updateMany.mockResolvedValue({ count: 1 });
+      mockPrismaService.trackingLog.create.mockResolvedValue({ id: 1 });
+
+      const result = await service.acceptOrder(1, 10);
+
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.order.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: 1,
+            driverId: null,
+            status: OrderStatus.PENDING,
+          }),
+          data: {
+            driverId: 10,
+            status: OrderStatus.ACCEPTED,
+          },
+        }),
+      );
+      expect(mockPrismaService.trackingLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            orderId: 1,
+            status: OrderStatus.ACCEPTED,
+          }),
+        }),
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        ORDER_EVENTS.STATUS_UPDATED,
+        expect.objectContaining({
+          orderId: 1,
+          status: OrderStatus.ACCEPTED,
+        }),
+      );
+      expect(result).toEqual(acceptedOrder);
     });
   });
 

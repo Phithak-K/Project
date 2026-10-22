@@ -83,119 +83,128 @@ export default function MerchantStatsPage() {
     { name: 'ยกเลิก', value: data.statusDistribution.CANCELLED || 0 },
   ].filter(d => d.value > 0) : [];
 
+  const COLOR_CLASSES = ['bg-[#ea580c]', 'bg-[#3b82f6]', 'bg-[#10b981]', 'bg-[#f59e0b]', 'bg-[#64748b]', 'bg-[#ef4444]'];
+
   return (
     <div className="sp-page stats-page">
       <nav className="sp-nav no-print">
-        <button onClick={() => router.push('/merchant')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', border: 'none', background: 'none', cursor: 'pointer' }}>
+        <button onClick={() => router.push('/merchant')} className="sp-link-muted flex items-center gap-1.5 border-none bg-transparent cursor-pointer">
           <ArrowLeft size={16} /> กลับไปยัง Dashboard
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span> Analytics</span>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="flex gap-2 items-center">
           <button onClick={handlePrint} className="sp-btn-ghost">
             <Printer size={16} /> พิมพ์รายงาน
           </button>
         </div>
       </nav>
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+      <main className="max-w-[1200px] mx-auto py-10 px-6">
         
-        <header className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+        <header className="sp-animate mb-10">
           <span className="sp-section-eyebrow">Enterprise Intelligence</span>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>แผงควบคุมสถิติขั้นสูง</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>ภาพรวมทางธุรกิจและการกระจายตัวของสถานะออเดอร์ทั้งหมดของร้าน</p>
+          <h1 className="sp-font-display sp-text-lg font-black">แผงควบคุมสถิติขั้นสูง</h1>
+          <p className="text-[var(--n-500)] mt-1">ภาพรวมทางธุรกิจและการกระจายตัวของสถานะออเดอร์ทั้งหมดของร้าน</p>
         </header>
 
         {/* ── CSV Export Panel ── */}
-        <div className="sp-card no-print" style={{ marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-          <div style={{ flex: 1 }}>
-            <div className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+        <div className="sp-card no-print mb-8 flex flex-wrap gap-4 items-end">
+          <div className="flex-1">
+            <div className="sp-caps text-[var(--n-500)] mb-2 flex items-center gap-1.5">
               <Download size={12} /> ดาวน์โหลดรายงาน CSV
             </div>
-            <p style={{ color: 'var(--n-400)', fontSize: '0.8rem' }}>เลือกช่วงวันที่ (ถ้าไม่เลือก = ดึงทั้งหมด) แล้วกดดาวน์โหลด เปิดได้ใน Excel</p>
+            <p className="text-[var(--n-400)] text-[0.8rem]">เลือกช่วงวันที่ (ถ้าไม่เลือก = ดึงทั้งหมด) แล้วกดดาวน์โหลด เปิดได้ใน Excel</p>
           </div>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div className="flex gap-3 items-end flex-wrap">
             <div className="sp-field">
               <label className="sp-label">จากวันที่</label>
-              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="sp-input" style={{ width: '150px' }} />
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="sp-input w-[150px]" />
             </div>
             <div className="sp-field">
               <label className="sp-label">ถึงวันที่</label>
-              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="sp-input" style={{ width: '150px' }} />
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="sp-input w-[150px]" />
             </div>
             <button
               id="btn-export-csv"
               onClick={handleExportCsv}
               disabled={exportLoading}
-              className="sp-btn-brand"
-              style={{ padding: '0.6rem 1.2rem', whiteSpace: 'nowrap' }}
+              className="sp-btn-brand py-2.5 px-5 whitespace-nowrap"
             >
               {exportLoading ? <span className="sp-spinner" /> : <><Download size={15} /> ดาวน์โหลด CSV</>}
             </button>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-10">
           
-          <div className="sp-card sp-animate-d1" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--brand-100)', color: 'var(--brand-600)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="sp-card sp-animate-d1 flex items-center gap-6">
+            <div className="w-12 h-12 rounded-xl bg-[var(--brand-100)] text-[var(--brand-600)] flex items-center justify-center">
               <Wallet size={24} />
             </div>
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ยอดถอนได้ (Wallet)</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginTop: '0.25rem' }}>฿{Number(balance).toLocaleString()}</h2>
+              <p className="sp-caps text-[var(--n-500)]">ยอดถอนได้ (Wallet)</p>
+              <h2 className="sp-font-display text-[1.75rem] font-black mt-1">฿{Number(balance).toLocaleString()}</h2>
             </div>
           </div>
 
-          <div className="sp-card sp-animate-d1" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ecfdf5', color: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="sp-card sp-animate-d1 flex items-center gap-6">
+            <div className="w-12 h-12 rounded-xl bg-[#ecfdf5] text-[#10b981] flex items-center justify-center">
               <TrendingUp size={24} />
             </div>
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>รายได้รวมทั้งหมด</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginTop: '0.25rem', color: '#10b981' }}>฿{Number(data?.totalRevenue || 0).toLocaleString()}</h2>
+              <p className="sp-caps text-[var(--n-500)]">รายได้รวมทั้งหมด</p>
+              <h2 className="sp-font-display text-[1.75rem] font-black mt-1 text-[#10b981]">฿{Number(data?.totalRevenue || 0).toLocaleString()}</h2>
             </div>
           </div>
 
-          <div className="sp-card sp-animate-d2" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="sp-card sp-animate-d2 flex items-center gap-6">
+            <div className="w-12 h-12 rounded-xl bg-[#eff6ff] text-[#3b82f6] flex items-center justify-center">
               <Activity size={24} />
             </div>
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ออเดอร์ทั้งหมด</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginTop: '0.25rem' }}>{data?.totalOrders || 0} รายการ</h2>
+              <p className="sp-caps text-[var(--n-500)]">ออเดอร์ทั้งหมด</p>
+              <h2 className="sp-font-display text-[1.75rem] font-black mt-1">{data?.totalOrders || 0} รายการ</h2>
             </div>
           </div>
 
-          <div className="sp-card sp-animate-d2" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#faf5ff', color: '#a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="sp-card sp-animate-d2 flex items-center gap-6">
+            <div className="w-12 h-12 rounded-xl bg-[#faf5ff] text-[#a855f7] flex items-center justify-center">
               <CheckCircle size={24} />
             </div>
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>อัตราความสำเร็จ</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, marginTop: '0.25rem', color: '#a855f7' }}>{data?.successRate || 0}%</h2>
+              <p className="sp-caps text-[var(--n-500)]">อัตราความสำเร็จ</p>
+              <h2 className="sp-font-display text-[1.75rem] font-black mt-1 text-[#a855f7]">{data?.successRate || 0}%</h2>
             </div>
           </div>
         </div>
 
         {/* Charts Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 400px), 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,400px),1fr))] gap-6 mb-10">
           
-          <div className="sp-card sp-animate-d3" style={{ padding: '2rem' }}>
-            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="sp-card sp-animate-d3 p-8">
+            <div className="mb-8 flex justify-between items-center">
               <div>
-                <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>แนวโน้มรายได้ 90 วันย้อนหลัง</h3>
-                <p style={{ color: 'var(--n-500)', fontSize: '0.85rem' }}>แสดงรายได้จากออเดอร์ที่จัดส่งสำเร็จตามวันที่</p>
+                <h3 className="sp-font-display sp-text-md font-extrabold">แนวโน้มรายได้ 90 วันย้อนหลัง</h3>
+                <p className="text-[var(--n-500)] text-[0.85rem]">แสดงรายได้จากออเดอร์ที่จัดส่งสำเร็จตามวันที่</p>
               </div>
             </div>
-            <div style={{ width: '100%', height: '300px' }}>
+            <div className="w-full h-[300px]">
               <ResponsiveContainer width="100%" height={300} minWidth={0} initialDimension={{ width: 600, height: 300 }}>
                 <LineChart data={data?.revenueChart || []} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(d: string) => d.slice(5)} interval="preserveStartEnd" minTickGap={24} />
                   <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `฿${val}`} />
                   <RechartsTooltip 
-                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: any) => [`฿${Number(value).toLocaleString()}`, 'รายได้']}
-                    labelFormatter={(label) => `วันที่: ${label}`}
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white rounded-lg border border-slate-200 shadow-md p-2 text-xs">
+                            <p className="text-slate-500 font-medium">วันที่: {label}</p>
+                            <p className="text-orange-600 font-bold mt-1">รายได้: ฿{Number(payload[0].value).toLocaleString()}</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
                   <Line type="monotone" dataKey="revenue" stroke="#ea580c" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
                 </LineChart>
@@ -203,12 +212,12 @@ export default function MerchantStatsPage() {
             </div>
           </div>
 
-          <div className="sp-card sp-animate-d3" style={{ padding: '2rem', display: 'flex', flexDirection: 'column' }}>
+          <div className="sp-card sp-animate-d3 p-8 flex flex-col">
             <div>
-              <h3 className="sp-font-display sp-text-md" style={{ fontWeight: 800 }}>สัดส่วนสถานะออเดอร์</h3>
-              <p style={{ color: 'var(--n-500)', fontSize: '0.85rem' }}>Distribution of current statuses</p>
+              <h3 className="sp-font-display sp-text-md font-extrabold">สัดส่วนสถานะออเดอร์</h3>
+              <p className="text-[var(--n-500)] text-[0.85rem]">Distribution of current statuses</p>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: '250px' }}>
+            <div className="flex-1 flex items-center justify-center h-full min-h-[250px]">
               <ResponsiveContainer width="100%" height={250} minWidth={0} initialDimension={{ width: 300, height: 250 }}>
                 <PieChart>
                   <Pie
@@ -226,17 +235,25 @@ export default function MerchantStatsPage() {
                     ))}
                   </Pie>
                   <RechartsTooltip 
-                     contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                     formatter={(value: any) => [`${value} รายการ`, 'จำนวน']}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-white rounded-lg border border-slate-200 shadow-md p-2 text-xs">
+                            <p className="text-slate-700 font-semibold">{payload[0].name}: {payload[0].value} รายการ</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '1rem' }}>
+            <div className="grid grid-cols-2 gap-2 mt-4">
               {pieData.map((entry, index) => (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
-                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: COLORS[index % COLORS.length] }}></div>
-                  <span style={{ color: 'var(--n-700)' }}>{entry.name} <strong style={{color:'var(--n-900)'}}>({entry.value})</strong></span>
+                <div key={index} className="flex items-center gap-2 text-[0.8rem]">
+                  <div className={`w-2.5 h-2.5 rounded-full ${COLOR_CLASSES[index % COLOR_CLASSES.length]}`} />
+                  <span className="text-[var(--n-700)]">{entry.name} <strong className="text-[var(--n-900)]">({entry.value})</strong></span>
                 </div>
               ))}
             </div>

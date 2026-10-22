@@ -132,30 +132,30 @@ export default function CatalogPage() {
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <button onClick={() => router.push('/merchant')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button onClick={() => router.push('/merchant')} className="sp-link-muted flex items-center gap-2 bg-transparent border-none text-sm cursor-pointer">
           <ArrowLeft size={16} /> กลับ Dashboard
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-        <div style={{ width: '80px' }} />
+        <div className="w-20" />
       </nav>
 
-      <main style={{ maxWidth: '760px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+      <main className="max-w-[760px] mx-auto py-10 px-6">
+        <div className="sp-animate mb-10">
           <span className="sp-section-eyebrow">Store Portal</span>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>Catalog สินค้า</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>
+          <h1 className="sp-font-display sp-text-lg font-black">Catalog สินค้า</h1>
+          <p className="text-[var(--n-500)] mt-1">
             บันทึกรายการสินค้าที่ขายบ่อย เพื่อเลือกได้ง่ายตอนสร้างออเดอร์
           </p>
         </div>
 
         {/* ── Product List ── */}
-        <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--n-150)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="sp-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="sp-card p-0 overflow-hidden">
+          <div className="py-5 px-6 border-b border-[var(--n-150)] flex justify-between items-center">
+            <h2 className="sp-section-title flex items-center gap-2">
               <BookOpen size={16} /> รายการสินค้า
             </h2>
             {editingId !== 'new' && (
-              <button onClick={startNew} className="sp-btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.85rem' }}>
+              <button onClick={startNew} className="sp-btn-primary py-1.5 px-4 text-[0.85rem]">
                 <Plus size={15} /> เพิ่มสินค้า
               </button>
             )}
@@ -163,8 +163,8 @@ export default function CatalogPage() {
 
           {/* ── New Product Form ── */}
           {editingId === 'new' && (
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--n-150)', background: 'var(--brand-50)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+            <div className="py-5 px-6 border-b border-[var(--n-150)] bg-[var(--brand-50)]">
+              <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-3">
                 <div className="sp-field">
                   <label className="sp-label">ชื่อสินค้า *</label>
                   <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
@@ -184,7 +184,7 @@ export default function CatalogPage() {
                   />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <div className="flex gap-2 justify-end">
                 <button onClick={cancelEdit} className="sp-btn-ghost"><X size={15} /> ยกเลิก</button>
                 <button onClick={handleSave} disabled={saving} className="sp-btn-brand">
                   {saving ? <span className="sp-spinner" /> : <><Check size={15} /> บันทึก</>}
@@ -205,64 +205,52 @@ export default function CatalogPage() {
                 <div key={product.id}>
                   {editingId === product.id ? (
                     // ── Edit Row ──
-                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--n-100)', background: 'oklch(97% 0.01 250)' }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <div className="py-4 px-6 border-b border-[var(--n-100)] bg-[oklch(97%_0.01_250)]">
+                      <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-3">
                         <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="sp-input" />
                         <input type="text" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} className="sp-input" placeholder="หน่วย" />
                         <input type="number" min="0" step="0.01" value={form.defaultPrice} onChange={e => setForm({ ...form, defaultPrice: e.target.value })} className="sp-input" />
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                        <button onClick={cancelEdit} className="sp-btn-ghost" style={{ fontSize: '0.8rem' }}><X size={13} /> ยกเลิก</button>
-                        <button onClick={handleSave} disabled={saving} className="sp-btn-brand" style={{ fontSize: '0.8rem', padding: '0.4rem 0.9rem' }}>
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={cancelEdit} className="sp-btn-ghost text-[0.8rem]"><X size={13} /> ยกเลิก</button>
+                        <button onClick={handleSave} disabled={saving} className="sp-btn-brand text-[0.8rem] py-1.5 px-3.5">
                           {saving ? <span className="sp-spinner" /> : <><Check size={13} /> บันทึก</>}
                         </button>
                       </div>
                     </div>
                   ) : (
                     // ── Display Row ──
-                    <div key={product.id} style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '0.875rem 1.5rem', borderBottom: '1px solid var(--n-100)',
-                      opacity: product.isActive ? 1 : 0.5,
-                    }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontWeight: 600 }}>{product.name}</span>
+                    <div key={product.id} className={`flex justify-between items-center py-3.5 px-6 border-b border-[var(--n-100)] ${product.isActive ? 'opacity-100' : 'opacity-50'}`}>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{product.name}</span>
                           {!product.isActive && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--n-400)', background: 'var(--n-100)', padding: '0.1rem 0.5rem', borderRadius: '1rem' }}>ปิดใช้งาน</span>
+                            <span className="text-[0.65rem] text-[var(--n-400)] bg-[var(--n-100)] py-0.5 px-2 rounded-full">ปิดใช้งาน</span>
                           )}
                           {(product as any)._count?.orderItems > 0 && (
-                            <span style={{ fontSize: '0.65rem', color: 'var(--brand-600)', background: 'var(--brand-50)', padding: '0.1rem 0.5rem', borderRadius: '1rem' }}>
+                            <span className="text-[0.65rem] text-[var(--brand-600)] bg-[var(--brand-50)] py-0.5 px-2 rounded-full">
                               เคยสั่ง {(product as any)._count.orderItems} ครั้ง
                             </span>
                           )}
                         </div>
-                        <div style={{ color: 'var(--n-500)', fontSize: '0.8rem' }}>
+                        <div className="text-[var(--n-500)] text-[0.8rem]">
                           ฿{Number(product.defaultPrice).toLocaleString('th-TH', { minimumFractionDigits: 2 })} / {product.unit || 'ชิ้น'}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <div className="flex gap-2 items-center">
                         {/* Toggle Active/Inactive */}
                         <button
                           onClick={() => handleToggleActive(product)}
                           title={product.isActive ? 'คลิกเพื่อปิดใช้งาน' : 'คลิกเพื่อเปิดใช้งาน'}
-                          style={{
-                            width: '36px', height: '20px', borderRadius: '10px', border: 'none',
-                            cursor: 'pointer', position: 'relative', transition: 'background 0.2s',
-                            background: product.isActive ? 'var(--brand-500)' : 'var(--n-200)',
-                          }}
+                          className={`w-9 h-5 rounded-[10px] border-none cursor-pointer relative transition-colors duration-200 ${product.isActive ? 'bg-[var(--brand-500)]' : 'bg-[var(--n-200)]'}`}
                         >
-                          <div style={{
-                            position: 'absolute', top: '2px', width: '16px', height: '16px',
-                            borderRadius: '50%', background: 'white', transition: 'left 0.2s',
-                            left: product.isActive ? '18px' : '2px',
-                          }} />
+                          <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-[left] duration-200 ${product.isActive ? 'left-[18px]' : 'left-0.5'}`} />
                         </button>
-                        <button onClick={() => startEdit(product)} className="sp-btn-ghost" style={{ padding: '0.35rem 0.65rem' }}>
+                        <button onClick={() => startEdit(product)} className="sp-btn-ghost py-1.5 px-2.5">
                           <Pencil size={14} />
                         </button>
                         <button onClick={() => handleDelete(product.id, product.name)} disabled={deleting === product.id}
-                          className="sp-btn-danger" style={{ padding: '0.35rem 0.65rem' }}>
+                          className="sp-btn-danger py-1.5 px-2.5">
                           {deleting === product.id ? <span className="sp-spinner" /> : <Trash2 size={14} />}
                         </button>
                       </div>

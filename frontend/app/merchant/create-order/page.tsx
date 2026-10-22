@@ -151,60 +151,59 @@ export default function CreateOrderPage() {
 
   return (
     <div className="sp-page">
-      <nav className="sp-nav" style={{ background: '#fff', borderBottom: '1px solid var(--n-200)', position: 'sticky', top: 0, zIndex: 10 }}>
-        <button onClick={() => router.back()} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer', color: 'var(--n-500)' }}>
+      <nav className="sp-nav bg-white border-b border-[var(--n-200)] sticky top-0 z-10">
+        <button onClick={() => router.back()} className="sp-link-muted flex items-center gap-2 bg-transparent border-none text-sm cursor-pointer text-[var(--n-500)]">
           <ArrowLeft size={16} /> ย้อนกลับ
         </button>
         <span className="sp-logo">Store<span className="sp-logo-accent">Portal</span></span>
-        <div style={{ width: '80px' }} />
+        <div className="w-20" />
       </nav>
 
-      <main style={{ maxWidth: '860px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+      <main className="max-w-[860px] mx-auto py-10 px-6">
+        <div className="sp-animate mb-10">
           <span className="sp-section-eyebrow">Store Portal</span>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>สร้างออเดอร์จัดส่ง</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>เพิ่มรายการสินค้าและข้อมูลผู้รับพัสดุ</p>
+          <h1 className="sp-font-display sp-text-lg font-black">สร้างออเดอร์จัดส่ง</h1>
+          <p className="text-[var(--n-500)] mt-1">เพิ่มรายการสินค้าและข้อมูลผู้รับพัสดุ</p>
         </div>
 
         <form onSubmit={handleSubmit} className="sp-stagger">
 
           {/* ── Section 1: รายการสินค้า (Multi-item) ── */}
-          <div className="sp-card" style={{ marginBottom: '1.5rem', background: '#fff' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <h3 className="sp-caps" style={{ color: 'var(--n-400)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="sp-card mb-6 bg-white">
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="sp-caps text-[var(--n-400)] flex items-center gap-2">
                 <Package size={14} /> รายการสินค้า
               </h3>
-              <button type="button" onClick={addItem} className="sp-btn-ghost" style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem' }}>
+              <button type="button" onClick={addItem} className="sp-btn-ghost text-[0.8rem] py-1.5 px-3">
                 <Plus size={14} /> เพิ่มรายการ
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="flex flex-col gap-4">
               {items.map((item, idx) => (
-                <div key={idx} style={{ position: 'relative', padding: '1.25rem', border: '1px solid var(--n-200)', borderRadius: '12px', background: 'var(--n-50)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <span className="sp-caps" style={{ color: 'var(--n-500)', fontSize: '0.7rem' }}>รายการที่ {idx + 1}</span>
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div key={idx} className="relative p-5 border border-[var(--n-200)] rounded-xl bg-[var(--n-50)]">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="sp-caps text-[var(--n-500)] text-[0.7rem]">รายการที่ {idx + 1}</span>
+                    <div className="flex gap-2 items-center">
                       {items.length > 1 && (
-                        <button type="button" onClick={() => removeItem(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-300)', padding: '0.25rem' }}>
+                        <button type="button" onClick={() => removeItem(idx)} className="bg-transparent border-none cursor-pointer text-[var(--n-300)] p-1">
                           <Trash2 size={15} />
                         </button>
                       )}
                     </div>
                   </div>
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <div className="grid grid-cols-[2fr_1fr_1fr] gap-3 mb-2">
                     <div className="sp-field">
                       <label className="sp-label">ชื่อสินค้า</label>
                       {item.isCustom ? (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div className="flex gap-2">
                           <input
                             type="text" required value={item.productName}
                             onChange={e => updateItem(idx, 'productName', e.target.value)}
-                            className="sp-input" placeholder="พิมพ์ชื่อสินค้า..."
-                            style={{ flex: 1 }}
+                            className="sp-input flex-1" placeholder="พิมพ์ชื่อสินค้า..."
                           />
-                          <button type="button" onClick={() => updateItem(idx, 'isCustom', false)} className="sp-btn-ghost" style={{ padding: '0.5rem', fontSize: '0.8rem' }}>
+                          <button type="button" onClick={() => updateItem(idx, 'isCustom', false)} className="sp-btn-ghost p-2 text-[0.8rem]">
                             ยกเลิก
                           </button>
                         </div>
@@ -273,8 +272,8 @@ export default function CreateOrderPage() {
                       className="sp-input" placeholder="เช่น ขอสีเทา, พับให้ด้วย"
                     />
                   </div>
-                  <div style={{ marginTop: '0.5rem', textAlign: 'right', fontSize: '0.8rem', color: 'var(--n-500)' }}>
-                    รวม: <strong style={{ color: 'var(--n-800)' }}>฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong>
+                  <div className="mt-2 text-right text-[0.8rem] text-[var(--n-500)]">
+                    รวม: <strong className="text-[var(--n-800)]">฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong>
                   </div>
                 </div>
               ))}
@@ -282,11 +281,11 @@ export default function CreateOrderPage() {
           </div>
 
           {/* ── Section 2: ข้อมูลผู้รับ ── */}
-          <div className="sp-card" style={{ marginBottom: '1.5rem', background: '#fff' }}>
-            <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className="sp-card mb-6 bg-white">
+            <h3 className="sp-caps text-[var(--n-400)] mb-5 flex items-center gap-2">
               <User size={14} /> ข้อมูลผู้รับ
             </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+            <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="sp-field">
                 <label className="sp-label">ชื่อผู้รับ</label>
                 <input type="text" required value={formData.receiverName}
@@ -302,30 +301,29 @@ export default function CreateOrderPage() {
                 />
               </div>
             </div>
-            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+            <div className="sp-field mb-4">
               <label className="sp-label">เมือง / จังหวัด</label>
               <input type="text" required value={formData.city}
                 onChange={e => setFormData({ ...formData, city: e.target.value })}
                 className="sp-input" placeholder="เช่น Bangkok, Chiang Mai"
               />
             </div>
-            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+            <div className="sp-field mb-4">
               <label className="sp-label">ที่อยู่จัดส่ง</label>
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
                 <textarea required rows={3} value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  className="sp-input" style={{ resize: 'none' }}
+                  className="sp-input resize-none"
                   placeholder="เลขที่บ้าน, ถนน, แขวง, เขต, จังหวัด"
                 />
                 <button type="button" onClick={checkWeather} disabled={weatherChecking}
-                  className="sp-btn-ghost"
-                  style={{ position: 'absolute', right: '0.75rem', bottom: '0.75rem', padding: '0.3rem 0.6rem', fontSize: '0.7rem' }}
+                  className="sp-btn-ghost absolute right-3 bottom-3 py-1 px-2.5 text-[0.7rem]"
                 >
                   {weatherChecking ? 'กำลังเช็ค...' : 'เช็คสภาพอากาศ'}
                 </button>
               </div>
             </div>
-            <div className="sp-field" style={{ marginBottom: '1rem' }}>
+            <div className="sp-field mb-4">
               <label className="sp-label">ดึงพิกัดอัตโนมัติ (Google Maps / LINE)</label>
               <input 
                 type="text" 
@@ -343,7 +341,7 @@ export default function CreateOrderPage() {
                 }}
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="grid grid-cols-2 gap-4">
               <div className="sp-field">
                 <label className="sp-label">Latitude (ไม่บังคับ)</label>
                 <input type="number" step="any" value={formData.lat}
@@ -362,61 +360,56 @@ export default function CreateOrderPage() {
           </div>
 
           {/* ── Section 3: Summary ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem' }}>
+          <div className="grid grid-cols-2 gap-6 mb-10">
 
-            <div className="sp-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: '#fff' }}>
-              <h3 className="sp-caps" style={{ color: 'var(--n-400)' }}>บริการเสริม</h3>
+            <div className="sp-card flex flex-col gap-4 bg-white">
+              <h3 className="sp-caps text-[var(--n-400)]">บริการเสริม</h3>
               <div className="sp-checkbox">
                 <input type="checkbox" id="insure" checked={formData.hasInsurance}
                   onChange={e => setFormData({ ...formData, hasInsurance: e.target.checked })}
                 />
-                <label htmlFor="insure" className="sp-checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Shield size={14} style={{ color: 'var(--brand-500)' }} />
+                <label htmlFor="insure" className="sp-checkbox-label flex items-center gap-2">
+                  <Shield size={14} className="text-[var(--brand-500)]" />
                   SwiftPath Insurance (+฿50)
                 </label>
               </div>
               {weatherData && (
-                <div style={{
-                  padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem',
-                  background: weatherData.surge > 0 ? 'var(--warning-bg)' : 'var(--success-bg)',
-                  color: weatherData.surge > 0 ? 'var(--warning-text)' : 'var(--success-text)',
-                  display: 'flex', gap: '0.5rem'
-                }}>
+                <div className={`p-3 rounded-lg text-[0.8rem] flex gap-2 ${weatherData.surge > 0 ? 'bg-[var(--warning-bg)] text-[var(--warning-text)]' : 'bg-[var(--success-bg)] text-[var(--success-text)]'}`}>
                   {weatherData.surge > 0 ? <CloudRain size={16} /> : <CheckCircle size={16} />}
                   <div>
-                    <span style={{ fontWeight: 700 }}>{weatherData.main}</span>: {weatherData.surge > 0 ? `Surge +฿${weatherData.surge.toFixed(0)}` : 'ไม่มีค่าเพิ่ม'}
-                    <div style={{ opacity: 0.8, fontSize: '0.7rem' }}>ETA ≈ {weatherData.eta} นาที</div>
+                    <span className="font-bold">{weatherData.main}</span>: {weatherData.surge > 0 ? `Surge +฿${weatherData.surge.toFixed(0)}` : 'ไม่มีค่าเพิ่ม'}
+                    <div className="opacity-80 text-[0.7rem]">ETA ≈ {weatherData.eta} นาที</div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="sp-card" style={{ background: 'var(--n-50)' }}>
-              <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1.25rem' }}>สรุปยอดชำระ</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div className="sp-card bg-[var(--n-50)]">
+              <h3 className="sp-caps text-[var(--n-600)] mb-5">สรุปยอดชำระ</h3>
+              <div className="flex flex-col gap-2">
                 {items.map((item, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <span style={{ color: 'var(--n-500)' }}>{item.productName || `รายการ ${idx + 1}`} ×{item.quantity}</span>
-                    <span style={{ color: 'var(--n-200)' }}>฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
+                  <div key={idx} className="flex justify-between text-[0.8rem]">
+                    <span className="text-[var(--n-500)]">{item.productName || `รายการ ${idx + 1}`} ×{item.quantity}</span>
+                    <span className="text-[var(--n-200)]">฿{((Number(item.unitPrice) || 0) * (Number(item.quantity) || 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
-                <div style={{ height: '1px', background: 'var(--n-700)', margin: '0.25rem 0' }} />
+                <div className="h-px bg-[var(--n-700)] my-1" />
                 {surgeAmount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <span style={{ color: 'var(--n-500)' }}>Surge ({weatherData?.main})</span>
-                    <span style={{ color: 'var(--brand-400)' }}>+฿{surgeAmount.toFixed(0)}</span>
+                  <div className="flex justify-between text-[0.8rem]">
+                    <span className="text-[var(--n-500)]">Surge ({weatherData?.main})</span>
+                    <span className="text-[var(--brand-400)]">+฿{surgeAmount.toFixed(0)}</span>
                   </div>
                 )}
                 {formData.hasInsurance && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                    <span style={{ color: 'var(--n-500)' }}>ประกันภัย</span>
-                    <span style={{ color: 'oklch(65% 0.12 270)' }}>+฿50</span>
+                  <div className="flex justify-between text-[0.8rem]">
+                    <span className="text-[var(--n-500)]">ประกันภัย</span>
+                    <span className="text-[oklch(65%_0.12_270)]">+฿50</span>
                   </div>
                 )}
-                <div style={{ height: '1px', background: 'var(--n-700)', margin: '0.25rem 0' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="sp-caps" style={{ color: 'var(--n-500)' }}>รวมสุทธิ</span>
-                  <span className="sp-font-display" style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)' }}>
+                <div className="h-px bg-[var(--n-700)] my-1" />
+                <div className="flex justify-between items-baseline">
+                  <span className="sp-caps text-[var(--n-500)]">รวมสุทธิ</span>
+                  <span className="sp-font-display text-[1.75rem] font-black text-[var(--n-900)]">
                     ฿{grandTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                 </div>

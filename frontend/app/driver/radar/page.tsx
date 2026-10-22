@@ -1,15 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { io, Socket } from 'socket.io-client';
-import { MapPin, Clock, Shield, Zap, CheckCircle, CloudRain, LogOut, ArrowLeft, RefreshCw, Package } from 'lucide-react';
+import useSWR from 'swr';
+import { 
+  MapPin, Clock, Shield, Zap, CheckCircle, CloudRain, LogOut, 
+  ArrowLeft, RefreshCw, Package, Wifi, WifiOff 
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useHaptic } from '@/hooks/useHaptic';
 import { useSound } from '@/hooks/useSound';
 import EmptyState from '@/components/EmptyState';
 import OrderSkeleton from '@/components/OrderSkeleton';
 import ThemeToggle from '@/components/ThemeToggle';
+import { createAuthenticatedSocket, SocketConnectionState } from '@/lib/socket';
 
 // พิกัดเมืองไทยสำหรับ Marker บน Map
 const CITY_COORDINATES: Record<string, [number, number]> = {
@@ -23,6 +27,17 @@ const CITY_COORDINATES: Record<string, [number, number]> = {
   'Hat Yai': [7.0061, 100.4747],
 };
 
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err: any = new Error(data.message || 'Failed to fetch');
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+};
+
 export default function DriverRadarPage() {
   const router = useRouter();
   const mapRef = useRef<any>(null);
@@ -32,34 +47,121 @@ export default function DriverRadarPage() {
   const triggerHaptic = useHaptic();
   const playSound = useSound();
 
-  const [orders, setOrders] = useState<any[]>([]);
-  const [hotspots, setHotspots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState<number | null>(null);
   const [mapReady, setMapReady] = useState(false);
-
-  const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
+  const [connectionState, setConnectionState] = useState<SocketConnectionState>('connecting');
 
   const getCookie = (name: string) => {
+    if (typeof document === 'undefined') return null;
     const v = `; ${document.cookie}`;
     const p = v.split(`; ${name}=`);
     if (p.length === 2) return p.pop()?.split(';').shift();
     return null;
   };
 
-  const fetchOrders = useCallback(async () => {
+  // ตรวจสอบสิทธิ์คนขับ
+  useEffect(() => {
     const role = getCookie('role');
-    if (!role || role !== 'Driver') { router.push('/driver/login'); return; }
-    try {
-      const [ordRes, hotRes] = await Promise.all([
-        fetch('/api/proxy/orders/available'),
-        fetch('/api/proxy/weather/hotspots'),
-      ]);
-      if (ordRes.ok) setOrders(await ordRes.json());
-      if (hotRes.ok) setHotspots(await hotRes.json());
-    } catch (err) { console.warn(err); }
-    finally { setLoading(false); }
+    if (!role || role !== 'Driver') {
+      router.push('/driver/login');
+    }
   }, [router]);
+
+  // SWR: Available Orders (Caching + Background Polling fallback every 30s)
+  const {
+    data: orders = [],
+    isLoading: ordersLoading,
+    isValidating: ordersValidating,
+    mutate: mutateOrders,
+  } = useSWR<any[]>(
+    '/api/proxy/orders/available',
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+      refreshInterval: 30000,
+      dedupingInterval: 4000,
+    }
+  );
+
+  // SWR: Weather Hotspots (Polling every 2 mins)
+  const {
+    data: hotspots = [],
+    mutate: mutateHotspots,
+  } = useSWR<any[]>(
+    '/api/proxy/weather/hotspots',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+      refreshInterval: 120000,
+      dedupingInterval: 10000,
+    }
+  );
+
+  // WebSocket Connection & Real-time Optimistic Updates
+  useEffect(() => {
+    let socket: any = null;
+    let isMounted = true;
+
+    async function setupSocket() {
+      socket = await createAuthenticatedSocket();
+      if (!socket || !isMounted) return;
+
+      socket.on('connect', () => {
+        if (!isMounted) return;
+        setConnectionState('connected');
+        // Revalidate cache on connect/reconnect
+        mutateOrders();
+        mutateHotspots();
+      });
+
+      socket.on('disconnect', () => {
+        if (!isMounted) return;
+        setConnectionState('disconnected');
+      });
+
+      socket.on('reconnect_attempt', () => {
+        if (!isMounted) return;
+        setConnectionState('reconnecting');
+      });
+
+      socket.on('connect_error', () => {
+        if (!isMounted) return;
+        setConnectionState('error');
+      });
+
+      // Real-time: มีออเดอร์ใหม่เข้ามา
+      socket.on('new_available_order', (newOrder: any) => {
+        if (!isMounted) return;
+        playSound();
+        triggerHaptic();
+        toast.success(`มีงานใหม่เข้ามา: ฿${(newOrder.totalPrice || newOrder.price)?.toLocaleString()}`, { icon: '🔔' });
+
+        // Optimistic mutation: ใส่ Order ใหม่ลง Cache ทันทีโดยไม่ต้องรอ Fetch
+        mutateOrders((currentOrders = []) => {
+          if (currentOrders.some((o: any) => o.id === newOrder.id)) return currentOrders;
+          return [newOrder, ...currentOrders];
+        }, false);
+      });
+
+      // Real-time: มีคนขับคนอื่นรับงานไปแล้ว
+      socket.on('order_taken', (data: { orderId: number }) => {
+        if (!isMounted) return;
+        // Mutate cache: ลบงานที่ถูกรับแล้วออกจากรายการทันที
+        mutateOrders((currentOrders = []) => {
+          return (currentOrders || []).filter((o: any) => o.id !== data.orderId);
+        }, false);
+      });
+    }
+
+    setupSocket();
+
+    return () => {
+      isMounted = false;
+      if (socket) socket.disconnect();
+    };
+  }, [mutateOrders, mutateHotspots, playSound, triggerHaptic]);
 
   // โหลด Leaflet แบบ Dynamic (ป้องกัน SSR Error)
   useEffect(() => {
@@ -102,7 +204,6 @@ export default function DriverRadarPage() {
     map.attributionControl.setPrefix(false);
 
     // ใช้ OpenStreetMap แทน CARTO เพราะ CARTO บังคับใช้ API key แล้ว
-    // OSM มีสไตล์เดียวคือโทนสว่าง จึงกลับสีด้วย CSS filter เพื่อคงธีมมืดของหน้านี้ไว้
     const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -110,7 +211,7 @@ export default function DriverRadarPage() {
 
     const tilePane = tileLayer.getContainer();
     if (tilePane) {
-      tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9)';
+      tilePane.classList.add('sp-radar-tile-invert');
     }
 
     mapInstanceRef.current = map;
@@ -182,83 +283,77 @@ export default function DriverRadarPage() {
     });
   }, [hotspots, mapReady]);
 
-  // WebSocket + Polling
-  useEffect(() => {
-    const role = getCookie('role');
-    if (!role || role !== 'Driver') return;
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 60_000);
-
-    let sock: Socket | null = null;
-    async function initSocket() {
-      try {
-        const tokenRes = await fetch('/api/auth/token');
-        if (tokenRes.ok) {
-          const { token } = await tokenRes.json();
-          if (token) {
-            sock = io(SOCKET_URL, { auth: { token: `Bearer ${token}` }, withCredentials: true });
-            sock.on('new_available_order', (order: any) => {
-              setOrders(prev => {
-                if (prev.find(o => o.id === order.id)) return prev;
-                playSound(); // Play sound on new order
-                return [order, ...prev];
-              });
-            });
-            sock.on('order_taken', (data: { orderId: number }) => {
-              setOrders(prev => prev.filter(o => o.id !== data.orderId));
-            });
-          }
-        }
-      } catch (err) { console.warn(err); }
-    }
-    initSocket();
-    return () => { if (sock) sock.disconnect(); clearInterval(interval); };
-  }, [fetchOrders, SOCKET_URL]);
-
+  // Optimistic Mutation: รับงาน
   const handleAccept = async (orderId: number) => {
-    triggerHaptic(); // Vibrate when button pressed
+    triggerHaptic();
     setAccepting(orderId);
+
+    const previousOrders = orders || [];
+    const optimisticOrders = previousOrders.filter((o: any) => o.id !== orderId);
+
     try {
-      const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
-      if (res.ok) {
-        toast.success('รับงานสำเร็จ!');
-        router.push(`/driver/orders/${orderId}`);
-      } else {
-        const e = await res.json();
-        toast.error(e.message || 'ไม่สามารถรับงานได้');
-        setOrders(prev => prev.filter(o => o.id !== orderId));
-      }
-    } catch { toast.error('Network Error'); }
-    finally { setAccepting(null); }
+      await mutateOrders(
+        async () => {
+          const res = await fetch(`/api/proxy/orders/${orderId}/accept`, { method: 'PATCH' });
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            throw new Error(errData.message || 'ไม่สามารถรับงานได้');
+          }
+          return optimisticOrders;
+        },
+        {
+          optimisticData: optimisticOrders,
+          rollbackOnError: true,
+          populateCache: true,
+          revalidate: false,
+        }
+      );
+
+      toast.success('รับงานสำเร็จ!');
+      router.push(`/driver/orders/${orderId}`);
+    } catch (err: any) {
+      toast.error(err.message || 'ไม่สามารถรับงานได้');
+    } finally {
+      setAccepting(null);
+    }
   };
 
   return (
     <div className="sp-page">
-      <style>{`
-        @keyframes pulse-marker {
-          0%, 100% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.15); opacity: 0.85; }
-        }
-      `}</style>
-
       {/* Nav */}
       <nav className="sp-nav">
         <button onClick={() => router.push('/driver')} className="sp-btn-ghost sp-btn-icon" aria-label="กลับหน้าหลัก">
           <ArrowLeft size={18} />
         </button>
         <span className="sp-logo">Fleet<span className="sp-logo-accent">Radar</span></span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="flex items-center gap-3">
           <ThemeToggle />
-          <span className="sp-caps" style={{ color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--success-text)', display: 'inline-block', animation: 'pulse 1.6s ease-in-out infinite' }} />
-            Live
-          </span>
+
+          {connectionState === 'connected' ? (
+            <span className="sp-caps text-[var(--success-text)] flex items-center gap-1.5 text-xs font-semibold">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--success-text)] inline-block animate-pulse" />
+              Live Radar
+            </span>
+          ) : connectionState === 'reconnecting' ? (
+            <span className="sp-caps text-amber-600 flex items-center gap-1.5 text-xs font-semibold animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+              Reconnecting
+            </span>
+          ) : (
+            <span className="sp-caps text-rose-500 flex items-center gap-1.5 text-xs font-semibold">
+              <WifiOff size={12} />
+              Offline
+            </span>
+          )}
+
           <button
             onClick={async () => {
               await fetch('/api/auth/logout', { method: 'POST' });
               window.location.href = '/driver/login';
             }}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex', opacity: 0.6 }}>
+            className="bg-transparent border-none cursor-pointer text-[var(--n-600)] flex opacity-60 hover:opacity-100 transition-opacity"
+            aria-label="ออกจากระบบ"
+          >
             <LogOut size={18} />
           </button>
         </div>
@@ -274,7 +369,7 @@ export default function DriverRadarPage() {
           แผนที่ความต้องการทั่วประเทศ
         </span>
 
-        {/* Map overlay: ไม่มี Hotspot — ให้เห็นว่าระบบยัง "กวาดหา" อยู่ ไม่ใช่หน้าค้าง */}
+        {/* Map overlay: ไม่มี Hotspot */}
         {mapReady && hotspots.length === 0 && (
           <div className="sp-radar-idle">
             <span className="sp-radar-sweep" aria-hidden="true" />
@@ -285,13 +380,13 @@ export default function DriverRadarPage() {
         {/* Legend */}
         {hotspots.length > 0 && (
           <div className="sp-radar-legend">
-            <p className="sp-caps" style={{ marginBottom: '0.25rem', opacity: 0.8 }}>Surge Hotspots ({hotspots.length})</p>
+            <p className="sp-caps mb-1 opacity-80">Surge Hotspots ({hotspots.length})</p>
             {hotspots.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <CloudRain size={11} style={{ color: 'var(--brand-400)' }} />
-                <span style={{ fontSize: '0.8rem' }}>{s.city}</span>
-                <Zap size={10} style={{ color: 'var(--brand-400)' }} />
-                <span className="sp-caps" style={{ fontSize: '0.7rem', color: 'var(--brand-400)' }}>+20%</span>
+              <div key={i} className="flex items-center gap-2">
+                <CloudRain size={11} className="text-[var(--brand-400)]" />
+                <span className="text-xs">{s.city}</span>
+                <Zap size={10} className="text-[var(--brand-400)]" />
+                <span className="sp-caps text-[0.7rem] text-[var(--brand-400)]">+20%</span>
               </div>
             ))}
           </div>
@@ -299,21 +394,62 @@ export default function DriverRadarPage() {
       </div>
 
       {/* Orders List */}
-      <main className="sp-container" style={{ maxWidth: '600px', paddingTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--brand-500)', boxShadow: '0 0 0 3px var(--brand-100)', animation: 'pulse 2s infinite' }} />
-              <span className="sp-caps" style={{ color: 'var(--brand-600)', fontWeight: 700 }}>Scanning Sector 7G</span>
-            </div>
-            <h1 className="sp-font-display sp-text-md" style={{ fontWeight: 900, color: 'var(--n-900)' }}>งานใกล้คุณ</h1>
+      <main className="sp-container max-w-[600px] pt-8 pb-12">
+        {/* ── Connection & Revalidation Notification Banners (Fallback UI) ── */}
+        {connectionState === 'reconnecting' && (
+          <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between mb-4 animate-pulse">
+            <span className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              กำลังเชื่อมต่อเรดาร์ใหม่ (Reconnecting)... ระบบกำลังดึงงานผ่าน Background Fetching
+            </span>
+            <button 
+              onClick={() => mutateOrders()} 
+              disabled={ordersValidating}
+              className="flex items-center gap-1 underline text-amber-900 cursor-pointer bg-transparent border-none text-xs"
+            >
+              <RefreshCw size={12} className={ordersValidating ? 'animate-spin' : ''} /> รีเฟรช
+            </button>
           </div>
-          <button onClick={fetchOrders} className="sp-btn-ghost sp-btn-icon" aria-label="รีเฟรชรายการงาน">
-            <RefreshCw size={16} className={loading ? 'spin' : ''} />
+        )}
+
+        {(connectionState === 'disconnected' || connectionState === 'error') && (
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-800 px-4 py-2.5 rounded-xl text-xs font-medium flex items-center justify-between mb-4">
+            <span className="flex items-center gap-2">
+              <WifiOff size={14} className="text-rose-600" />
+              สัญญาณเรดาร์สดขาดหาย • กำลังทำงานในโหมด Background Fetching สำรอง
+            </span>
+            <button 
+              onClick={() => mutateOrders()} 
+              disabled={ordersValidating}
+              className="flex items-center gap-1 underline text-rose-900 cursor-pointer bg-transparent border-none text-xs"
+            >
+              <RefreshCw size={12} className={ordersValidating ? 'animate-spin' : ''} /> ดึงข้อมูลใหม่
+            </button>
+          </div>
+        )}
+
+        <div className="flex justify-between items-end mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-[var(--brand-500)] shadow-[0_0_0_3px_var(--brand-100)] animate-pulse" />
+              <span className="sp-caps text-[var(--brand-600)] font-bold">Scanning Sector 7G</span>
+            </div>
+            <h1 className="sp-font-display sp-text-md font-black text-[var(--n-900)]">งานใกล้คุณ</h1>
+          </div>
+          <button 
+            onClick={() => {
+              mutateOrders();
+              mutateHotspots();
+            }} 
+            disabled={ordersValidating}
+            className="sp-btn-ghost sp-btn-icon" 
+            aria-label="รีเฟรชรายการงาน"
+          >
+            <RefreshCw size={16} className={ordersValidating ? 'spin' : ''} />
           </button>
         </div>
 
-        {loading ? (
+        {ordersLoading ? (
           <OrderSkeleton />
         ) : orders.length === 0 ? (
           <EmptyState 
@@ -322,58 +458,57 @@ export default function DriverRadarPage() {
             description="ยังไม่มีงานใหม่ในพื้นที่ของคุณ ระบบจะแจ้งเตือนทันทีที่มีงาน"
           />
         ) : (
-          <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="sp-stagger flex flex-col gap-4">
             {orders.map(order => (
-              <div key={order.id} className="sp-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-                {order.weatherWarning && <div style={{ height: '4px', background: 'var(--brand-500)' }} />}
+              <div key={order.id} className="sp-card p-0 overflow-hidden border border-[var(--n-200)] shadow-sm rounded-xl">
+                {order.weatherWarning && <div className="h-1 bg-[var(--brand-500)]" />}
                 
                 {/* Header Section */}
-                <div style={{ padding: '1rem 1.25rem', background: 'var(--n-50)', borderBottom: '1px solid var(--n-150)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '32px', height: '32px', background: 'var(--brand-100)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-600)' }}>
+                <div className="py-4 px-5 bg-[var(--n-50)] border-b border-[var(--n-150)] flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-[var(--brand-100)] rounded-lg flex items-center justify-center text-[var(--brand-600)]">
                       <Package size={16} />
                     </div>
                     <div>
-                      <p className="sp-mono" style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--brand-600)' }}>{order.trackingNumber}</p>
-                      <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--n-900)', marginTop: '0.125rem' }}>{order.productName}</p>
+                      <p className="sp-mono text-xs font-extrabold text-[var(--brand-600)]">{order.trackingNumber}</p>
+                      <p className="text-sm font-bold text-[var(--n-900)] mt-0.5">{order.productName}</p>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p className="sp-font-display" style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--n-900)' }}>฿{(order.totalPrice || order.price)?.toLocaleString()}</p>
-                    {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-600)', fontSize: '0.65rem' }}>Surge +20%</span>}
+                  <div className="text-right">
+                    <p className="sp-font-display text-xl font-black text-[var(--n-900)]">฿{(order.totalPrice || order.price)?.toLocaleString()}</p>
+                    {order.weatherWarning && <span className="sp-caps text-[var(--brand-600)] text-[0.65rem]">Surge +20%</span>}
                   </div>
                 </div>
 
                 {/* Body Section */}
-                <div style={{ padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                <div className="p-5">
+                  <div className="flex gap-4 mb-4 flex-wrap">
                     {order.estimatedMinutes && (
-                      <span className="sp-caps" style={{ background: 'var(--n-100)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'var(--n-700)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem' }}>
+                      <span className="sp-caps bg-[var(--n-100)] py-1.5 px-2.5 rounded-md text-[var(--n-700)] flex items-center gap-1.5 text-[0.7rem]">
                         <Clock size={12} /> ETA {order.estimatedMinutes} นาที
                       </span>
                     )}
                     {order.hasInsurance && (
-                      <span className="sp-caps" style={{ background: 'oklch(95% 0.05 270)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'oklch(60% 0.15 270)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.7rem' }}>
+                      <span className="sp-caps bg-[oklch(95%_0.05_270)] py-1.5 px-2.5 rounded-md text-[oklch(60%_0.15_270)] flex items-center gap-1.5 text-[0.7rem]">
                         <Shield size={12} /> มีประกันคุ้มครอง
                       </span>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', background: 'var(--n-50)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
-                    <MapPin size={16} style={{ color: 'var(--brand-500)', flexShrink: 0, marginTop: '0.1rem' }} />
+                  <div className="flex gap-3 mb-6 bg-[var(--n-50)] p-4 rounded-lg border border-[var(--n-150)]">
+                    <MapPin size={16} className="text-[var(--brand-500)] shrink-0 mt-0.5" />
                     <div>
-                      <p style={{ color: 'var(--n-900)', fontSize: '0.9rem', fontWeight: 700 }}>{order.receiverName}</p>
-                      <p style={{ color: 'var(--n-500)', fontSize: '0.85rem', marginTop: '0.25rem', lineHeight: 1.4 }}>{order.address}</p>
+                      <p className="text-[var(--n-900)] text-sm font-bold">{order.receiverName}</p>
+                      <p className="text-[var(--n-500)] text-sm mt-1 leading-snug">{order.address}</p>
                     </div>
                   </div>
                   
                   <button
                     onClick={() => handleAccept(order.id)}
                     disabled={accepting === order.id}
-                    className="sp-btn-touch sp-btn-touch-full"
-                    style={{ borderRadius: '8px', fontWeight: 800, fontSize: '1rem', padding: '1rem' }}
+                    className="sp-btn-touch sp-btn-touch-full rounded-lg font-extrabold text-base p-4"
                   >
-                    {accepting === order.id ? <span className="sp-spinner" /> : <><CheckCircle size={18} style={{ marginRight: '0.5rem' }} /> รับงานนี้เลย</>}
+                    {accepting === order.id ? <span className="sp-spinner" /> : <><CheckCircle size={18} className="mr-2" /> รับงานนี้เลย</>}
                   </button>
                 </div>
               </div>

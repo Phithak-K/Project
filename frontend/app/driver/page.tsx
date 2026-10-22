@@ -64,10 +64,10 @@ export default function DriverDashboard() {
   };
 
   if (isLoading) return (
-    <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-        <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading Fleet Portal</p>
+    <div className="sp-page flex items-center justify-center">
+      <div className="text-center">
+        <div className="w-10 h-10 border-3 border-[var(--n-200)] border-t-[var(--brand-500)] rounded-full animate-spin mx-auto" />
+        <p className="sp-caps text-[var(--n-500)] mt-4">Loading Fleet Portal</p>
       </div>
     </div>
   );
@@ -76,25 +76,25 @@ export default function DriverDashboard() {
     <div className="sp-page">
       {/* ── Nav ── */}
       <nav className="sp-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="flex items-center gap-3">
           <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-          <span className="sp-caps" style={{ color: 'var(--n-500)', borderLeft: '1px solid var(--n-200)', paddingLeft: '0.75rem' }}>Fleet</span>
+          <span className="sp-caps text-[var(--n-500)] border-l border-[var(--n-200)] pl-3">Fleet</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href="/driver/radar" className="sp-btn-primary" style={{ padding: '0.4rem 0.875rem', fontSize: '0.75rem', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+        <div className="flex items-center gap-4">
+          <Link href="/driver/radar" className="sp-btn-primary px-3.5 py-1.5 text-xs uppercase flex items-center gap-1.5">
             <Navigation size={12} /> เรดาร์
           </Link>
-          <Link href="/driver/history" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--n-600)', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, textDecoration: 'none' }}>
+          <Link href="/driver/history" className="flex items-center gap-1.5 text-[var(--n-600)] text-xs uppercase font-bold no-underline hover:text-[var(--n-900)]">
             ประวัติ
           </Link>
           <ThemeToggle />
-          <Link href="/driver/wallet" style={{ display: 'flex', color: 'var(--n-600)' }} aria-label="กระเป๋าเงิน">
+          <Link href="/driver/wallet" className="flex text-[var(--n-600)] hover:text-[var(--n-900)]" aria-label="กระเป๋าเงิน">
             <Wallet size={16} />
           </Link>
-          <Link href="/driver/profile" style={{ display: 'flex', color: 'var(--n-600)' }} aria-label="โปรไฟล์">
+          <Link href="/driver/profile" className="flex text-[var(--n-600)] hover:text-[var(--n-900)]" aria-label="โปรไฟล์">
             <User size={16} />
           </Link>
-          <button onClick={handleLogout} aria-label="ออกจากระบบ" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-600)', display: 'flex' }}>
+          <button onClick={handleLogout} aria-label="ออกจากระบบ" className="bg-transparent border-none cursor-pointer text-[var(--n-600)] flex hover:text-[var(--n-900)]">
             <LogOut size={16} />
           </button>
         </div>
@@ -104,40 +104,43 @@ export default function DriverDashboard() {
       {notice && (
         <div
           role="alert"
-          style={{ position: 'fixed', top: '5rem', right: '1.5rem', zIndex: 9999, minWidth: '260px', maxWidth: '400px', background: notice.type === 'error' ? 'var(--error-bg)' : 'var(--success-bg)', color: notice.type === 'error' ? 'var(--error-text)' : 'var(--success-text)', padding: '1rem', borderLeft: `4px solid ${notice.type === 'error' ? 'var(--error-text)' : 'var(--success-text)'}`, fontWeight: 700 }}
-          className="sp-animate"
+          className={`sp-animate fixed top-20 right-6 z-[9999] min-w-[260px] max-w-[400px] p-4 font-bold border-l-4 ${
+            notice.type === 'error'
+              ? 'bg-[var(--error-bg)] text-[var(--error-text)] border-l-[var(--error-text)]'
+              : 'bg-[var(--success-bg)] text-[var(--success-text)] border-l-[var(--success-text)]'
+          }`}
         >
           {notice.msg}
         </div>
       )}
 
-      <main style={{ maxWidth: '600px', margin: '0 auto', padding: '3rem 1.5rem' }}>
+      <main className="max-w-[600px] mx-auto py-12 px-6">
 
         {/* ── Stats Hero ── */}
-        <div className="sp-animate" style={{ marginBottom: '4rem' }}>
-          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-500)' }}>DASHBOARD</span>
-          <h1 className="sp-font-display sp-text-hero" style={{ marginTop: '0.5rem', color: 'var(--n-900)' }}>รายงานวันนี้</h1>
+        <div className="sp-animate mb-16">
+          <span className="sp-section-eyebrow text-[var(--brand-500)]">DASHBOARD</span>
+          <h1 className="sp-font-display sp-text-hero mt-2 text-[var(--n-900)]">รายงานวันนี้</h1>
           
-          <div className="sp-kpi-row" style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="sp-stat-label" style={{ color: 'var(--success-text)' }}>งานสำเร็จ</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>{stats?.completedTrips ?? '—'}</div>
+          <div className="sp-kpi-row mt-10 mb-8">
+            <div className="flex flex-col">
+              <span className="sp-stat-label text-[var(--success-text)]">งานสำเร็จ</span>
+              <div className="sp-stat-number sp-font-display text-[var(--n-900)]">{stats?.completedTrips ?? '—'}</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="sp-stat-label" style={{ color: 'var(--brand-600)' }}>กำลังส่ง</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>{stats?.activeOrders ?? '—'}</div>
+            <div className="flex flex-col">
+              <span className="sp-stat-label text-[var(--brand-600)]">กำลังส่ง</span>
+              <div className="sp-stat-number sp-font-display text-[var(--n-900)]">{stats?.activeOrders ?? '—'}</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span className="sp-stat-label" style={{ color: 'var(--brand-500)' }}>รายได้</span>
-              <div className="sp-stat-number sp-font-display" style={{ color: 'var(--n-900)' }}>฿{(stats?.totalIncome ?? 0).toLocaleString()}</div>
+            <div className="flex flex-col">
+              <span className="sp-stat-label text-[var(--brand-500)]">รายได้</span>
+              <div className="sp-stat-number sp-font-display text-[var(--n-900)]">฿{(stats?.totalIncome ?? 0).toLocaleString()}</div>
             </div>
           </div>
 
           {stats?.weatherBonus > 0 && (
-            <div style={{ padding: '1rem', background: 'var(--n-50)', borderLeft: '4px solid var(--brand-500)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <Zap size={18} style={{ color: 'var(--brand-500)' }} />
-              <span style={{ color: 'var(--n-900)', fontSize: '0.9rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Surge Bonus <strong style={{ color: 'var(--brand-500)' }}>+฿{stats.weatherBonus.toLocaleString()}</strong>
+            <div className="p-4 bg-[var(--n-50)] border-l-4 border-l-[var(--brand-500)] flex items-center gap-3">
+              <Zap size={18} className="text-[var(--brand-500)]" />
+              <span className="text-[var(--n-900)] text-sm font-bold uppercase tracking-wider">
+                Surge Bonus <strong className="text-[var(--brand-500)]">+฿{stats.weatherBonus.toLocaleString()}</strong>
               </span>
             </div>
           )}
@@ -145,19 +148,19 @@ export default function DriverDashboard() {
 
         {/* ── Surge Hotspots ── */}
         {hotspots.length > 0 && (
-          <div className="sp-animate-d1" style={{ marginBottom: '4rem' }}>
-            <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>Surge Hotspots</span>
+          <div className="sp-animate-d1 mb-16">
+            <div className="sp-section-divider mb-8" />
+            <div className="flex items-center gap-2 mb-5">
+              <span className="sp-caps text-[var(--brand-500)]">Surge Hotspots</span>
             </div>
-            <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', scrollbarWidth: 'none' }}>
+            <div className="flex gap-4 overflow-x-auto pb-4 [scrollbar-width:none]">
               {hotspots.map((spot, i) => (
-                <div key={i} style={{ minWidth: '180px', padding: '1.25rem', background: 'var(--n-50)', borderTop: '2px solid var(--n-200)', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', alignItems: 'flex-start' }}>
-                    <span style={{ fontWeight: 800, color: 'var(--n-900)', fontSize: '1rem' }}>{spot.city}</span>
-                    <CloudRain size={16} style={{ color: 'var(--brand-600)' }} />
+                <div key={i} className="min-w-[180px] p-5 bg-[var(--n-50)] border-t-2 border-t-[var(--n-200)] shrink-0">
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="font-extrabold text-[var(--n-900)] text-base">{spot.city}</span>
+                    <CloudRain size={16} className="text-[var(--brand-600)]" />
                   </div>
-                  <span className="sp-caps" style={{ color: 'var(--brand-500)' }}>+20% Surge Bonus</span>
+                  <span className="sp-caps text-[var(--brand-500)]">+20% Surge Bonus</span>
                 </div>
               ))}
             </div>
@@ -166,74 +169,73 @@ export default function DriverDashboard() {
 
         {/* ── Assigned Orders ── */}
         <div className="sp-animate-d2">
-          <div className="sp-section-divider" style={{ marginBottom: '2rem' }} />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '2rem' }}>
+          <div className="sp-section-divider mb-8" />
+          <div className="flex justify-between items-end mb-8">
             <div>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ACTIVE</p>
-              <h2 className="sp-font-display" style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--n-900)' }}>งานที่มอบหมาย</h2>
+              <p className="sp-caps text-[var(--n-500)]">ACTIVE</p>
+              <h2 className="sp-font-display text-2xl font-extrabold text-[var(--n-900)]">งานที่มอบหมาย</h2>
             </div>
-            <span className="sp-mono" style={{ color: 'var(--n-500)' }}>[{orders.length}]</span>
+            <span className="sp-mono text-[var(--n-500)]">[{orders.length}]</span>
           </div>
 
           {orders.length === 0 ? (
-            <div style={{ padding: '4rem 0', textAlign: 'center' }}>
-              <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ไม่มีงานในขณะนี้</p>
-              <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', marginTop: '0.5rem', fontWeight: 600 }}>
+            <div className="py-16 text-center">
+              <p className="sp-caps text-[var(--n-500)]">ไม่มีงานในขณะนี้</p>
+              <p className="text-[var(--n-500)] text-sm mt-2 font-semibold">
                 เปิดเรดาร์เพื่อรับการแจ้งเตือนแบบเรียลไทม์
               </p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="flex flex-col gap-6">
               {orders.map(order => (
-                <div key={order.id} className="sp-card" style={{ padding: 0, overflow: 'hidden', border: '1px solid var(--n-200)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', borderRadius: '12px' }}>
-                  {order.weatherWarning && <div style={{ height: '4px', background: 'var(--brand-500)' }} />}
+                <div key={order.id} className="sp-card p-0 overflow-hidden border border-[var(--n-200)] shadow-sm rounded-xl">
+                  {order.weatherWarning && <div className="h-1 bg-[var(--brand-500)]" />}
                   
                   {/* Header Section */}
-                  <div style={{ padding: '1.25rem 1.5rem', background: 'var(--n-50)', borderBottom: '1px solid var(--n-150)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '40px', height: '40px', background: 'var(--brand-100)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-600)' }}>
+                  <div className="py-5 px-6 bg-[var(--n-50)] border-b border-[var(--n-150)] flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-[var(--brand-100)] rounded-[10px] flex items-center justify-center text-[var(--brand-600)]">
                         <Package size={20} />
                       </div>
                       <div>
-                        <p className="sp-mono" style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--brand-600)' }}>{order.trackingNumber}</p>
-                        <p style={{ fontWeight: 700, color: 'var(--n-900)', marginTop: '0.125rem', fontSize: '1.1rem' }}>{order.productName}</p>
+                        <p className="sp-mono text-xs font-extrabold text-[var(--brand-600)]">{order.trackingNumber}</p>
+                        <p className="font-bold text-[var(--n-900)] mt-0.5 text-lg">{order.productName}</p>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.5rem', color: 'var(--n-900)' }}>
+                    <div className="text-right">
+                      <p className="sp-font-display font-black text-2xl text-[var(--n-900)]">
                         ฿{(order.totalPrice || order.price)?.toLocaleString()}
                       </p>
-                      {order.weatherWarning && <span className="sp-caps" style={{ color: 'var(--brand-600)', fontSize: '0.65rem' }}>Surge +20%</span>}
+                      {order.weatherWarning && <span className="sp-caps text-[var(--brand-600)] text-[10px]">Surge +20%</span>}
                     </div>
                   </div>
 
                   {/* Body Section */}
-                  <div style={{ padding: '1.5rem' }}>
-                    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                  <div className="p-6">
+                    <div className="flex gap-4 mb-5 flex-wrap">
                       {order.estimatedMinutes && (
-                        <span className="sp-caps" style={{ background: 'var(--n-100)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'var(--n-700)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem' }}>
+                        <span className="sp-caps bg-[var(--n-100)] py-1 px-2.5 rounded-md text-[var(--n-700)] flex items-center gap-1.5 text-xs">
                           <Clock size={12} /> ETA {order.estimatedMinutes} นาที
                         </span>
                       )}
                       {order.hasInsurance && (
-                        <span className="sp-caps" style={{ background: 'oklch(95% 0.05 270)', padding: '0.35rem 0.65rem', borderRadius: '6px', color: 'oklch(60% 0.15 270)', display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem' }}>
+                        <span className="sp-caps bg-[oklch(95%_0.05_270)] py-1 px-2.5 rounded-md text-[oklch(60%_0.15_270)] flex items-center gap-1.5 text-xs">
                           <Shield size={12} /> มีประกันคุ้มครอง
                         </span>
                       )}
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '2rem', background: 'var(--n-100)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--n-150)' }}>
-                      <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.1rem', flexShrink: 0 }} />
-                      <p style={{ color: 'var(--n-600)', fontSize: '0.95rem', lineHeight: 1.6, fontWeight: 500 }}>
-                        <strong style={{ color: 'var(--n-900)', fontSize: '1rem' }}>{order.receiverName}</strong><br/>
+                    <div className="flex gap-3 mb-8 bg-[var(--n-100)] p-4 rounded-lg border border-[var(--n-150)]">
+                      <MapPin size={18} className="text-[var(--brand-500)] mt-0.5 shrink-0" />
+                      <p className="text-[var(--n-600)] text-sm leading-relaxed font-medium">
+                        <strong className="text-[var(--n-900)] text-base">{order.receiverName}</strong><br/>
                         {order.address}
                       </p>
                     </div>
 
                     <button
                       onClick={() => router.push(`/driver/orders/${order.id}`)}
-                      className="sp-btn-touch sp-btn-touch-full sp-btn-primary"
-                      style={{ borderRadius: '8px', fontWeight: 800, fontSize: '1rem', padding: '1.25rem' }}
+                      className="sp-btn-touch sp-btn-touch-full sp-btn-primary rounded-lg font-extrabold text-base p-5"
                     >
                       ดูรายละเอียด / อัปเดตสถานะ
                     </button>

@@ -208,8 +208,8 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
   if (loading) {
     return (
-      <div className="sp-page" style={{ minHeight: '100vh', padding: '2rem 1.25rem' }}>
-        <div style={{ maxWidth: '480px', margin: '0 auto', paddingTop: '4rem' }}>
+      <div className="sp-page min-h-screen py-8 px-5">
+        <div className="max-w-[480px] mx-auto pt-16">
           <OrderSkeleton />
           <OrderSkeleton />
         </div>
@@ -226,11 +226,23 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   : null;
 
   // สีสัญญาณ GPS ตาม State
-  const gpsColor: Record<string, string> = {
-    idle: 'var(--n-600)',
-    active: '#22c55e',
-    simulating: '#f59e0b',
-    error: '#ef4444',
+  const gpsBorderClass: Record<string, string> = {
+    idle: 'border-[var(--n-600)]/40',
+    active: 'border-[#22c55e]/40',
+    simulating: 'border-[#f59e0b]/40',
+    error: 'border-[#ef4444]/40',
+  };
+  const gpsPulseClass: Record<string, string> = {
+    idle: 'bg-[var(--n-600)]',
+    active: 'bg-[#22c55e] shadow-[0_0_0_4px_rgba(34,197,94,0.3)] animate-pulse',
+    simulating: 'bg-[#f59e0b] shadow-[0_0_0_4px_rgba(245,158,11,0.3)] animate-pulse',
+    error: 'bg-[#ef4444]',
+  };
+  const gpsTextClass: Record<string, string> = {
+    idle: 'text-[var(--n-600)]',
+    active: 'text-[#22c55e]',
+    simulating: 'text-[#f59e0b]',
+    error: 'text-[#ef4444]',
   };
   const gpsLabel: Record<string, string> = {
     idle: 'GPS ยังไม่ทำงาน',
@@ -242,69 +254,62 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <button onClick={() => router.push('/driver/radar')} className="sp-btn-danger" style={{ opacity: 0.8 }}>
+        <button onClick={() => router.push('/driver/radar')} className="sp-btn-danger opacity-80">
           <ArrowLeft size={18} />
         </button>
-        <div style={{ textAlign: 'center' }}>
-          <p className="sp-caps" style={{ color: 'var(--n-500)', fontSize: '0.6rem' }}>รหัสพัสดุ</p>
-          <span className="sp-logo" style={{ fontSize: '1rem' }}>{order.trackingNumber}</span>
+        <div className="text-center">
+          <p className="sp-caps text-[var(--n-500)] text-[0.6rem]">รหัสพัสดุ</p>
+          <span className="sp-logo text-base">{order.trackingNumber}</span>
         </div>
         <button 
           onClick={() => setIsChatOpen(true)}
           disabled={!chatPeer}
           title={chatPeer ? `แชทกับ${chatPeer.role === 'Customer' ? 'ลูกค้า' : 'ร้านค้า'}` : 'ยังไม่มีคู่สนทนาสำหรับออเดอร์นี้'}
-          className="sp-btn-brand" 
-          style={{ width: '40px', height: '40px', borderRadius: '50%', padding: 0, opacity: chatPeer ? 1 : 0.4, cursor: chatPeer ? 'pointer' : 'not-allowed' }}
+          className={`sp-btn-brand w-10 h-10 rounded-full p-0 flex items-center justify-center ${chatPeer ? 'opacity-100 cursor-pointer' : 'opacity-40 cursor-not-allowed'}`}
         >
           <MessageSquare size={18} />
         </button>
       </nav>
 
-      <main style={{ maxWidth: '480px', margin: '0 auto', padding: '2rem 1.25rem' }}>
+      <main className="max-w-[480px] mx-auto py-8 px-5">
         
         {/* Status Hero */}
-        <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', textAlign: 'center', background: 'var(--n-50)', border: '1px solid var(--n-200)' }}>
-          <span className="sp-caps" style={{ color: 'var(--brand-600)', fontWeight: 900 }}>{order.status}</span>
-          <h1 className="sp-font-display" style={{ fontSize: '1.5rem', color: 'var(--n-900)', marginTop: '0.5rem' }}>
+        <div className="sp-card sp-animate mb-6 text-center bg-[var(--n-50)] border border-[var(--n-200)]">
+          <span className="sp-caps text-[var(--brand-600)] font-black">{order.status}</span>
+          <h1 className="sp-font-display text-2xl text-[var(--n-900)] mt-2">
             {getStatusTitle(order.status)}
           </h1>
         </div>
 
         {/* ─── GPS Tracking Panel (แสดงเมื่อกำลังส่งหรือ Shipping) ─── */}
         {(order.status === 'SHIPPING' || order.status === 'PICKED_UP') && (
-          <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', border: `1px solid ${gpsColor[gpsStatus]}40` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div className={`sp-card sp-animate mb-6 border ${gpsBorderClass[gpsStatus]}`}>
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
                 {/* Pulse indicator */}
-                <div style={{
-                  width: '10px', height: '10px', borderRadius: '50%',
-                  background: gpsColor[gpsStatus],
-                  boxShadow: isTracking ? `0 0 0 4px ${gpsColor[gpsStatus]}30` : 'none',
-                  animation: isTracking ? 'pulse 1.5s infinite' : 'none',
-                }} />
-                <span style={{ fontWeight: 700, color: 'var(--n-800)', fontSize: '0.875rem' }}>
+                <div className={`w-2.5 h-2.5 rounded-full ${gpsPulseClass[gpsStatus]}`} />
+                <span className="font-bold text-[var(--n-800)] text-sm">
                   Real-time GPS
                 </span>
               </div>
-              <span style={{ fontSize: '0.7rem', color: gpsColor[gpsStatus], fontWeight: 600 }}>
+              <span className={`text-[0.7rem] font-semibold ${gpsTextClass[gpsStatus]}`}>
                 {gpsLabel[gpsStatus]}
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.625rem' }}>
+            <div className="grid grid-cols-2 gap-2.5">
               {/* ปุ่ม GPS จริง */}
               {!isTracking ? (
                 <button
                   onClick={startRealGPS}
-                  className="sp-btn-brand"
-                  style={{ padding: '0.625rem', fontSize: '0.8rem' }}
+                  className="sp-btn-brand p-2.5 text-xs flex items-center justify-center gap-1.5"
                 >
                   <Radio size={14} /> ส่ง GPS จริง
                 </button>
               ) : (
                 <button
                   onClick={stopTracking}
-                  style={{ padding: '0.625rem', fontSize: '0.8rem', background: 'var(--n-200)', color: 'var(--n-200)', border: '1px solid var(--n-700)', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}
+                  className="p-2.5 text-xs bg-[var(--n-200)] text-[var(--n-800)] border border-[var(--n-700)] rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Square size={14} /> หยุดส่งพิกัด
                 </button>
@@ -315,28 +320,21 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                 <button
                   onClick={startSimulator}
                   disabled={isTracking && !isSimulating}
-                  style={{
-                    padding: '0.625rem', fontSize: '0.8rem',
-                    background: 'oklch(30% 0.06 42)', color: '#f59e0b',
-                    border: '1px solid oklch(40% 0.08 42)', borderRadius: '0.5rem',
-                    cursor: isTracking && !isSimulating ? 'not-allowed' : 'pointer',
-                    opacity: isTracking && !isSimulating ? 0.5 : 1,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem',
-                  }}
+                  className={`p-2.5 text-xs bg-[oklch(30%_0.06_42)] text-[#f59e0b] border border-[oklch(40%_0.08_42)] rounded-lg flex items-center justify-center gap-1.5 ${isTracking && !isSimulating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer opacity-100'}`}
                 >
                   🚛 โหมด Demo
                 </button>
               ) : (
                 <button
                   onClick={stopTracking}
-                  style={{ padding: '0.625rem', fontSize: '0.8rem', background: 'oklch(25% 0.05 42)', color: '#f59e0b', border: '1px solid oklch(35% 0.07 42)', borderRadius: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}
+                  className="p-2.5 text-xs bg-[oklch(25%_0.05_42)] text-[#f59e0b] border border-[oklch(35%_0.07_42)] rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
                 >
                   <Square size={14} /> หยุด Demo
                 </button>
               )}
             </div>
 
-            <p style={{ fontSize: '0.65rem', color: 'var(--n-700)', marginTop: '0.625rem', textAlign: 'center' }}>
+            <p className="text-[0.65rem] text-[var(--n-700)] mt-2.5 text-center">
               "ส่ง GPS จริง" ใช้สัญญาณจากมือถือ · "โหมด Demo" จำลองเส้นทางให้ดูบนหน้าติดตาม
             </p>
           </div>
@@ -344,42 +342,42 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
         {/* Info Grid */}
         <div className="sp-stagger">
-          <div className="sp-card" style={{ marginBottom: '1.25rem' }}>
-            <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem' }}>จุดหมายปลายทาง</h3>
-            <div style={{ display: 'flex', gap: '0.875rem' }}>
-              <MapPin size={18} style={{ color: 'var(--brand-500)', marginTop: '0.2rem', flexShrink: 0 }} />
+          <div className="sp-card mb-5">
+            <h3 className="sp-caps text-[var(--n-500)] mb-4">จุดหมายปลายทาง</h3>
+            <div className="flex gap-3.5">
+              <MapPin size={18} className="text-[var(--brand-500)] mt-1 shrink-0" />
               <div>
-                <p style={{ fontWeight: 700, color: 'var(--n-900)' }}>{order.receiverName}</p>
-                <p style={{ fontSize: '0.875rem', color: 'var(--n-600)', marginTop: '0.125rem' }}>{order.address}</p>
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
-                  <a href={`tel:${order.receiverPhone}`} className="sp-btn-touch sp-btn-touch-ghost" style={{ fontSize: '0.85rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, borderColor: 'var(--n-300)' }}>
-                    <Phone size={16} style={{ color: 'var(--n-700)' }} /> โทรหาผู้รับ
+                <p className="font-bold text-[var(--n-900)]">{order.receiverName}</p>
+                <p className="text-sm text-[var(--n-600)] mt-0.5">{order.address}</p>
+                <div className="flex gap-4 mt-3">
+                  <a href={`tel:${order.receiverPhone}`} className="sp-btn-touch sp-btn-touch-ghost text-sm no-underline flex items-center gap-2 flex-1 border-[var(--n-300)]">
+                    <Phone size={16} className="text-[var(--n-700)]" /> โทรหาผู้รับ
                   </a>
                   <a href={
                     order.lat && order.lng
                       ? `https://www.google.com/maps/dir/?api=1&destination=${order.lat},${order.lng}`
                       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`
-                  } target="_blank" rel="noreferrer" className="sp-btn-touch sp-btn-touch-ghost" style={{ fontSize: '0.85rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, borderColor: 'var(--n-300)' }}>
-                    <Navigation size={16} style={{ color: 'var(--n-700)' }} /> นำทาง
+                  } target="_blank" rel="noreferrer" className="sp-btn-touch sp-btn-touch-ghost text-sm no-underline flex items-center gap-2 flex-1 border-[var(--n-300)]">
+                    <Navigation size={16} className="text-[var(--n-700)]" /> นำทาง
                   </a>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="sp-card" style={{ marginBottom: '2.5rem' }}>
-            <h3 className="sp-caps" style={{ color: 'var(--n-500)', marginBottom: '1rem' }}>รายละเอียดสินค้า</h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '0.875rem', alignItems: 'center' }}>
-                <Package size={20} style={{ color: 'var(--n-500)' }} />
+          <div className="sp-card mb-10">
+            <h3 className="sp-caps text-[var(--n-500)] mb-4">รายละเอียดสินค้า</h3>
+            <div className="flex justify-between items-center">
+              <div className="flex gap-3.5 items-center">
+                <Package size={20} className="text-[var(--n-500)]" />
                 <div>
-                  <p style={{ fontWeight: 600, color: 'var(--n-900)' }}>{order.productName}</p>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--n-600)' }}>จำนวน {order.quantity} รายการ</p>
+                  <p className="font-semibold text-[var(--n-900)]">{order.productName}</p>
+                  <p className="text-xs text-[var(--n-600)]">จำนวน {order.quantity} รายการ</p>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <p className="sp-stat-number" style={{ color: 'var(--n-900)', fontSize: '1.25rem' }}>฿{(order.totalPrice || order.price).toLocaleString()}</p>
-                <span className="sp-caps" style={{ color: 'var(--success-text)', fontSize: '0.6rem' }}>COD รองรับ</span>
+              <div className="text-right">
+                <p className="sp-stat-number text-[var(--n-900)] text-xl">฿{(order.totalPrice || order.price).toLocaleString()}</p>
+                <span className="sp-caps text-[var(--success-text)] text-[0.6rem]">COD รองรับ</span>
               </div>
             </div>
           </div>
@@ -406,13 +404,13 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.status === 'SHIPPING' && (
-              <div className="sp-card" style={{ border: '1px dashed var(--n-300)', background: 'var(--n-50)' }}>
-                <p className="sp-caps" style={{ textAlign: 'center', color: 'var(--n-500)', marginBottom: '1rem' }}>หลักฐานการส่ง (POD)</p>
+              <div className="sp-card border border-dashed border-[var(--n-300)] bg-[var(--n-50)]">
+                <p className="sp-caps text-center text-[var(--n-500)] mb-4">หลักฐานการส่ง (POD)</p>
                 
                 {proofImage ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <img src={proofImage} alt="Proof" style={{ maxHeight: '140px', margin: '0 auto', borderRadius: '0.5rem', marginBottom: '1rem', border: '1px solid var(--n-200)' }} />
-                    <button onClick={() => setProofImage(null)} className="sp-btn-touch-ghost" style={{ fontSize: '0.8rem', padding: '0.5rem 1rem', borderRadius: '20px' }}>ถ่ายใหม่</button>
+                  <div className="text-center">
+                    <img src={proofImage} alt="Proof" className="max-h-[140px] mx-auto rounded-lg mb-4 border border-[var(--n-200)]" />
+                    <button onClick={() => setProofImage(null)} className="sp-btn-touch-ghost text-xs py-2 px-4 rounded-full">ถ่ายใหม่</button>
                   </div>
                 ) : (
                   <button 
@@ -422,17 +420,17 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                       setProofImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
                       toast.success('บันทึกภาพหลักฐานสำเร็จ (Mock PNG)');
                     }}
-                    style={{ width: '100%', padding: '2rem', border: '2px dashed var(--n-300)', borderRadius: '1rem', background: 'var(--surface-raised)', color: 'var(--n-500)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                    className="w-full p-8 border-2 border-dashed border-[var(--n-300)] rounded-2xl bg-[var(--surface-raised)] text-[var(--n-500)] cursor-pointer flex flex-col items-center"
                   >
-                    <Camera size={32} style={{ marginBottom: '0.5rem' }} />
-                    <p style={{ fontSize: '0.8rem' }}>คลิกเพื่อจำลองการถ่ายรูปหลักฐาน (Demo)</p>
+                    <Camera size={32} className="mb-2" />
+                    <p className="text-xs">คลิกเพื่อจำลองการถ่ายรูปหลักฐาน (Demo)</p>
                   </button>
                 )}
                 
                 <button 
                   onClick={() => updateStatus('complete', { proofOfDelivery: proofImage })}
                   disabled={!proofImage || updating}
-                  className="sp-btn-touch sp-btn-touch-full" style={{ marginTop: '1.25rem' }}
+                  className="sp-btn-touch sp-btn-touch-full mt-5"
                 >
                   {updating ? <span className="sp-spinner" /> : 'ปิดเสร็จสิ้นงานส่ง'}
                 </button>
@@ -440,30 +438,30 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.status === 'DELIVERED' && order.paymentStatus === 'Unpaid' && (
-              <div className="sp-card" style={{ border: '1px solid var(--n-200)', background: 'var(--n-50)' }}>
-                <h3 className="sp-caps" style={{ color: 'var(--n-600)', marginBottom: '1rem', textAlign: 'center' }}>ช่องทางการรับเงิน</h3>
+              <div className="sp-card border border-[var(--n-200)] bg-[var(--n-50)]">
+                <h3 className="sp-caps text-[var(--n-600)] mb-4 text-center">ช่องทางการรับเงิน</h3>
                 
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                <div className="flex gap-2 mb-6">
                   <button 
                     onClick={() => setPaymentTab('qr')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-100)', color: paymentTab === 'qr' ? '#fff' : 'var(--n-500)', border: `1px solid ${paymentTab === 'qr' ? 'var(--brand-500)' : 'var(--n-300)'}`, cursor: 'pointer' }}
+                    className={`flex-1 p-3 rounded-lg text-xs font-semibold cursor-pointer border ${paymentTab === 'qr' ? 'bg-[var(--brand-500)] text-white border-[var(--brand-500)]' : 'bg-[var(--n-100)] text-[var(--n-500)] border-[var(--n-300)]'}`}
                   >
                     ลูกค้าสแกน QR
                   </button>
                   <button 
                     onClick={() => setPaymentTab('cash')} 
-                    style={{ flex: 1, padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, background: paymentTab === 'cash' ? 'var(--success-bg)' : 'var(--n-100)', color: paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-500)', border: `1px solid ${paymentTab === 'cash' ? 'var(--success-text)' : 'var(--n-300)'}`, cursor: 'pointer' }}
+                    className={`flex-1 p-3 rounded-lg text-xs font-semibold cursor-pointer border ${paymentTab === 'cash' ? 'bg-[var(--success-bg)] text-[var(--success-text)] border-[var(--success-text)]' : 'bg-[var(--n-100)] text-[var(--n-500)] border-[var(--n-300)]'}`}
                   >
                     รับเงินสด/โอนแล้ว
                   </button>
                 </div>
 
                 {paymentTab === 'qr' ? (
-                  <div style={{ textAlign: 'center', background: 'var(--n-100)', border: '1px solid var(--brand-200)', borderRadius: '0.75rem', padding: '1.5rem 1rem' }}>
-                    <Zap size={24} style={{ color: 'var(--brand-600)', marginBottom: '0.75rem', margin: '0 auto' }} />
-                    <h3 style={{ fontWeight: 700, color: 'var(--n-900)' }}>รอสแกน QR รับเงิน</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--n-600)', marginBottom: '1.5rem' }}>สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
-                    <div style={{ padding: '1rem', background: 'var(--n-50)', display: 'inline-block', borderRadius: '10px' }}>
+                  <div className="text-center bg-[var(--n-100)] border border-[var(--brand-200)] rounded-xl py-6 px-4">
+                    <Zap size={24} className="text-[var(--brand-600)] mx-auto mb-3" />
+                    <h3 className="font-bold text-[var(--n-900)]">รอสแกน QR รับเงิน</h3>
+                    <p className="text-xs text-[var(--n-600)] mb-6">สแกน QR จากมือถือลูกค้าเพื่อยืนยันการชำระเงิน</p>
+                    <div className="p-4 bg-[var(--n-50)] inline-block rounded-xl">
                       <QRScanner 
                         onScanSuccess={async (text) => {
                           try {
@@ -479,18 +477,17 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                     </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-                    <DollarSign size={32} style={{ color: 'var(--success-text)', margin: '0 auto', marginBottom: '0.5rem' }} />
-                    <div style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--n-900)', marginBottom: '0.5rem' }}>
+                  <div className="text-center py-4">
+                    <DollarSign size={32} className="text-[var(--success-text)] mx-auto mb-2" />
+                    <div className="text-3xl font-black text-[var(--n-900)] mb-2">
                       ฿{(order.totalPrice || order.price || 0).toLocaleString()}
                     </div>
-                    <h3 style={{ color: 'var(--n-800)', marginBottom: '0.5rem', fontWeight: 600 }}>ยอดที่ต้องเรียกเก็บ</h3>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--n-500)', marginBottom: '1.5rem' }}>กดยืนยันหากคุณได้รับเงินสด หรือลูกค้าชำระเงินเรียบร้อยแล้ว</p>
+                    <h3 className="text-[var(--n-800)] mb-2 font-semibold">ยอดที่ต้องเรียกเก็บ</h3>
+                    <p className="text-xs text-[var(--n-500)] mb-6">กดยืนยันหากคุณได้รับเงินสด หรือลูกค้าชำระเงินเรียบร้อยแล้ว</p>
                     <button 
                       onClick={() => updateStatus('pay')} 
                       disabled={updating}
-                      className="sp-btn-touch sp-btn-touch-full" 
-                      style={{ background: 'var(--success-text)' }}
+                      className="sp-btn-touch sp-btn-touch-full bg-[var(--success-text)]"
                     >
                       {updating ? <span className="sp-spinner" /> : 'ยืนยันรับเงินเรียบร้อย'}
                     </button>
@@ -500,15 +497,15 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
             )}
 
             {order.paymentStatus === 'Paid' && (
-              <div className="sp-card" style={{ textAlign: 'center', background: 'rgba(46, 125, 50, 0.05)', border: '1px solid var(--success-text)' }}>
-                <CheckCircle size={32} style={{ color: 'var(--success-text)', marginBottom: '0.75rem' }} />
-                <h3 style={{ fontWeight: 900, color: 'var(--success-text)' }}>งานสำเร็จ</h3>
-                <p style={{ fontSize: '0.8rem', color: 'var(--n-600)' }}>ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
+              <div className="sp-card text-center bg-[rgba(46,125,50,0.05)] border border-[var(--success-text)]">
+                <CheckCircle size={32} className="text-[var(--success-text)] mx-auto mb-3" />
+                <h3 className="font-black text-[var(--success-text)]">งานสำเร็จ</h3>
+                <p className="text-xs text-[var(--n-600)]">ยอดเงินโอนเข้าวอลเล็ทของคุณแล้ว</p>
               </div>
             )}
 
             {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && order.paymentStatus !== 'Paid' && (
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <div className="mt-6 text-center">
                 <button 
                   onClick={() => {
                     setModalConfig({
@@ -525,7 +522,7 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
                       }
                     });
                   }}
-                  style={{ background: 'none', border: 'none', color: 'var(--error-text)', fontSize: '0.8rem', textDecoration: 'underline', cursor: 'pointer' }}
+                  className="bg-transparent border-none text-[var(--error-text)] text-xs underline cursor-pointer"
                 >
                   รายงานปัญหา / ส่งไม่สำเร็จ
                 </button>

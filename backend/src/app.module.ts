@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +17,7 @@ import { ProductsModule } from './products/products.module'; // ✅ SME Feature:
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 นาที (milliseconds)

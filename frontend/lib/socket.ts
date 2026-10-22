@@ -13,21 +13,38 @@ export const SOCKET_URL: string =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
 
+export type SocketConnectionState = 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'error';
+
 /**
  * Create a Socket.io connection with a consistent config:
- * - Bearer token auth
+ * - Optional Bearer token auth (omitted for public rooms like tracking)
  * - Dual transports (WebSocket with polling fallback)
- * - Bounded reconnection (5 retries, exponential back-off up to 10 s)
+ * - Exponential reconnection (up to 10 retries, 1-5s back-off)
  */
-export function createSocket(token: string): Socket {
-  return io(SOCKET_URL, {
-    auth: { token: `Bearer ${token}` },
-    withCredentials: true,
+export function createSocket(token?: string): Socket {
+  const options: any = {
     transports: ['websocket', 'polling'],
-    reconnectionAttempts: 5,
+    reconnection: true,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 10000,
-  });
+    reconnectionDelayMax: 5000,
+    timeout: 10000,
+  };
+
+  if (token) {
+    options.auth = { token: `Bearer ${token}` };
+    options.withCredentials = true;
+  }
+
+  return io(SOCKET_URL, options);
+}
+
+/**
+ * Create an unauthenticated public Socket.io connection
+ * Used for public tracking without requiring login cookies
+ */
+export function createPublicSocket(): Socket {
+  return createSocket();
 }
 
 /**

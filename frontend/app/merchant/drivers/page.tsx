@@ -102,60 +102,60 @@ export default function DriversPage() {
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <button onClick={() => router.push('/merchant')} className="sp-link-muted" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'none', border: 'none', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button onClick={() => router.push('/merchant')} className="sp-link-muted flex items-center gap-2 bg-transparent border-none text-sm cursor-pointer">
           <ArrowLeft size={16} /> กลับ Dashboard
         </button>
         <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-        <div style={{ width: '80px' }} />
+        <div className="w-20" />
       </nav>
 
-      <main style={{ maxWidth: '760px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <div className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+      <main className="max-w-[760px] mx-auto py-10 px-6">
+        <div className="sp-animate mb-10">
           <span className="sp-section-eyebrow">Store Portal</span>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900 }}>จัดการคนขับ</h1>
-          <p style={{ color: 'var(--n-500)', marginTop: '0.25rem' }}>เพิ่มและจัดการคนขับประจำร้านของคุณ</p>
+          <h1 className="sp-font-display sp-text-lg font-black">จัดการคนขับ</h1>
+          <p className="text-[var(--n-500)] mt-1">เพิ่มและจัดการคนขับประจำร้านของคุณ</p>
         </div>
 
         {/* ── Add Driver Panel ── */}
-        <div className="sp-card" style={{ marginBottom: '2rem' }}>
-          <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="sp-card mb-8">
+          <h3 className="sp-caps text-[var(--n-400)] mb-4 flex items-center gap-2">
             <UserPlus size={14} /> เพิ่มคนขับเข้าร้าน
           </h3>
-          <p style={{ color: 'var(--n-500)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+          <p className="text-[var(--n-500)] text-[0.85rem] mb-4">
             ค้นหาด้วย <strong>email</strong> หรือ <strong>เบอร์โทร</strong> ของคนขับที่ลงทะเบียนในระบบแล้ว
           </p>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+          <div className="flex gap-3 mb-4">
             <input
               type="text" value={searchContact}
               onChange={e => setSearchContact(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              className="sp-input" style={{ flex: 1 }}
+              className="sp-input flex-1"
               placeholder="email หรือ 08XXXXXXXX ของคนขับ"
             />
-            <button onClick={handleSearch} disabled={searching} className="sp-btn-primary" style={{ padding: '0.6rem 1.25rem', whiteSpace: 'nowrap' }}>
+            <button onClick={handleSearch} disabled={searching} className="sp-btn-primary py-2.5 px-5 whitespace-nowrap">
               {searching ? <span className="sp-spinner" /> : <><Search size={15} /> ค้นหา</>}
             </button>
           </div>
 
           {searchResult && (
-            <div style={{ padding: '1rem', border: '1px solid var(--n-150)', borderRadius: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--n-50)' }}>
+            <div className="p-4 border border-[var(--n-150)] rounded-xl flex justify-between items-center bg-[var(--n-50)]">
               <div>
-                <div style={{ fontWeight: 700 }}>{searchResult.name || 'ไม่ระบุชื่อ'}</div>
-                <div style={{ color: 'var(--n-500)', fontSize: '0.8rem' }}>{searchResult.phone} · {searchResult.vehiclePlate || 'ไม่ระบุทะเบียน'}</div>
+                <div className="font-bold">{searchResult.name || 'ไม่ระบุชื่อ'}</div>
+                <div className="text-[var(--n-500)] text-[0.8rem]">{searchResult.phone} · {searchResult.vehiclePlate || 'ไม่ระบุทะเบียน'}</div>
                 {!searchResult.isVerified && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--warning-text)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div className="flex items-center gap-1.5 text-[var(--warning-text)] text-[0.75rem] mt-1">
                     <AlertCircle size={13} /> คนขับยังไม่ยืนยันตัวตน
                   </div>
                 )}
                 {searchResult.merchantId && searchResult.merchantId !== null && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', color: 'var(--warning-text)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                  <div className="flex items-center gap-1.5 text-[var(--warning-text)] text-[0.75rem] mt-1">
                     <AlertCircle size={13} /> คนขับนี้สังกัดร้านอื่นอยู่แล้ว
                   </div>
                 )}
               </div>
               <button
                 onClick={handleLink} disabled={linking || !searchResult.isVerified}
-                className="sp-btn-primary" style={{ padding: '0.5rem 1rem' }}
+                className="sp-btn-primary py-2 px-4"
               >
                 {linking ? <span className="sp-spinner" /> : <><UserPlus size={14} /> เพิ่มเข้าร้าน</>}
               </button>
@@ -164,12 +164,12 @@ export default function DriversPage() {
         </div>
 
         {/* ── Driver List ── */}
-        <div className="sp-card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--n-150)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 className="sp-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="sp-card p-0 overflow-hidden">
+          <div className="py-5 px-6 border-b border-[var(--n-150)] flex justify-between items-center">
+            <h2 className="sp-section-title flex items-center gap-2">
               <Truck size={16} /> คนขับในร้าน
             </h2>
-            <span className="sp-caps" style={{ color: 'var(--n-400)' }}>{drivers.length} คน</span>
+            <span className="sp-caps text-[var(--n-400)]">{drivers.length} คน</span>
           </div>
 
           {drivers.length === 0 ? (
@@ -179,29 +179,29 @@ export default function DriversPage() {
               <p className="sp-empty-body">ค้นหาและเพิ่มคนขับด้านบน</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="flex flex-col">
               {drivers.map(driver => (
-                <div key={driver.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--n-100)' }}>
+                <div key={driver.id} className="flex justify-between items-center py-4 px-6 border-b border-[var(--n-100)]">
                   <div>
-                    <div style={{ fontWeight: 600 }}>{driver.name || 'ไม่ระบุชื่อ'}</div>
-                    <div style={{ color: 'var(--n-500)', fontSize: '0.8rem' }}>
+                    <div className="font-semibold">{driver.name || 'ไม่ระบุชื่อ'}</div>
+                    <div className="text-[var(--n-500)] text-[0.8rem]">
                       📞 {driver.phone || '-'} · 🚗 {driver.vehiclePlate || '-'} ({driver.vehicleType || '-'})
                     </div>
-                    <div style={{ marginTop: '0.3rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <div className="mt-1.5 flex gap-1.5 items-center">
                       {driver.isVerified && (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.72rem', color: 'var(--success-text)' }}>
+                        <span className="flex items-center gap-1 text-[0.72rem] text-[var(--success-text)]">
                           <CheckCircle size={11} /> ยืนยันแล้ว
                         </span>
                       )}
                       {driver.isActive && (
-                        <span className="sp-badge sp-badge-delivered" style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>Active</span>
+                        <span className="sp-badge sp-badge-delivered text-[0.65rem] py-0.5 px-1.5">Active</span>
                       )}
                     </div>
                   </div>
                   <button
                     onClick={() => handleUnlink(driver.id, driver.name)}
                     disabled={unlinking === driver.id}
-                    className="sp-btn-danger" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}
+                    className="sp-btn-danger py-1.5 px-3 text-[0.8rem]"
                   >
                     {unlinking === driver.id ? <span className="sp-spinner" /> : <><UserMinus size={13} /> ยกเลิก</>}
                   </button>

@@ -32,96 +32,96 @@ export default function DriverHistoryPage() {
   }, []);
 
   if (isLoading) return (
-    <div className="sp-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid var(--n-200)', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-        <p className="sp-caps" style={{ color: 'var(--n-500)', marginTop: '1rem' }}>Loading History</p>
+    <div className="sp-page flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="w-10 h-10 border-[3px] border-[var(--n-200)] border-t-[var(--brand-500)] rounded-full animate-spin mx-auto" />
+        <p className="sp-caps text-[var(--n-500)] mt-4">Loading History</p>
       </div>
     </div>
   );
 
   return (
-    <div className="sp-page" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <nav className="sp-nav" style={{ padding: 0 }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', alignItems: 'center', height: '100%', padding: '0 1.5rem' }}>
-          <Link href="/driver" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--n-600)', textDecoration: 'none', fontWeight: 700, fontSize: '0.875rem', textTransform: 'uppercase' }}>
+    <div className="sp-page min-h-screen flex flex-col">
+      <nav className="sp-nav p-0">
+        <div className="max-w-[800px] mx-auto w-full flex items-center h-full px-6">
+          <Link href="/driver" className="flex items-center gap-2 text-[var(--n-600)] font-bold text-sm uppercase">
             <ArrowLeft size={16} /> กลับหน้าหลัก
           </Link>
         </div>
       </nav>
 
-      <main style={{ maxWidth: '800px', margin: '0 auto', padding: '3rem 1.5rem', width: '100%', flex: 1 }}>
-        <div className="sp-animate-d1" style={{ marginBottom: '2.5rem' }}>
-          <span className="sp-section-eyebrow" style={{ color: 'var(--brand-600)' }}>YOUR ACTIVITY</span>
-          <h1 className="sp-font-display" style={{ fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', lineHeight: 1, marginTop: '0.5rem', letterSpacing: '-0.02em', color: 'var(--n-900)' }}>
+      <main className="max-w-[800px] mx-auto py-12 px-6 w-full flex-1">
+        <div className="sp-animate-d1 mb-10">
+          <span className="sp-section-eyebrow text-[var(--brand-600)]">YOUR ACTIVITY</span>
+          <h1 className="sp-font-display font-black text-3xl sm:text-4xl md:text-5xl leading-none mt-2 tracking-tight text-[var(--n-900)]">
             ประวัติการส่งของ
           </h1>
         </div>
 
         {/* KPI Stats */}
-        <div className="sp-animate-d1" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '3rem' }}>
-          <div className="sp-card" style={{ padding: '1.5rem', border: '1px solid var(--n-200)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--n-600)', marginBottom: '0.5rem' }}>
+        <div className="sp-animate-d1 grid grid-cols-2 gap-4 mb-12">
+          <div className="sp-card p-6 border border-[var(--n-200)]">
+            <div className="flex items-center gap-2 text-[var(--n-600)] mb-2">
               <CheckCircle2 size={16} />
               <span className="sp-caps">งานที่ส่งสำเร็จ</span>
             </div>
-            <p className="sp-font-display" style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--n-900)' }}>
-              {stats.totalDelivered} <span style={{ fontSize: '1rem', color: 'var(--n-500)', fontWeight: 600 }}>งาน</span>
+            <p className="sp-font-display text-3xl font-black text-[var(--n-900)]">
+              {stats.totalDelivered} <span className="text-base text-[var(--n-500)] font-semibold">งาน</span>
             </p>
           </div>
-          <div className="sp-card" style={{ padding: '1.5rem', background: 'var(--brand-50)', border: '1px solid var(--brand-200)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--brand-700)', marginBottom: '0.5rem' }}>
+          <div className="sp-card p-6 bg-[var(--brand-50)] border border-[var(--brand-200)]">
+            <div className="flex items-center gap-2 text-[var(--brand-700)] mb-2">
               <Banknote size={16} />
               <span className="sp-caps">ยอดเงินสด (COD) รวม</span>
             </div>
-            <p className="sp-font-display" style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--brand-800)' }}>
+            <p className="sp-font-display text-3xl font-black text-[var(--brand-800)]">
               ฿{stats.totalCashCollected.toLocaleString()}
             </p>
           </div>
         </div>
 
         {error && (
-          <div className="sp-animate" style={{ padding: '1rem', borderLeft: '4px solid var(--error-text)', background: 'var(--error-bg)', color: 'var(--error-text)', marginBottom: '2rem', fontSize: '0.875rem' }}>
+          <div className="sp-animate p-4 border-l-4 border-l-[var(--error-text)] bg-[var(--error-bg)] text-[var(--error-text)] mb-8 text-sm">
             {error}
           </div>
         )}
 
         {history.length === 0 ? (
-          <div className="sp-animate-d2 sp-card" style={{ padding: '4rem 0', textAlign: 'center', background: 'var(--n-50)' }}>
-            <Clock size={32} style={{ color: 'var(--n-500)', margin: '0 auto 1rem' }} />
-            <p className="sp-caps" style={{ color: 'var(--n-500)' }}>ยังไม่มีประวัติการส่ง</p>
+          <div className="sp-animate-d2 sp-card py-16 text-center bg-[var(--n-50)]">
+            <Clock size={32} className="text-[var(--n-500)] mx-auto mb-4" />
+            <p className="sp-caps text-[var(--n-500)]">ยังไม่มีประวัติการส่ง</p>
           </div>
         ) : (
-          <div className="sp-animate-d2" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="sp-animate-d2 flex flex-col gap-4">
             {history.map(order => (
-              <div key={order.id} className="sp-card" style={{ padding: '1.5rem', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem', border: '1px solid var(--n-200)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem' }}>
-                  <div style={{ width: '48px', height: '48px', background: 'var(--brand-50)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-600)', flexShrink: 0 }}>
+              <div key={order.id} className="sp-card p-6 flex flex-wrap items-center justify-between gap-6 border border-[var(--n-200)]">
+                <div className="flex items-start gap-5">
+                  <div className="w-12 h-12 bg-[var(--brand-50)] rounded-lg flex items-center justify-center text-[var(--brand-600)] shrink-0">
                     <Package size={20} />
                   </div>
                   <div>
-                    <p className="sp-mono" style={{ fontWeight: 700, color: 'var(--brand-600)', fontSize: '0.85rem' }}>{order.trackingNumber}</p>
-                    <p style={{ color: 'var(--n-900)', fontSize: '1.1rem', marginTop: '0.125rem', fontWeight: 700 }}>{order.productName}</p>
-                    <p style={{ color: 'var(--n-500)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                    <p className="sp-mono font-bold text-[var(--brand-600)] text-sm">{order.trackingNumber}</p>
+                    <p className="text-[var(--n-900)] text-lg mt-0.5 font-bold">{order.productName}</p>
+                    <p className="text-[var(--n-500)] text-sm mt-1">
                       ผู้รับ: {order.receiverName} ({order.receiverPhone})
                     </p>
-                    <p style={{ color: 'var(--n-500)', fontSize: '0.75rem', marginTop: '0.125rem' }}>
+                    <p className="text-[var(--n-500)] text-xs mt-0.5">
                       ส่งเมื่อ: {new Date(order.updatedAt).toLocaleString('th-TH')}
                     </p>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                  <p className="sp-font-display" style={{ fontWeight: 900, fontSize: '1.25rem', color: 'var(--n-900)' }}>
+                <div className="text-right flex flex-col items-end gap-2">
+                  <p className="sp-font-display font-black text-xl text-[var(--n-900)]">
                     ฿{(order.totalPrice || order.price)?.toLocaleString()}
                   </p>
-                  <p className="sp-caps" style={{ color: 'var(--success-text)', fontSize: '0.75rem', background: 'rgba(46, 125, 50, 0.1)', padding: '0.25rem 0.5rem', borderRadius: '4px' }}>
+                  <p className="sp-caps text-[var(--success-text)] text-xs bg-[rgba(46,125,50,0.1)] py-1 px-2 rounded">
                     ส่งสำเร็จ
                   </p>
                   {order.proofOfDelivery && (
                     <img 
                       src={order.proofOfDelivery} 
                       alt="POD" 
-                      style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--n-200)', marginTop: '0.5rem' }} 
+                      className="w-[60px] h-[60px] object-cover rounded-md border border-[var(--n-200)] mt-2" 
                     />
                   )}
                 </div>

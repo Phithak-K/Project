@@ -2462,6 +2462,12 @@ html.driver-dark .sp-btn-danger:hover { background: rgba(229, 72, 77, .18); colo
 /* แผนที่ Radar เป็นธีมมืดโดยตั้งใจ — ทับ rule isolation ในหัวข้อ 25 เฉพาะกล่องนี้ */
 .sp-radar-map .leaflet-container { background: #0f1114 !important; }
 .sp-radar-map .leaflet-tile-pane { background: #0f1114; }
+.sp-radar-tile-invert { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+
+@keyframes pulse-marker {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
 
 /* ══════════════════════════════════════════════════════
    34. AUDIT FIXES — จากการไล่ตรวจทุกหน้าอัตโนมัติ

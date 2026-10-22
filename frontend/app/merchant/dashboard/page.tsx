@@ -45,79 +45,79 @@ export default function MerchantDashboardPage() {
   return (
     <div className="sp-page">
       <nav className="sp-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div className="flex items-center gap-3">
           <span className="sp-logo">Swift<span className="sp-logo-accent">Path</span></span>
-          <span className="sp-caps" style={{ color: 'var(--n-400)' }}>Merchant Stats</span>
+          <span className="sp-caps text-[var(--n-400)]">Merchant Stats</span>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="flex gap-2">
           <Link href="/merchant/history">
-            <button className="sp-btn" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem', background: 'var(--n-100)', color: 'var(--n-800)', border: '1px solid var(--n-200)' }}>
+            <button className="sp-btn py-2 px-4 text-xs bg-[var(--n-100)] text-[var(--n-800)] border border-[var(--n-200)]">
               📜 ประวัติ
             </button>
           </Link>
           <Link href="/merchant/create-order">
-            <button className="sp-btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+            <button className="sp-btn-primary py-2 px-4 text-xs">
               <Plus size={14} /> สร้างออเดอร์
             </button>
           </Link>
         </div>
       </nav>
 
-      <main style={{ maxWidth: '600px', margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <header className="sp-animate" style={{ marginBottom: '2.5rem' }}>
+      <main className="max-w-[600px] mx-auto py-10 px-6">
+        <header className="sp-animate mb-10">
           <span className="sp-section-eyebrow">Store Intelligence</span>
-          <h1 className="sp-font-display sp-text-lg" style={{ fontWeight: 900, color: 'var(--n-900)' }}>
+          <h1 className="sp-font-display sp-text-lg font-black text-[var(--n-900)]">
             สรุปยอดขายของร้านค้า
           </h1>
-          <p style={{ color: 'var(--n-500)', fontSize: '0.9rem', marginTop: '0.25rem' }}>ดูและจัดการสถิติร้านค้าวันนี้</p>
+          <p className="text-[var(--n-500)] text-sm mt-1">ดูและจัดการสถิติร้านค้าวันนี้</p>
         </header>
 
-        <div className="sp-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="sp-stagger flex flex-col gap-4">
           
-          <div className="sp-card" style={{ borderLeft: '3px solid var(--success-text)', background: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <div style={{ background: 'var(--success-bg)', color: 'var(--success-text)', padding: '0.5rem', borderRadius: '0.5rem' }}>
+          <div className="sp-card border-l-[3px] border-l-[var(--success-text)] bg-white">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-[var(--success-bg)] text-[var(--success-text)] p-2 rounded-lg">
                 <DollarSign size={24} />
               </div>
-              <span className="sp-caps" style={{ color: 'var(--n-400)', fontWeight: 700 }}>ยอดขายพัสดุรวมวันนี้</span>
+              <span className="sp-caps text-[var(--n-400)] font-bold">ยอดขายพัสดุรวมวันนี้</span>
             </div>
-            <div className="sp-stat-number" style={{ fontSize: '3.5rem', color: 'var(--n-900)' }}>
+            <div className="sp-stat-number text-[3.5rem] text-[var(--n-900)] leading-none">
               ฿{stats?.todaySales?.toLocaleString() || 0}
             </div>
-            <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div className="mt-3 flex items-center gap-2">
               <span className="sp-badge sp-badge-delivered">
                 <CheckCircle size={12} /> รวมค่า Surge แล้ว
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+          <div className="grid grid-cols-2 gap-4">
             <div className="sp-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--warning-text)' }}>
+              <div className="flex items-center gap-2 text-[var(--warning-text)]">
                 <Package size={16} />
-                <span className="sp-caps" style={{ fontSize: '0.7rem' }}>รอยืนยัน</span>
+                <span className="sp-caps text-[0.7rem]">รอยืนยัน</span>
               </div>
-              <div className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-900)', marginTop: '0.5rem' }}>{stats?.pendingOrders || 0}</div>
-              <div className="sp-caps" style={{ color: 'var(--n-400)', marginTop: '0.125rem' }}>ออเดอร์</div>
+              <div className="sp-stat-number text-3xl text-[var(--n-900)] mt-2">{stats?.pendingOrders || 0}</div>
+              <div className="sp-caps text-[var(--n-400)] mt-0.5">ออเดอร์</div>
             </div>
             <div className="sp-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--info-text)' }}>
+              <div className="flex items-center gap-2 text-[var(--info-text)]">
                 <Truck size={16} />
-                <span className="sp-caps" style={{ fontSize: '0.7rem' }}>กำลังส่ง</span>
+                <span className="sp-caps text-[0.7rem]">กำลังส่ง</span>
               </div>
-              <div className="sp-stat-number" style={{ fontSize: '2rem', color: 'var(--n-900)', marginTop: '0.5rem' }}>{stats?.shippingOrders || 0}</div>
-              <div className="sp-caps" style={{ color: 'var(--n-400)', marginTop: '0.125rem' }}>ออเดอร์</div>
+              <div className="sp-stat-number text-3xl text-[var(--n-900)] mt-2">{stats?.shippingOrders || 0}</div>
+              <div className="sp-caps text-[var(--n-400)] mt-0.5">ออเดอร์</div>
             </div>
           </div>
 
-          <div className="sp-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--n-50)' }}>
+          <div className="sp-card flex justify-between items-center bg-[var(--n-50)]">
             <div>
-              <span className="sp-caps" style={{ color: 'var(--n-400)' }}>ส่งสำเร็จพัสดุถึงมือผู้รับ</span>
-              <div className="sp-stat-number" style={{ fontSize: '1.75rem', color: 'var(--n-900)', marginTop: '0.25rem' }}>
+              <span className="sp-caps text-[var(--n-400)]">ส่งสำเร็จพัสดุถึงมือผู้รับ</span>
+              <div className="sp-stat-number text-2xl text-[var(--n-900)] mt-1">
                 {stats?.deliveredOrders || 0} รายการ
               </div>
             </div>
-            <CheckCircle size={32} style={{ color: 'var(--success-text)', opacity: 0.8 }} />
+            <CheckCircle size={32} className="text-[var(--success-text)] opacity-80" />
           </div>
 
         </div>
