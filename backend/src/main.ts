@@ -27,16 +27,12 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [
-      'https://store.localhost:3000',
-      'https://fleet.localhost:3000',
-      'https://app.localhost:3000',
-      'https://localhost:3000',
-      'http://store.localhost:3000',
-      'http://fleet.localhost:3000',
-      'http://app.localhost:3000',
-      'http://localhost:3000',
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Allow localhost, Vercel previews, onrender, and any custom domain
+      callback(null, true);
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Content-Type, Accept, Authorization',

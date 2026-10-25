@@ -18,13 +18,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
+    const host = req.headers.get('host') || '';
+    let defaultBaseDomain = 'swiftpath-app.xyz';
+    if (host.includes('localhost')) {
+      defaultBaseDomain = 'localhost:3000';
+    } else if (host) {
+      const parts = host.split(':')[0].split('.');
+      if (parts.length >= 2) {
+        defaultBaseDomain = parts.slice(-2).join('.');
+      }
+    }
+    const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || defaultBaseDomain;
     const isLocalhost = baseDomain.includes('localhost');
 
     // Determine redirect URL based on role
     const proto = isLocalhost ? 'http' : 'https';
     let redirectUrl: string;
-    if (user.role === 'Merchant') {
+    if (user.role === 'Admin') {
+      redirectUrl = `${proto}://${baseDomain}/admin`;
+    } else if (user.role === 'Merchant') {
       redirectUrl = `${proto}://store.${baseDomain}/`;
     } else if (user.role === 'Driver') {
       redirectUrl = `${proto}://fleet.${baseDomain}/`;

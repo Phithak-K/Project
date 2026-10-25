@@ -11,10 +11,18 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app: any = null;
+try {
+  if (typeof window !== 'undefined' && firebaseConfig.apiKey) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  }
+} catch (e) {
+  console.warn('Firebase init skipped or failed:', e);
+}
 
 export const requestFCMToken = async () => {
   try {
+    if (typeof window === 'undefined' || !app) return null;
     const supported = await isSupported();
     if (!supported) {
       console.warn('FCM is not supported in this browser.');
@@ -22,11 +30,10 @@ export const requestFCMToken = async () => {
     }
 
     const messaging = getMessaging(app);
-    // VAPID KEY typically goes here, but we can rely on standard setup if missing
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       const currentToken = await getToken(messaging, {
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY // Add this to env if available, else standard works on some platforms
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
       });
       if (currentToken) {
         return currentToken;
@@ -40,13 +47,14 @@ export const requestFCMToken = async () => {
 
 export const onMessageListener = () =>
   new Promise((resolve) => {
+    if (typeof window === 'undefined' || !app) return;
     isSupported().then(supported => {
         if (!supported) return;
         const messaging = getMessaging(app);
         onMessage(messaging, (payload) => {
             resolve(payload);
         });
-    });
+    }).catch(err => console.warn('FCM listener error:', err));
   });
 
 export { app };

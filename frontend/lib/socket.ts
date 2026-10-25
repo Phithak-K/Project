@@ -11,7 +11,7 @@ import { io, Socket } from 'socket.io-client';
 /** Resolved backend URL: env var → localhost fallback in dev → empty in prod */
 export const SOCKET_URL: string =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
-  (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
+  (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : 'https://project-wi39.onrender.com');
 
 export type SocketConnectionState = 'connected' | 'connecting' | 'reconnecting' | 'disconnected' | 'error';
 

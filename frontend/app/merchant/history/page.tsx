@@ -266,7 +266,7 @@ export default function MerchantHistoryPage() {
                       src={
                         order.proofOfDelivery.startsWith('http') || order.proofOfDelivery.startsWith('data:') 
                           ? order.proofOfDelivery 
-                          : `${process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '')}${order.proofOfDelivery.startsWith('/') ? '' : '/'}${order.proofOfDelivery}`
+                          : `${process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : 'https://project-wi39.onrender.com')}${order.proofOfDelivery.startsWith('/') ? '' : '/'}${order.proofOfDelivery}`
                       } 
                       alt="Proof" 
                       className="w-10 h-10 object-cover rounded border border-[var(--n-200)]" 

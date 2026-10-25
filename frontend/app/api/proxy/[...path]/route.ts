@@ -18,7 +18,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ p
 
 async function handleProxy(req: NextRequest, pathArray: string[]) {
   const token = req.cookies.get('token')?.value;
-  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:8000' : '');
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:8000'
+      : 'https://project-wi39.onrender.com');
   const url = new URL(req.url);
   const targetUrl = `${backendUrl}/${pathArray.join('/')}${url.search}`;
 

@@ -28,9 +28,37 @@ function buildRedirectUrl(
   subdomain: string = '',
   protocol: string,
   isLocalhost: boolean,
+  hostname: string = '',
 ): string {
-  const baseHost = process.env.NEXT_PUBLIC_BASE_DOMAIN
-    || (isLocalhost ? 'localhost:3000' : 'swiftpath.com')
+  // If previewing directly on Vercel (*.vercel.app), route via path-prefix so it works immediately
+  if (hostname.endsWith('.vercel.app')) {
+    const rolePrefix =
+      subdomain === 'store'
+        ? '/merchant'
+        : subdomain === 'fleet'
+        ? '/driver'
+        : subdomain === 'app'
+        ? '/customer'
+        : subdomain === 'admin'
+        ? '/admin'
+        : ''
+    if (subdomain && rolePrefix && !path.startsWith(rolePrefix)) {
+      return `${protocol}://${hostname}${rolePrefix}${path}`
+    }
+    return `${protocol}://${hostname}${path}`
+  }
+
+  let derivedBaseHost = 'swiftpath-app.xyz'
+  if (isLocalhost) {
+    derivedBaseHost = 'localhost:3000'
+  } else if (hostname && !hostname.endsWith('.vercel.app')) {
+    const parts = hostname.split(':')[0].split('.')
+    if (parts.length >= 2) {
+      derivedBaseHost = parts.slice(-2).join('.')
+    }
+  }
+
+  const baseHost = process.env.NEXT_PUBLIC_BASE_DOMAIN || derivedBaseHost
   const newHost  = subdomain ? `${subdomain}.${baseHost}` : baseHost
   return `${protocol}://${newHost}${path}`
 }
@@ -191,16 +219,15 @@ export function proxy(request: NextRequest) {
   const isLocalhost = hostname.includes('localhost')
 
   let currentHost = ''
-  if (hostParts.length > (isLocalhost ? 1 : 2)) {
+  const validSubdomains = ['store', 'fleet', 'app', 'admin']
+  if (hostParts.length > (isLocalhost ? 1 : 2) && validSubdomains.includes(hostParts[0])) {
     currentHost = hostParts[0]
   }
-
-  // DEBUG LOG ถูกลบออกแล้ว (Production Cleanup)
 
   // ── สร้าง Helper ที่ผูกกับ Request ปัจจุบัน ─────────────────────────────────
   const protocol = url.protocol.replace(':', '')
   const getRedirectUrl = (path: string, subdomain: string = '') =>
-    buildRedirectUrl(path, subdomain, protocol, isLocalhost)
+    buildRedirectUrl(path, subdomain, protocol, isLocalhost, hostname)
 
   const matchesPath = (basePath: string) =>
     pathname === basePath || pathname.startsWith(`${basePath}/`)
@@ -243,6 +270,47 @@ export function proxy(request: NextRequest) {
           new URL(getRedirectUrl(cleanPath, host), request.url),
         )
       }
+    }
+  }
+
+  // ════════════════════════════════════════════════════════════════════════════
+  // STEP 0.5: Subdomain self-cleanup & Wrong-Subdomain Guard (Before Auth Checks)
+  // Ensures role prefixes like /customer/login or /driver/register are cleaned/rerouted
+  // before the unauthenticated guard can misinterpret them as private pages.
+  // ════════════════════════════════════════════════════════════════════════════
+  if (currentHost === 'app') {
+    if (pathname.startsWith('/merchant') || pathname.startsWith('/driver')) {
+      const targetRole = pathname.startsWith('/merchant') ? 'store' : 'fleet'
+      const cleanPath  = pathname.replace('/merchant', '').replace('/driver', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url))
+    }
+    if (pathname.startsWith('/customer')) {
+      const cleanPath = pathname.replace('/customer', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'app'), request.url))
+    }
+  }
+
+  if (currentHost === 'store') {
+    if (pathname.startsWith('/customer') || pathname.startsWith('/driver')) {
+      const targetRole = pathname.startsWith('/customer') ? 'app' : 'fleet'
+      const cleanPath  = pathname.replace('/customer', '').replace('/driver', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url))
+    }
+    if (pathname.startsWith('/merchant')) {
+      const cleanPath = pathname.replace('/merchant', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'store'), request.url))
+    }
+  }
+
+  if (currentHost === 'fleet') {
+    if (pathname.startsWith('/customer') || pathname.startsWith('/merchant')) {
+      const targetRole = pathname.startsWith('/customer') ? 'app' : 'store'
+      const cleanPath  = pathname.replace('/customer', '').replace('/merchant', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url))
+    }
+    if (pathname.startsWith('/driver')) {
+      const cleanPath = pathname.replace('/driver', '')
+      return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'fleet'), request.url))
     }
   }
 
@@ -295,31 +363,6 @@ export function proxy(request: NextRequest) {
     }
 
     return NextResponse.next()
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // STEP 6: Wrong-Subdomain Guard (Fix 404 for /driver/register on app subdomain)
-  // ════════════════════════════════════════════════════════════════════════════
-  if (currentHost === 'app' && (pathname.startsWith('/merchant') || pathname.startsWith('/driver'))) {
-    const targetRole = pathname.startsWith('/merchant') ? 'store' : 'fleet'
-    const cleanPath  = pathname.replace('/merchant', '').replace('/driver', '')
-    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', targetRole), request.url))
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // STEP 6.1: Subdomain self-cleanup (Prevent double prefix 404s)
-  // ════════════════════════════════════════════════════════════════════════════
-  if (currentHost === 'store' && pathname.startsWith('/merchant')) {
-    const cleanPath = pathname.replace('/merchant', '')
-    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'store'), request.url))
-  }
-  if (currentHost === 'fleet' && pathname.startsWith('/driver')) {
-    const cleanPath = pathname.replace('/driver', '')
-    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'fleet'), request.url))
-  }
-  if (currentHost === 'app' && pathname.startsWith('/customer')) {
-    const cleanPath = pathname.replace('/customer', '')
-    return NextResponse.redirect(new URL(getRedirectUrl(cleanPath || '/', 'app'), request.url))
   }
 
 

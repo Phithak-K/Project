@@ -27,7 +27,7 @@ export default function CustomerRegisterPage() {
 
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST',
         mode: 'cors',
@@ -63,7 +63,7 @@ export default function CustomerRegisterPage() {
   const handleGoogleSuccess = async (tokenResponse: any) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google-login`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api/proxy'}/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: tokenResponse.access_token }),
