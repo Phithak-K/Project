@@ -84,6 +84,13 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
   // ─── เริ่มติดตาม GPS จริง ─────────────────────────────────────────────────────
   const startRealGPS = useCallback(() => {
+    if (!order) return;
+
+    if (order.status === 'ACCEPTED') {
+      toast.error('กรุณากดยืนยันการรับพัสดุก่อนเริ่มแชร์ตำแหน่ง');
+      return;
+    }
+
     if (!navigator.geolocation) {
       toast.error('เบราว์เซอร์นี้ไม่รองรับ GPS');
       setGpsStatus('error');
