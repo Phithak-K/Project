@@ -9,14 +9,20 @@
 `proxy.ts` คือหัวใจของระบบ Frontend ทำหน้าที่เป็น Edge Security Gateway ที่ประมวลผลก่อน React component จะ render แม้แต่ครั้งเดียว
 
 ### ตรรกะการ Rewrite
+ระบบแปลงซับโดเมนให้เป็นโฟลเดอร์ภายใน `app/` โดยอัตโนมัติ ทั้งในเครื่อง Local และบน Cloud Domain จริง (`swiftpath-app.xyz`):
 
-ระบบแปลงซับโดเมนให้เป็นโฟลเดอร์ภายใน `app/` โดยอัตโนมัติ:
+```text
+# สภาพแวดล้อม Local
+app.localhost:3000/track/[id]    →  app/track/[id]/page.tsx
+store.localhost:3000/orders      →  app/merchant/orders/page.tsx
+fleet.localhost:3000/orders      →  app/driver/orders/page.tsx
+localhost:3000/admin             →  app/admin/ (ต้องผ่าน Admin Gate ก่อน)
 
-```
-app.localhost:3000/track/[id]  →  app/track/[id]/page.tsx
-store.localhost:3000/orders    →  app/merchant/orders/page.tsx
-fleet.localhost:3000/orders    →  app/driver/orders/page.tsx
-localhost:3000/admin           →  app/admin/ (ต้องผ่าน Admin Gate ก่อน)
+# สภาพแวดล้อม Production Cloud (Vercel)
+app.swiftpath-app.xyz/track/[id] →  app/track/[id]/page.tsx
+store.swiftpath-app.xyz/orders   →  app/merchant/orders/page.tsx
+fleet.swiftpath-app.xyz/orders   →  app/driver/orders/page.tsx
+swiftpath-app.xyz/admin          →  app/admin/
 ```
 
 ### ลำดับการตรวจสอบของ Proxy (8 ขั้นตอน)
@@ -27,10 +33,10 @@ localhost:3000/admin           →  app/admin/ (ต้องผ่าน Admin G
 | 2 | Unauthenticated Guard | ผู้ที่ไม่มี token และไม่ใช่หน้า public → redirect ไป login พร้อม `callbackUrl` |
 | 3 | Auth Page Gate | ผู้ที่ login แล้วพยายามเข้าหน้า login/register → redirect กลับ dashboard |
 | 4 | Role-Based Access Control | ตรวจสอบว่า role ตรงกับซับโดเมน ถ้าไม่ตรง → evict cookie และ redirect |
-| 5 | Root Domain Handler | จัดการ `localhost:3000` โดยตรง (Landing Page) |
+| 5 | Root Domain Handler | จัดการ `localhost:3000` หรือ `swiftpath-app.xyz` โดยตรง (Landing Page) |
 | 6 | Wrong-Subdomain Guard | แก้ไขกรณีเข้าผิด path เช่น `/driver/register` บน `app.localhost` |
-| 7 | Shared Root Pages | เส้นทางที่ใช้ร่วมกัน เช่น `/verify-otp`, `/track` ปล่อยผ่านโดยไม่ rewrite |
-| 8 | Subdomain Folder Rewrite | ทำ rewrite ตามซับโดเมนที่ตรวจพบ |
+| 7 | Shared Root Pages | เส้นทางที่ใช้ร่วมกัน เช่น `/verify-otp`, `/track`, `/api/proxy` ปล่อยผ่านโดยไม่ rewrite |
+| 8 | Subdomain Folder Rewrite | ทำ rewrite ตามซับโดเมนที่ตรวจพบ (`store`, `fleet`, `app`) |
 
 ---
 
@@ -91,6 +97,13 @@ if (adminResult) return adminResult  // short-circuit — ไม่ผ่าน 
 ### BUG-002: Cumulative Layout Shift (CLS) บนการสลับซับโดเมน (แก้ไขแล้ว)
 
 ฟังก์ชัน `return null` ระหว่างก่อน hydration ถูกแทนที่ด้วย **Safe Server Skeleton** ที่กำหนดขนาดแบบ static ใน Server Component ทำให้เบราว์เซอร์ได้รับโครงสร้างหน้าที่มีมิติ stable ตั้งแต่ HTML payload ชิ้นแรก กำจัดหน้าขาวว่างและรักษาคะแนน Core Web Vitals
+
+### การปรับปรุงการทำงานของระบบ (Production Reliability Highlights)
+1. **Driver Workflow Safety & Auto-Mock POD:**
+   - เพิ่ม Pickup Guard บล็อกไม่ให้เปิดแชร์ Live GPS หรือเริ่มเดโม่จำลอง หากยังไม่กดยืนยันการรับพัสดุ (`PICKED_UP`)
+   - ระบบเดโม่จำลองจะเปลี่ยนสถานะเป็น `SHIPPING` อัตโนมัติ และเมื่อวิ่งถึงปลายทางจะสร้าง Mock POD และใส่พิกัดส่งมอบให้อัตโนมัติทันที ปลดล็อกปุ่ม **"ปิดเสร็จสิ้นงานส่ง"** ให้กดทำงานต่อได้ราบรื่น ไม่เกิดปัญหาปุ่มค้าง
+2. **SSR-Safe Firebase Initialization:**
+   - ป้องกัน Server-side rendering (SSR) ใน Node.js พัง เมื่อไม่มี Browser Client APIs หรือไม่มี Firebase Client Config พร้อมตัว fallback ใน `frontend/lib/firebase.ts`
 
 ---
 
