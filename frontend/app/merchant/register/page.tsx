@@ -22,7 +22,7 @@ export default function MerchantRegisterPage() {
 
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
       const response = await fetch(`${apiUrl}/auth/register`, {
         method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },

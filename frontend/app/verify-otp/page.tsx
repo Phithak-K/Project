@@ -30,7 +30,7 @@ export default function VerifyOtpPage() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
       const response = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
@@ -69,7 +69,7 @@ export default function VerifyOtpPage() {
     setIsResending(true);
     setError('');
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
       const response = await fetch(`${apiUrl}/auth/resend-otp`, {
         method: 'POST', mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
