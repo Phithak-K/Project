@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
   ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, DollarSign, 
-  MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download
+  MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download,
+  Edit3, X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import OrderMap from '@/components/OrderMap';
@@ -22,6 +23,64 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
   const [cancelling, setCancelling] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    receiverName: '',
+    receiverPhone: '',
+    address: '',
+    productDetail: '',
+  });
+
+  const openEditModal = () => {
+    if (!order) return;
+    setEditForm({
+      receiverName: order.receiverName || '',
+      receiverPhone: order.receiverPhone || '',
+      address: order.address || '',
+      productDetail: order.productDetail || '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveCustomerInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.receiverName.trim()) {
+      toast.error('กรุณาระบุชื่อผู้รับ');
+      return;
+    }
+    if (!editForm.receiverPhone.trim()) {
+      toast.error('กรุณาระบุเบอร์โทรศัพท์');
+      return;
+    }
+    if (!editForm.address.trim()) {
+      toast.error('กรุณาระบุที่อยู่จัดส่ง');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/proxy/orders/${orderId}/customer-info`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        toast.success('อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว');
+        setIsEditModalOpen(false);
+        await fetchOrder();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.message || 'ไม่สามารถอัปเดตข้อมูลได้');
+      }
+    } catch {
+      toast.error('Network Error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
@@ -225,7 +284,17 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
             {/* Details Table */}
             <div className="sp-card">
-              <h3 className="sp-caps text-[var(--n-400)] mb-5">ข้อมูลการจัดส่ง</h3>
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="sp-caps text-[var(--n-400)] m-0">ข้อมูลการจัดส่ง</h3>
+                {(order.status === 'PENDING' || order.status === 'ACCEPTED') && (
+                  <button
+                    onClick={openEditModal}
+                    className="sp-btn-ghost text-xs py-1.5 px-2.5 flex items-center gap-1.5"
+                  >
+                    <Edit3 size={14} /> แก้ไขข้อมูล
+                  </button>
+                )}
+              </div>
               <div className="sp-split-2">
                 <div className="flex gap-3">
                   <User size={18} className="text-[var(--n-300)] mt-0.5" />
@@ -243,6 +312,12 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
                   </div>
                 </div>
               </div>
+              {order.productDetail && (
+                <div className="mt-4 pt-4 border-t border-[var(--n-100)]">
+                  <p className="sp-caps text-[var(--n-400)] text-[0.7rem]">รายละเอียด / หมายเหตุสินค้า</p>
+                  <p className="text-sm text-[var(--n-700)] mt-1 whitespace-pre-wrap">{order.productDetail}</p>
+                </div>
+              )}
             </div>
 
             {/* Map Card */}
@@ -336,6 +411,106 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
       )}
 
       <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
+
+      {/* Edit Customer Info Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-panel)] rounded-2xl w-full max-w-[480px] shadow-2xl overflow-hidden border border-[var(--n-200)]">
+            <div className="flex justify-between items-center px-6 py-5 border-b border-[var(--n-200)]">
+              <div className="flex items-center gap-2.5">
+                <div className="bg-[rgba(25,118,210,0.1)] p-2 rounded-xl text-[var(--brand-500)] flex">
+                  <Edit3 size={18} />
+                </div>
+                <h3 className="m-0 text-lg font-extrabold text-[var(--n-900)]">แก้ไขข้อมูลการจัดส่ง</h3>
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(false)} 
+                disabled={savingEdit}
+                className="bg-transparent border-0 cursor-pointer text-[var(--n-400)] p-1 hover:text-[var(--n-600)]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomerInfo}>
+              <div className="p-6 flex flex-col gap-4 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <label className="block sp-caps text-xs text-[var(--n-600)] mb-1">
+                    ชื่อผู้รับ <span className="text-[var(--error-text)]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="sp-input"
+                    value={editForm.receiverName}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, receiverName: e.target.value }))}
+                    placeholder="เช่น สมชาย ใจดี"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block sp-caps text-xs text-[var(--n-600)] mb-1">
+                    เบอร์โทรศัพท์ <span className="text-[var(--error-text)]">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    className="sp-input"
+                    value={editForm.receiverPhone}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, receiverPhone: e.target.value }))}
+                    placeholder="เช่น 0812345678"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block sp-caps text-xs text-[var(--n-600)] mb-1">
+                    ที่อยู่จัดส่ง <span className="text-[var(--error-text)]">*</span>
+                  </label>
+                  <textarea
+                    className="sp-input"
+                    rows={3}
+                    value={editForm.address}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="ระบุบ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block sp-caps text-xs text-[var(--n-600)] mb-1">
+                    รายละเอียดสินค้า / หมายเหตุ
+                  </label>
+                  <textarea
+                    className="sp-input"
+                    rows={2}
+                    value={editForm.productDetail}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, productDetail: e.target.value }))}
+                    placeholder="ระบุรายละเอียด เช่น วางไว้หน้าประตู"
+                  />
+                </div>
+              </div>
+
+              <div className="px-6 py-4 bg-[var(--bg-body)] border-t border-[var(--n-200)] flex gap-2.5 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={savingEdit}
+                  className="sp-btn-secondary py-2 px-4 rounded-lg"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="sp-btn-primary py-2 px-5 rounded-lg"
+                >
+                  {savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

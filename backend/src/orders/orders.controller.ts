@@ -17,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Role } from '../auth/roles.enum';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateCustomerInfoDto } from './dto/update-customer-info.dto';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 
 @Controller('orders')
@@ -208,6 +209,21 @@ export class OrdersController {
     return this.ordersService.cancelOrderByMerchant(
       Number(id),
       Number(req.user.userId),
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Merchant)
+  @Patch(':id/customer-info')
+  updateCustomerInfo(
+    @Param('id') id: string,
+    @Body() body: UpdateCustomerInfoDto,
+    @Req() req: any,
+  ) {
+    return this.ordersService.updateCustomerInfoByMerchant(
+      Number(id),
+      Number(req.user.userId),
+      body,
     );
   }
 
