@@ -28,7 +28,26 @@ function buildRedirectUrl(
   subdomain: string = '',
   protocol: string,
   isLocalhost: boolean,
+  hostname: string = '',
 ): string {
+  // If previewing directly on Vercel (*.vercel.app), route via path-prefix so it works immediately
+  if (hostname.endsWith('.vercel.app')) {
+    const rolePrefix =
+      subdomain === 'store'
+        ? '/merchant'
+        : subdomain === 'fleet'
+        ? '/driver'
+        : subdomain === 'app'
+        ? '/customer'
+        : subdomain === 'admin'
+        ? '/admin'
+        : ''
+    if (subdomain && rolePrefix && !path.startsWith(rolePrefix)) {
+      return `${protocol}://${hostname}${rolePrefix}${path}`
+    }
+    return `${protocol}://${hostname}${path}`
+  }
+
   const baseHost = process.env.NEXT_PUBLIC_BASE_DOMAIN
     || (isLocalhost ? 'localhost:3000' : 'swiftpath.com')
   const newHost  = subdomain ? `${subdomain}.${baseHost}` : baseHost
@@ -191,16 +210,15 @@ export function proxy(request: NextRequest) {
   const isLocalhost = hostname.includes('localhost')
 
   let currentHost = ''
-  if (hostParts.length > (isLocalhost ? 1 : 2)) {
+  const validSubdomains = ['store', 'fleet', 'app', 'admin']
+  if (hostParts.length > (isLocalhost ? 1 : 2) && validSubdomains.includes(hostParts[0])) {
     currentHost = hostParts[0]
   }
-
-  // DEBUG LOG ถูกลบออกแล้ว (Production Cleanup)
 
   // ── สร้าง Helper ที่ผูกกับ Request ปัจจุบัน ─────────────────────────────────
   const protocol = url.protocol.replace(':', '')
   const getRedirectUrl = (path: string, subdomain: string = '') =>
-    buildRedirectUrl(path, subdomain, protocol, isLocalhost)
+    buildRedirectUrl(path, subdomain, protocol, isLocalhost, hostname)
 
   const matchesPath = (basePath: string) =>
     pathname === basePath || pathname.startsWith(`${basePath}/`)
