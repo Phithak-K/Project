@@ -638,17 +638,6 @@ export class OrdersService {
       'ร้านค้าแก้ไขข้อมูลผู้รับ / สถานที่จัดส่ง',
     );
 
-    try {
-      this.chatGateway.server
-        ?.to(`order_${orderId}`)
-        .emit('order_status_update', updatedOrder);
-      this.chatGateway.server
-        ?.to(`tracking_${order.trackingNumber}`)
-        .emit('order_status_update', updatedOrder);
-    } catch (e) {
-      console.warn('Socket emit error on updateCustomerInfo:', e);
-    }
-
     if (this.eventEmitter) {
       this.eventEmitter.emit(
         ORDER_EVENTS.STATUS_UPDATED,
