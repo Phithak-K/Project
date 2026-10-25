@@ -102,9 +102,82 @@
 
 ---
 
-> [!NOTE]
-> **สิ่งที่ต้องทำต่อ:**
-> - ปัจจุบันระบบหลักและ API ทั้งหมดได้รับการพัฒนาและทดสอบ E2E เรียบร้อยแล้ว (รวมถึงโมดูล `/products` และระบบจัดการพอร์ทัลย่อย)
-> - เมื่อนำไปติดตั้งใช้งานจริง ให้ตรวจสอบการตั้งค่า URL ของ Firebase และ Stripe ในสภาวะแวดล้อมจริงอีกครั้ง
+## v2 Refactor & Cloud Architecture Enhancements (เวอร์ชัน 2.0)
+
+ในเวอร์ชัน **v2 Refactor** ได้ทำการยกระดับวิศวกรรมซอฟต์แวร์ของโปรเจกต์ ทั้งในด้านสถาปัตยกรรมของ Backend (Event-Driven Architecture), การปรับแต่ง UI/UX หน้าบ้านให้เป็น Zero-Inline-Styles พร้อมระบบแคช SWR, การแก้ปัญหา Flow การส่งของของคนขับ (Driver Simulator), และการติดตั้งขึ้นคลาวด์แบบ Multi-tenant จริง
+
+---
+
+### 1. สถาปัตยกรรม Backend: Event-Driven Architecture (`EventEmitter2`)
+
+* **การ Decouple OrdersService:** 
+  เดิมที `OrdersService` ต้องพึ่งพา (Inject) `ChatGateway` และ `NotificationsService` โดยตรงเพื่อส่งข้อความ WebSocket และ Push Notification ในทุกๆ State transition ส่งผลให้เกิด Tight Coupling และทดสอบ Unit Test ได้ยาก
+* **การเปลี่ยนผ่านสู่ Domain Events:**
+  - ติดตั้ง `@nestjs/event-emitter`
+  - สร้าง Domain Events ใน `backend/src/orders/events/`:
+    - `OrderCreatedEvent`
+    - `OrderStatusUpdatedEvent`
+    - `OrderCustomerUpdatedEvent`
+  - สร้าง Dedicated Listeners แยกส่วน:
+    - [OrderChatListener](file:///d:/Project/backend/src/chat/listeners/order-chat.listener.ts): ดักฟัง Event เพื่อส่ง Broadcast สู่ห้อง Socket.IO (`order_{id}`)
+    - [OrderNotificationsListener](file:///d:/Project/backend/src/notifications/listeners/order-notifications.listener.ts): ดักฟัง Event เพื่อยิง FCM Push Notification แบบ Asynchronous
+* **Unit Tests สำหรับ Listeners และ Core Service:**
+  - เพิ่ม Unit Tests ใน `order-chat.listener.spec.ts`, `order-notifications.listener.spec.ts` และ `orders.service.spec.ts`
+
+---
+
+### 2. การแก้ไขข้อมูลผู้รับปลายทางแบบไดนามิก (Dynamic Customer Info)
+
+* **ความต้องการ:** ในกรณีที่ลูกค้าโทรมาขอเปลี่ยนเบอร์โทรศัพท์ แก้ไขชื่อ หรือระบุจุดสังเกตของที่อยู่ใหม่หลังจากร้านค้าเปิดบิลไปแล้ว
+* **การแก้ไข:**
+  - เพิ่ม Endpoint `PATCH /orders/:id/customer` ใน `OrdersController`
+  - ตรวจสอบสิทธิ์ร้านค้า และอนุญาตให้แก้ไขได้เฉพาะขณะสถานะเป็น `PENDING` หรือ `ACCEPTED`
+  - ทำการ Emit `ORDER_EVENTS.CUSTOMER_UPDATED` เพื่อให้หน้าจอคนขับและหน้า Tracking ของลูกค้าอัปเดตข้อมูลพิกัดและที่อยู่ใหม่สดๆ ในทันที
+  - เพิ่มหน้าต่าง Modal ปรับแก้ข้อมูลในหน้า [app/merchant/orders/[id]/page.tsx](file:///d:/Project/frontend/app/merchant/orders/%5Bid%5D/page.tsx)
+
+---
+
+### 3. การยกเครื่อง Frontend: Zero-Inline-Styles และ SWR Real-Time Caching
+
+* **Zero-Inline-Styles:**
+  - กำจัด Inline Styles ที่กระจัดกระจายอยู่ในหน้า Admin, Merchant, Driver และ Customer Tracking
+  - กำหนด Design Tokens และคลาสมาตรฐาน เช่น `.adm-*` ใน `frontend/app/globals.css` ทำให้ CSS มีความสม่ำเสมอ ประหยัดการเรนเดอร์ของเบราว์เซอร์
+* **SWR Real-Time Caching (`swr`):**
+  - นำ `useSWR` มาใช้ในการดึงข้อมูลและจัดการ Local Cache
+  - แสดงผลข้อมูลเดิมทันทีแบบไม่มี Layout Shift หรือกระพริบ
+  - Revalidate ข้อมูลในพื้นหลัง และประสานงานกับ Socket.IO เพื่อสั่ง `mutate()` แคชเฉพาะจุดเมื่อได้รับเหตุการณ์จากเซิร์ฟเวอร์
+
+---
+
+### 4. การปรับปรุงกระบวนการส่งของของไรเดอร์ (Driver State Machine & Guided Demo)
+
+* **ปัญหาเดิม:** 
+  1. ในหน้าของไรเดอร์ สามารถกดเปิด Real GPS หรือกดเริ่มเดโม่จำลองการส่งของได้ทันทีแม้ยังไม่ได้กดยืนยันการรับพัสดุจากร้าน (`ACCEPTED`)
+  2. เมื่อเดโม่วิ่งไปถึงจุดหมายแล้ว ปุ่ม "ปิดเสร็จสิ้นงานส่ง" ติดสถานะ `disabled={!proofImage}` ทำให้ไรเดอร์กดส่งงานไม่ได้ ค้างอยู่ที่หน้าจอ
+* **การแก้ไข:**
+  1. **Strict Pickup Guard:** เพิ่มการดักสถานะใน `startRealGPS` และ `startSimulator` หากสถานะยังเป็น `ACCEPTED` ระบบจะบล็อกและแสดงข้อความแจ้งเตือน *"กรุณากดยืนยันการรับพัสดุก่อน จึงจะเริ่มแชร์ตำแหน่งหรือจำลองการส่งได้"* พร้อมแสดงแถบ Banner สีส้มแนะนำให้กด "ยืนยันการรับพัสดุจากร้านค้า"
+  2. **Auto-Transition & Auto Mock POD:** เมื่อกดยืนยันรับของแล้วกดเริ่ม Demo ระบบจะเปลี่ยนสถานะเข้าสู่ `SHIPPING` ให้อัตโนมัติ และเมื่อวิ่งถึงปลายทาง ระบบจะแนบรูปถ่ายหลักฐานการจัดส่งจำลอง (Mock POD) และพิกัดส่งมอบให้อัตโนมัติทันที ทำให้ปุ่ม "ปิดเสร็จสิ้นงานส่ง" ปลดล็อกเป็นสีเขียว สามารถกดส่งงานต่อได้ทันทีโดยไม่ติดขัด
+
+---
+
+### 5. สถาปัตยกรรมคลาวด์และการ Deploy บน Production
+
+| ส่วนประกอบ | แพลตฟอร์มที่ใช้ | รายละเอียดการทำงาน |
+| :--- | :--- | :--- |
+| **Frontend & Edge Gateway** | **Vercel** | โฮสต์ Next.js พร้อมรัน `proxy.ts` รองรับซับโดเมน `swiftpath-app.xyz` |
+| **Backend API & WebSockets** | **Render** | โฮสต์ NestJS Web Service (`https://project-wi39.onrender.com`) พร้อม CORS และ WebSocket Gateway |
+| **Database** | **Supabase** | โฮสต์ฐานข้อมูล PostgreSQL บน Region โตเกียว (Tokyo) รองรับ Connection Pooling |
+| **Edge Security Proxy** | **Next.js `/api/proxy`** | ทำหน้าที่เป็นตัวกลางเชื่อมระหว่าง Frontend Vercel และ Backend Render ซ่อน JWT Cookie และซ่อน Origin |
+
+---
+
+### 6. ผลการตรวจสอบและคอมไพล์ (Validation Results)
+
+| การทดสอบ | ผลลัพธ์ | รายละเอียด |
+| :--- | :---: | :--- |
+| **Backend Build (`nest build`)** | ✅ สำเร็จ (Exit code: 0) | TypeScript build ผ่านทุกไฟล์ ไม่พบ Circular Dependencies |
+| **Frontend Build (`next build`)** | ✅ สำเร็จ (Exit code: 0) | Turbopack prerender หน้าเว็บทั้งหมด 43 เส้นทางผ่านสมบูรณ์ |
+| **Lint & Type Check** | ✅ สำเร็จ | ไร้ข้อผิดพลาดระดับ Compile-time |
+
 
 

@@ -81,44 +81,50 @@ npm run dev
 
 ## 5. บัญชีเข้าทดสอบระบบจำลอง (Test Accounts)
 
-| พอร์ทัลระบบ (Portal) | ลิงก์ทดสอบบนเบราว์เซอร์ | อีเมลผู้ใช้ | รหัสผ่าน |
-| :--- | :--- | :--- | :--- |
-| **Admin Portal** | [localhost:3000/admin/login](http://localhost:3000/admin/login) | `admin@swiftpath.com` | `<ADMIN_SEED_PASSWORD>` |
-| **Merchant Portal** | [store.localhost:3000](http://store.localhost:3000) | `merchant@test.com` | `Test@1234` |
-| **Driver Portal** | [fleet.localhost:3000](http://fleet.localhost:3000) | `driver@test.com` | `Test@1234` |
-| **Customer Web** | [localhost:3000](http://localhost:3000) | *ไม่ต้องล็อกอิน* | ใช้ค้นหาผ่านเบอร์โทรศัพท์ หรือ เลขพัสดุ (เช่น `SP26CC206CEE`) |
+| พอร์ทัลระบบ (Portal) | ลิงก์พัฒนา (Local) | ลิงก์คลาวด์จริง (Production) | อีเมลผู้ใช้ | รหัสผ่าน |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin Portal** | [localhost:3000/admin/login](http://localhost:3000/admin/login) | [swiftpath-app.xyz/admin/login](https://swiftpath-app.xyz/admin/login) | `admin@swiftpath.com` | `<ADMIN_SEED_PASSWORD>` |
+| **Merchant Portal** | [store.localhost:3000](http://store.localhost:3000) | [store.swiftpath-app.xyz](https://store.swiftpath-app.xyz) | `merchant@test.com` | `Test@1234` |
+| **Driver Portal** | [fleet.localhost:3000](http://fleet.localhost:3000) | [fleet.swiftpath-app.xyz](https://fleet.swiftpath-app.xyz) | `driver@test.com` | `Test@1234` |
+| **Customer Web** | [app.localhost:3000](http://app.localhost:3000) | [app.swiftpath-app.xyz](https://app.swiftpath-app.xyz) | `customer@test.com` | `Test@1234` |
+| **Public Tracking** | [localhost:3000](http://localhost:3000) | [swiftpath-app.xyz](https://swiftpath-app.xyz) | *ไม่ต้องล็อกอิน* | ใช้ค้นหาผ่านเบอร์โทรศัพท์ หรือ Tracking ID |
 
 ---
 
-## 6. วงจรการทดสอบแบบสิ้นสุด (End-to-End Test Workflow)
+## 6. วงจรการทดสอบแบบสิ้นสุด (End-to-End Test Workflow — v2)
 
 เพื่อจำลองการส่งพัสดุจริง ให้ทำตามลำดับขั้นตอนดังนี้:
 
 ```mermaid
 graph TD
-    A[ร้านค้า สร้างออเดอร์] -->|ได้ Tracking Number| B[คนขับ ล็อกอินเข้าแอปพอร์ทัล]
-    B -->|ค้นหาออเดอร์งานว่าง| C[คนขับ กดรับงาน: ACCEPTED]
-    C -->|ไปรับพัสดุ| D[คนขับ รับของเรียบร้อย: PICKED_UP]
-    D -->|กำลังเดินทาง| E[คนขับ กำลังนำส่ง: SHIPPING]
-    E -->|แนบรูปภาพหลักฐานส่งของ| F[จัดส่งพัสดุสำเร็จ: DELIVERED]
+    A[ร้านค้า สร้างออเดอร์: PENDING] -->|มอบหมายคนขับ| B[คนขับ รับงาน: ACCEPTED]
+    B -->|กดยืนยันรับพัสดุจากร้าน| C[คนขับ รับของขึ้นรถ: PICKED_UP]
+    C -->|เริ่มแชร์ GPS / รัน Demo| D[คนขับ กำลังนำส่ง: SHIPPING]
+    D -->|ถึงปลายทาง แนบหลักฐาน POD| E[ปิดเสร็จสิ้นงานส่ง: DELIVERED]
+    E -->|ชำระเงิน| F[ออเดอร์เสร็จสมบูรณ์: PAID]
 ```
 
-1. **ขั้นตอนการสร้างงาน (Merchant):**
-   * ล็อกอินเข้าสู่หน้าพอร์ทัลร้านค้า (`store.localhost:3000`)
+1. **ขั้นตอนการสร้างงานและแก้ไขข้อมูล (Merchant):**
+   * ล็อกอินเข้าสู่หน้าพอร์ทัลร้านค้า (`store.localhost:3000` หรือ `store.swiftpath-app.xyz`)
    * ไปที่เมนู **"สร้างออเดอร์"**
-   * กรอกรายละเอียดผู้รับ ที่อยู่ และราคาสินค้า จากนั้นกดบันทึก
+   * เลือกสินค้าจาก Dropdown แคตตาล็อก หรือกรอกสินค้าเอง กรอกรายละเอียดผู้รับ ที่อยู่ และราคาสินค้า จากนั้นกดบันทึก
    * คัดลอกเลข **Tracking Number** (เช่น `SPxxxxxxxxxx`) เอาไว้
-2. **ขั้นตอนการทำงานของขนส่ง (Driver):**
-   * ล็อกอินเข้าสู่หน้าพอร์ทัลคนขับ (`fleet.localhost:3000`)
-   * ไปที่หน้า **"รับงาน"** (Available Jobs) จะเจองานของร้านค้าแสดงอยู่
-   * กด **"รับงาน"** สถานะพัสดุจะอัปเดตเป็น `ACCEPTED`
-   * เมื่อไปถึงร้านค้ารับพัสดุแล้ว ให้กดอัปเดตสถานะเป็น **"รับพัสดุแล้ว"** (`PICKED_UP`)
-   * เมื่อออกเดินทางไปส่งพัสดุ ให้กดอัปเดตเป็น **"กำลังเดินทางจัดส่ง"** (`SHIPPING`)
-   * เมื่อส่งพัสดุถึงมือผู้รับ ให้คลิกเลือกวิธีชำระเงิน (สแกน QR หรือ รับเงินสด) จากนั้นกดปุ่ม "จำลองถ่ายรูป (Mock POD)" เพื่อจำลองการแนบหลักฐาน แล้วกด **"จัดส่งสำเร็จ"** (`DELIVERED`)
-3. **การติดตามสถานะ (Customer):**
-   * ไปที่หน้าแรก [localhost:3000](http://localhost:3000)
-   * กรอกรหัสติดตามพัสดุ (Tracking Number) ที่จดไว้ในขั้นตอนแรก
-   * ระบบจะแสดงประวัติความเคลื่อนไหว (Tracking Logs) พร้อมพิกัดแผนที่แบบเรียลไทม์
+   * *(ฟีเจอร์ v2)* ร้านค้าสามารถกดปุ่ม **"แก้ไขข้อมูลลูกค้า"** เพื่อเปลี่ยนชื่อ เบอร์โทร หรือที่อยู่ปลายทางได้ทันทีตราบใดที่สถานะยังเป็น `PENDING` หรือ `ACCEPTED`
+   * มอบหมายงานให้คนขับในสังกัด หรือปล่อยให้คนขับกดรับงาน
+2. **ขั้นตอนการทำงานของคนขับ (Driver Workflow):**
+   * ล็อกอินเข้าสู่หน้าพอร์ทัลคนขับ (`fleet.localhost:3000` หรือ `fleet.swiftpath-app.xyz`)
+   * ไปที่หน้ารายละเอียดออเดอร์ที่ได้รับมอบหมาย สถานะจะเริ่มต้นที่ `ACCEPTED`
+   * **⚠️ กฎความปลอดภัย v2 (Pickup Guard):** ในสถานะ `ACCEPTED` คนขับจะยังไม่สามารถกดเปิด Live GPS หรือกดเริ่มเดโม่ได้ ระบบจะมีแถบสีส้มแนะนำให้กด **"ยืนยันการรับพัสดุจากร้านค้า"** ก่อนเป็นอันดับแรก
+   * เมื่อกดรับพัสดุแล้ว สถานะจะเปลี่ยนเป็น `PICKED_UP` และระบบจะเปิดให้เริ่มแชร์ Real GPS หรือกดปุ่ม **"จำลองเดินทางส่ง (Demo)"** ได้
+   * **โหมดจำลอง (Demo Simulation v2):**
+     - เมื่อกดเริ่ม Demo ระบบจะเปลี่ยนสถานะเป็น `SHIPPING` (กำลังจัดส่ง) ให้อัตโนมัติ
+     - รถจำลองจะวิ่งตามเส้นทางพิกัด Lat/Lng จนถึงบ้านลูกค้า
+     - เมื่อวิ่งถึงปลายทาง ระบบจะทำการสร้างรูปถ่ายหลักฐานการจัดส่งจำลอง (Mock POD) และพิกัดส่งมอบให้อัตโนมัติทันที
+     - ปลดล็อกปุ่มสีเขียว **"ปิดเสร็จสิ้นงานส่ง (DELIVERED)"** ให้กดส่งงานได้ทันที ไม่เกิดปัญหาปุ่มค้าง
+   * เลือกรูปแบบการชำระเงิน (รับเงินสด/โอนแล้ว หรือ สแกน PromptPay QR) เพื่อปิดจบออเดอร์
+3. **การติดตามสถานะแบบเรียลไทม์ (Customer):**
+   * ไปที่หน้าแรก [localhost:3000](http://localhost:3000) หรือ [swiftpath-app.xyz](https://swiftpath-app.xyz) หรือเข้าผ่านลิงก์ `swiftpath-app.xyz/track/:id`
+   * ระบบจะแสดงหมุดแผนที่สดๆ ของคนขับที่กำลังเดินทาง พร้อมเวลาถึงโดยประมาณ (ETA) และสถานะประวัติการจัดส่งครบถ้วน
 
 ---
 

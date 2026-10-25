@@ -27,12 +27,13 @@
 
 ระบบบังคับใช้ขอบเขตการเข้าถึงข้อมูลอย่างเคร่งครัดระหว่างผู้ใช้ 4 บทบาท แต่ละกลุ่มถูกจำกัดไว้ในซับโดเมนของตัวเอง:
 
-| พอร์ทัล | URL สำหรับพัฒนา | บทบาทที่อนุญาต | หน้าที่หลักในระบบ SME Logistics |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `http://localhost:3000/admin` | Admin | Dashboard จัดการร้านค้าทั้งหมด (Super Admin) |
-| **Merchant** | `http://store.localhost:3000` | Merchant | (เจ้าของร้าน) จัดการ Catalog, สร้างบิลออเดอร์, มอบหมายงานให้คนขับ, ดูสถิติยอดขาย |
-| **Driver** | `http://fleet.localhost:3000` | Driver | (พนักงานขับรถ) ดูงานที่ได้รับมอบหมาย, อัปเดตสถานะการส่ง, ถ่ายรูปหลักฐานการส่ง (Proof of Delivery) |
-| **Customer** | `http://app.localhost:3000` | Customer | (ลูกค้าของร้าน) ดูประวัติการสั่งซื้อ และติดตามตำแหน่งพัสดุแบบ Real-time |
+| พอร์ทัล | URL พัฒนา (Local) | URL ใช้งานจริง (Production) | บทบาทที่อนุญาต | หน้าที่หลักในระบบ SME Logistics |
+| :--- | :--- | :--- | :--- | :--- |
+| **Admin** | `http://localhost:3000/admin` | `https://swiftpath-app.xyz/admin` | Admin | Dashboard จัดการร้านค้าทั้งหมด (Super Admin) |
+| **Merchant** | `http://store.localhost:3000` | `https://store.swiftpath-app.xyz` | Merchant | (เจ้าของร้าน) จัดการ Catalog, สร้างบิลออเดอร์, มอบหมายงานให้คนขับ, ดูสถิติยอดขาย |
+| **Driver** | `http://fleet.localhost:3000` | `https://fleet.swiftpath-app.xyz` | Driver | (พนักงานขับรถ) ดูงานที่ได้รับมอบหมาย, อัปเดตสถานะการส่ง, ถ่ายรูปหลักฐานการส่ง (Proof of Delivery) |
+| **Customer** | `http://app.localhost:3000` | `https://app.swiftpath-app.xyz` | Customer | (ลูกค้าของร้าน) ดูประวัติการสั่งซื้อ และติดตามตำแหน่งพัสดุแบบ Real-time |
+| **Public Tracking** | `http://localhost:3000/track/:id` | `https://swiftpath-app.xyz/track/:id` | Public | หน้าติดตามสถานะพัสดุสาธารณะโดยไม่ต้องล็อกอิน |
 
 ### 2.2 ขั้นตอนการตรวจสอบสิทธิ์และการรักษาความปลอดภัย (Edge Security)
 
@@ -63,18 +64,22 @@ sequenceDiagram
 ## 3. Technology Stack ระดับ Production
 
 **ชั้น Frontend (UI & Gateway)**
-- **Framework:** Next.js (App Router) จัดการ Routing แยกตามซับโดเมน
+- **Framework:** Next.js (App Router v16) จัดการ Routing แยกตามซับโดเมนผ่าน Edge Proxy (`proxy.ts`)
 - **Language:** TypeScript 
-- **Styling:** Tailwind CSS + Vanilla CSS Token System (Glassmorphism, Modern UI)
-- **Real-time:** Socket.io-client สำหรับอัปเดต GPS คนขับบนแผนที่สดๆ
+- **Styling:** Tailwind CSS + Vanilla CSS Token System (Zero-inline-styles, Glassmorphism, Modern UI)
+- **Data Fetching & Cache:** SWR (`swr`) สำหรับ Real-time caching, Local mutation และ Background revalidation
+- **Real-time:** Socket.io-client สำหรับอัปเดต GPS คนขับบนแผนที่สดๆ พร้อม Connection State Management
 - **Visualization:** Recharts สำหรับ Dashboard สถิติร้านค้า
+- **Deployment:** Vercel (Edge Network รองรับ Wildcard Subdomains และ Custom Domain `swiftpath-app.xyz`)
 
 **ชั้น Backend (API & Business Logic)**
-- **Framework:** NestJS (Node.js) สถาปัตยกรรม Module-based
-- **Database:** PostgreSQL บริหารด้วย Prisma ORM
+- **Framework:** NestJS (Node.js) สถาปัตยกรรม Module-based & Event-Driven Architecture
+- **Event Bus:** `@nestjs/event-emitter` (`EventEmitter2`) สำหรับ Decoupled Domain Events
+- **Database:** PostgreSQL (Supabase Cloud ในระบบ Production และ Docker Container สำหรับเครื่องพัฒนา) บริหารด้วย Prisma ORM
 - **Security:** Passport.js (JWT), OTP Authentication, NestJS Throttler ป้องกัน Brute-force
-- **Real-Time:** Socket.io Gateway สำหรับ Tracking
+- **Real-Time:** Socket.io Gateway สำหรับ Tracking พร้อม Dedicated Event Listeners
 - **Storage:** Data URI / SVG (Mock POD) สำหรับจำลองการส่งรูปหลักฐานรวดเร็ว (Demo-Ready) หรือต่อยอดเป็น Firebase Storage ได้ในอนาคต
+- **Deployment:** Render Web Service (โฮสต์ NestJS API พร้อม CORS Whitelist และ WebSocket Origin Verification)
 
 ---
 
@@ -107,6 +112,23 @@ sequenceDiagram
 
 ### 4.8 Decimal Quantity Support
 - **รองรับทศนิยม:** รองรับธุรกิจที่ขายสินค้าที่ไม่ได้นับเป็นชิ้น (เช่น ปูน 1.5 ตัน, อาหารทะเล 2.3 กิโลกรัม) ผ่านการส่งค่า `step="any"` ลงสู่ระบบ Prisma Decimal อย่างสมบูรณ์
+
+### 4.9 สถาปัตยกรรม Event-Driven Architecture (EDA & Decoupled Domain Events) — v2
+- ในเวอร์ชัน v2 โค้ดของ `OrdersService` ถูกแยกส่วน (Decouple) ออกจาก `ChatGateway` และ `NotificationsService` อย่างสิ้นเชิง โดยใช้ `@nestjs/event-emitter`
+- เมื่อเกิดการเปลี่ยนแปลงสถานะหรือสร้างออเดอร์ ระบบจะปล่อย Domain Events เช่น `OrderCreatedEvent`, `OrderStatusUpdatedEvent`, และ `OrderCustomerUpdatedEvent`
+- ฝั่งรับข้อมูลจะจัดการผ่าน Listeners อิสระ ได้แก่ `OrderChatListener` (Broadcast Socket ไปยังห้องของออเดอร์) และ `OrderNotificationsListener` (ส่ง FCM Push Notifications) ช่วยให้โค้ดเป็นไปตามหลัก Single Responsibility และเขียน Unit Test ได้ง่ายขึ้น
+
+### 4.10 การแก้ไขข้อมูลผู้รับปลายทางแบบไดนามิก (Dynamic Customer Info Modification) — v2
+- ร้านค้าสามารถแก้ไขข้อมูลลูกค้า (ชื่อผู้รับ, เบอร์โทรศัพท์, ที่อยู่จัดส่ง, รายละเอียดพัสดุ) ได้โดยตรงผ่านปุ่มแก้ไขในหน้าดูรายละเอียดออเดอร์ ตราบใดที่ออเดอร์ยังอยู่ในสถานะ `PENDING` หรือ `ACCEPTED`
+- ระบบจะทำ Atomic Update ไปยังฐานข้อมูล พร้อมทั้งยิง Event `ORDER_EVENTS.CUSTOMER_UPDATED` ไปยัง Socket.IO เพื่อให้หน้าจอของคนขับและหน้า Tracking ของลูกค้าอัปเดตข้อมูลพิกัดและที่อยู่ใหม่สดๆ ในทันที
+
+### 4.11 ระบบตรวจสอบสถานะพนักงานส่งของอย่างเข้มงวด & Auto-Mock POD (Strict Driver State Machine) — v2
+- **Pickup Guard:** ไรเดอร์ไม่สามารถกดเปิดแชร์ตำแหน่ง Real GPS หรือเริ่มเดโม่จำลองการส่งสินค้าได้ หากยังไม่กดยืนยันการรับพัสดุจากร้านค้า (`PICKED_UP`) ป้องกันการส่งพิกัดผิดลำดับสถานะ
+- **Auto-Transition & Auto-Mock POD:** เมื่อเข้าสู่สถานะ `PICKED_UP` แล้วเริ่มกด Demo ระบบจะปรับสถานะเข้าสู่ `SHIPPING` ให้อัตโนมัติ และเมื่อจำลองการวิ่งไปถึงจุดหมายปลายทาง ระบบจะแนบรูปถ่ายหลักฐานการจัดส่งจำลอง (Mock POD) และพิกัดส่งมอบให้อัตโนมัติทันที ปลดล็อกปุ่ม **"ปิดเสร็จสิ้นงานส่ง"** ให้กดส่งงานต่อได้ทันทีโดยไม่เกิด Deadlock
+
+### 4.12 Zero-Inline-Styles และ SWR Real-Time Data Caching — v2
+- **Zero-Inline-Styles:** ยกเลิกการใช้ Inline Styles ทั้งหมดในทุกพอร์ทัล (Admin, Merchant, Driver, Customer Tracking) โดยเปลี่ยนมาใช้ Design Tokens ใน `globals.css` และคลาส `.adm-*` เพื่อให้ดีไซน์มีความสม่ำเสมอ โหลดเร็วขึ้น และไม่มี Layout Shift
+- **SWR Caching:** ใช้ `useSWR` ในการจัดการแคชข้อมูลหน้าบ้าน ช่วยให้หน้าเว็บแสดงผลข้อมูลเดิมได้ทันทีโดยไม่ต้องรอโหลดหมุน และทำ Background Revalidation ร่วมกับการดักฟัง Socket Events เพื่อ Mutate แคชทันทีเมื่อมีข้อมูลใหม่เข้ามา
 ---
 
 ## 5. การติดตั้งสำหรับการพัฒนาในเครื่อง

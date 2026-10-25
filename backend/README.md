@@ -12,13 +12,14 @@ Backend ถูกแบ่งออกเป็น Module ตามหลัก�
 | :--- | :--- | :--- |
 | `AuthModule` | `src/auth/` | JWT authentication, OTP (SHA-256 hashed), Social Login (Google, Facebook, LINE), Firebase Phone Auth |
 | `UsersModule` | `src/users/` | จัดการ profile และ Role-Based Access Control สำหรับทุก actor |
-| `OrdersModule` | `src/orders/` | วงจรชีวิตออเดอร์, Surge Pricing ตามสภาพอากาศ, การคำนวณ ETA, analytics |
+| `OrdersModule` | `src/orders/` | วงจรชีวิตออเดอร์, Surge Pricing ตามสภาพอากาศ, การคำนวณ ETA, analytics, ปล่อย Domain Events |
+| `ChatModule` | `src/chat/` | Real-time messaging ผ่าน Socket.io พร้อม `OrderChatListener` ดักฟัง Domain Events |
+| `NotificationsModule` | `src/notifications/` | ส่ง FCM push notification ผ่าน `OrderNotificationsListener` ดักฟัง Domain Events |
 | `StripeModule` | `src/stripe/` | Webhook handler พร้อม Idempotency Guard, การสร้าง PaymentIntent |
-| `ChatModule` | `src/chat/` | Real-time messaging ผ่าน Socket.io พร้อม JWT verification ทุก event |
-| `NotificationsModule` | `src/notifications/` | ส่ง FCM push notification ผ่าน Firebase Admin SDK |
 | `WeatherModule` | `src/weather/` | บูรณาการ OpenWeather API สำหรับ Surge Pricing และข้อมูล logistics |
 | `UploadModule` | `src/upload/` | จัดการรูปภาพ proof-of-delivery |
 | `PrismaModule` | `src/prisma/` | Database access layer — PostgreSQL ผ่าน Prisma ORM |
+| `EventEmitter` | `@nestjs/event-emitter` | Event Bus ส่วนกลาง สำหรับสื่อสารระหว่างโมดูลแบบ Decoupled (v2 Refactor) |
 
 ---
 
@@ -82,21 +83,56 @@ Socket.io Gateway บังคับตรวจสอบ JWT signature ทุ�
 
 เนื่องจากพนักงานขับรถต้องอัปโหลดรูปภาพหลักฐานการส่งมอบสินค้า (Proof of Delivery) ซึ่งเป็นรูปภาพความละเอียดสูงแปลงเป็น Base64 ทำให้ขนาดข้อมูลเกินขีดจำกัดเดิมของ NestJS (100KB) ส่งผลให้เกิดข้อผิดพลาด `HTTP 413 Payload Too Large` ปัญหานี้ได้รับการแก้ไขโดยขยายขนาดสูงสุดของ `body-parser` ในไฟล์ `main.ts` เป็น `10MB` เพื่อรองรับภาพถ่ายได้ทุกขนาดอย่างปลอดภัย
 
+### 9. สถาปัตยกรรม Event-Driven Architecture (EDA) — v2 Refactor
+ในเวอร์ชัน v2 โค้ดของ `OrdersService` ถูกแยกส่วน (Decouple) ออกจาก `ChatGateway` (WebSocket) และ `NotificationsService` (Push Notifications) โดยใช้ `@nestjs/event-emitter`:
+* เมื่อมีการสร้างออเดอร์ หรืออัปเดตสถานะ `OrdersService` จะยิง Event ผ่าน `EventEmitter2`:
+  - `ORDER_EVENTS.CREATED`: เมื่อสร้างบิลใหม่
+  - `ORDER_EVENTS.STATUS_UPDATED`: เมื่อเปลี่ยนสถานะ (ACCEPTED, PICKED_UP, SHIPPING, DELIVERED)
+  - `ORDER_EVENTS.CUSTOMER_UPDATED`: เมื่อร้านค้าแก้ไขข้อมูลผู้รับปลายทาง
+* Listeners อิสระจะดักฟัง Event เพื่อทำงานเฉพาะทาง:
+  - `OrderChatListener`: จัดการ Broadcast Event ลง Socket.io Room (`order_{id}`) และแจ้งเตือนลูกค้า/คนขับ
+  - `OrderNotificationsListener`: ส่ง Push Notifications ผ่าน Firebase Cloud Messaging (FCM) แบบ Asynchronous
+* ช่วยให้ `OrdersService` โฟกัสเฉพาะ Business Logic และ Transaction ในฐานข้อมูล ทำให้ Maintain ง่ายและลดการเกิด Side-effects
+
+### 10. การแก้ไขข้อมูลผู้รับปลายทางแบบไดนามิก (Dynamic Customer Info Modification)
+ร้านค้าสามารถแก้ไขข้อมูลลูกค้าผ่าน `PATCH /orders/:id/customer`:
+* อนุญาตเฉพาะเมื่อออเดอร์ยังอยู่ในสถานะ `PENDING` หรือ `ACCEPTED`
+* รองรับการแก้ไข `receiverName`, `receiverPhone`, `address`, และ `productDetail`
+* ส่ง Domain Event `ORDER_EVENTS.CUSTOMER_UPDATED` ไปยัง Socket.io ทันทีเพื่อให้หน้าแผนที่ของคนขับและหน้า Tracking ของลูกค้าอัปเดตข้อมูลใหม่แบบเรียลไทม์
+
+### 11. การบังคับยืนยันการรับพัสดุก่อนแชร์พิกัด (Driver Pickup Guard)
+* ป้องกันคนขับเปิดแชร์ Real GPS หรือเริ่มเดโม่จำลองการส่งของ หากออเดอร์ยังอยู่ในสถานะ `ACCEPTED` (ยังไม่ได้รับพัสดุจากร้าน)
+* ต้องเปลี่ยนสถานะเป็น `PICKED_UP` ก่อนเท่านั้น จึงจะอนุญาตให้เริ่มแชร์พิกัดและนำส่งสินค้าสู่สถานะ `SHIPPING`
+
 ---
 
-## การทดสอบ
+## การทดสอบ (Test Suites)
 
-ไฟล์ทดสอบวิกฤตที่ตรวจสอบความถูกต้องของระบบการเงิน:
+ระบบมี Unit Tests ครอบคลุมทั้งระบบการเงิน และระบบ Event-Driven Architecture:
 
 ```bash
-# รัน test suite ของ Stripe Webhook Idempotency
+# รัน Unit Tests ทั้งหมด
+npm test
+
+# รัน test suite ของ Stripe Webhook Idempotency (Financial Guard)
 npx jest src/stripe/stripe.service.spec.ts --verbose
+
+# รัน test suite ของ OrdersService (Core Order Lifecycle & Event Emission)
+npx jest src/orders/orders.service.spec.ts --verbose
+
+# รัน test suite ของ OrderChatListener (Decoupled Socket Broadcasting)
+npx jest src/chat/listeners/order-chat.listener.spec.ts --verbose
+
+# รัน test suite ของ OrderNotificationsListener (FCM Push Notifications)
+npx jest src/notifications/listeners/order-notifications.listener.spec.ts --verbose
 ```
 
-ชุดการทดสอบ `stripe.service.spec.ts` ครอบคลุม 3 specifications:
+ชุดการทดสอบครอบคลุม:
 - **Idempotency Guard:** Webhook ซ้ำต้องไม่ก่อให้เกิดการ credit ยอดเงินซ้ำ
 - **Transaction Atomicity:** การ write บางส่วนต้อง rollback ทั้งหมดเมื่อมีความผิดพลาด
 - **Role Dispatch:** ระบบต้องเลือก database model ที่ถูกต้องตาม `userRole`
+- **Domain Event Emission:** การเปลี่ยนสถานะออเดอร์ต้องปล่อย Event ที่ถูกต้องพร้อม Payload ครบถ้วน
+- **Socket & Notification Decoupling:** Listeners ต้องรับ Event และส่งต่อข้อมูลไปยังปลายทางได้อย่างถูกต้องโดยไม่กระทบต่อ Transaction หลัก
 
 ---
 
