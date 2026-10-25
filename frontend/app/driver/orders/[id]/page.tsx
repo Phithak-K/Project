@@ -134,8 +134,29 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
 
   // ─── โหมดจำลองการขับรถ (Simulator) สำหรับ Demo ──────────────────────────────
   // ขยับพิกัดจาก กรุงเทพ (ร้านค้า) → ปทุมธานี (ลูกค้า) ทีละนิดทุกๆ 1.5 วินาที
-  const startSimulator = useCallback(() => {
+  const startSimulator = useCallback(async () => {
     if (!order) return;
+
+    if (order.status === 'ACCEPTED') {
+      toast.error('กรุณากดยืนยันการรับพัสดุก่อนเริ่มจำลองการจัดส่ง');
+      return;
+    }
+
+    // ถ้ายังเป็น PICKED_UP อยู่ ให้กดเริ่มการจัดส่ง (SHIPPING) อัตโนมัติ เพื่อให้สถานะใน DB สอดคล้องกับรถที่กำลังวิ่ง
+    if (order.status === 'PICKED_UP') {
+      try {
+        const res = await fetch(`/api/proxy/orders/${orderId}/ship`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const updated = await res.json().catch(() => null);
+          if (updated) setOrder((prev: any) => ({ ...prev, ...updated }));
+        }
+      } catch (e) {
+        console.warn('Auto ship error:', e);
+      }
+    }
 
     // จุดเริ่มต้น: ตำแหน่งร้านค้า (หรือ Bangkok default)
     const startLat = order.merchant?.lat ?? 13.7563;
@@ -159,7 +180,9 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
         setIsSimulating(false);
         setIsTracking(false);
         setGpsStatus('idle');
-        toast.success('จำลองการเดินทางเสร็จสิ้น ✅');
+        // จำลองรูปถ่ายหลักฐาน POD อัตโนมัติ เพื่อให้ผู้ใช้กด "ปิดเสร็จสิ้นงานส่ง" ได้ทันที
+        setProofImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=');
+        toast.success('จำลองการเดินทางถึงที่หมายแล้ว! ถ่ายรูปหลักฐานพร้อมปิดงานได้เลย ✅', { duration: 4000 });
         return;
       }
 
@@ -177,7 +200,8 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
       emitLocation(lat, lng, heading);
       step++;
     }, 1500);
-  }, [order, emitLocation]);
+  }, [order, orderId, emitLocation]);
+
   const updateStatus = async (endpoint: string, extraBody = {}) => {
     setUpdating(true);
     try {
@@ -187,10 +211,15 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
         body: JSON.stringify(extraBody)
       });
       if (!res.ok) {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         const message = Array.isArray(err.message) ? err.message[0] : err.message;
         toast.error(message || 'อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่');
       } else {
+        const updated = await res.json().catch(() => null);
+        if (updated) {
+          setOrder((prev: any) => ({ ...prev, ...updated }));
+        }
+        await fetchOrder();
         toast.success('อัปเดตสถานะสำเร็จ');
       }
     } catch { toast.error('เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'); }
@@ -270,7 +299,16 @@ export default function DriverOrderWorkflowPage({ params }: { params: Promise<{ 
           </h1>
         </div>
 
-        {/* ─── GPS Tracking Panel (แสดงเมื่อกำลังส่งหรือ Shipping) ─── */}
+        {/* Guidance Banner เมื่อยังไม่ได้กดรับพัสดุจากร้าน */}
+        {order.status === 'ACCEPTED' && (
+          <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', border: '1px dashed var(--brand-400)', background: 'var(--brand-50)', textAlign: 'center', padding: '1rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--brand-700)', fontWeight: 600, margin: 0 }}>
+              📦 กรุณากดยืนยันการรับพัสดุจากร้านค้าด้านล่าง เพื่อเปิดใช้งานระบบนำทาง GPS และโหมด Demo
+            </p>
+          </div>
+        )}
+
+        {/* ─── GPS Tracking Panel (แสดงเมื่อยืนยันรับพัสดุแล้ว: PICKED_UP หรือ SHIPPING) ─── */}
         {(order.status === 'SHIPPING' || order.status === 'PICKED_UP') && (
           <div className="sp-card sp-animate" style={{ marginBottom: '1.5rem', border: `1px solid ${gpsColor[gpsStatus]}40` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
