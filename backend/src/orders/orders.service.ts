@@ -12,6 +12,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { ChatGateway } from '../chat/chat.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { UpdateCustomerInfoDto } from './dto/update-customer-info.dto';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { uploadBase64ToStorage } from '../utils/firebase-storage';
@@ -597,6 +598,78 @@ export class OrdersService {
       'ร้านค้ายกเลิกออเดอร์นี้แล้ว',
     );
     return canceledOrder;
+  }
+
+  async updateCustomerInfoByMerchant(
+    orderId: number,
+    merchantId: number,
+    dto: UpdateCustomerInfoDto,
+  ) {
+    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
+    if (order.merchantId !== merchantId)
+      throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
+
+    if (
+      order.status !== OrderStatus.PENDING &&
+      order.status !== OrderStatus.ACCEPTED
+    ) {
+      throw new BadRequestException(
+        'ไม่สามารถแก้ไขข้อมูลจัดส่งได้ในสถานะนี้ (พัสดุอยู่ระหว่างนำส่งหรือเสร็จสิ้นแล้ว)',
+      );
+    }
+
+    const dataToUpdate: any = {};
+    if (dto.receiverName && dto.receiverName.trim()) {
+      dataToUpdate.receiverName = dto.receiverName.trim();
+    }
+    if (dto.receiverPhone && dto.receiverPhone.trim()) {
+      dataToUpdate.receiverPhone = dto.receiverPhone.trim();
+    }
+    if (dto.address && dto.address.trim()) {
+      dataToUpdate.address = dto.address.trim();
+    }
+    if (dto.productDetail !== undefined) {
+      dataToUpdate.productDetail = dto.productDetail.trim();
+    }
+
+    if (Object.keys(dataToUpdate).length === 0) {
+      return order;
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: dataToUpdate,
+      include: {
+        items: true,
+        merchant: true,
+        driver: true,
+        trackingLogs: { orderBy: { createdAt: 'desc' } },
+      },
+    });
+
+    await this.createTrackingLog(
+      orderId,
+      order.status,
+      'ร้านค้าแก้ไขข้อมูลผู้รับ / สถานที่จัดส่ง',
+    );
+
+    try {
+      this.chatGateway.server
+        ?.to(`order_${orderId}`)
+        .emit('order_status_update', updatedOrder);
+      this.chatGateway.server
+        ?.to(`tracking_${order.trackingNumber}`)
+        .emit('order_status_update', updatedOrder);
+    } catch (e) {
+      console.warn('Socket emit error on updateCustomerInfo:', e);
+    }
+
+    return updatedOrder;
   }
 
   async updatePreparationTime(

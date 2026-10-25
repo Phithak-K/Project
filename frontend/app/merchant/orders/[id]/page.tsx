@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { 
   ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, DollarSign, 
-  MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download
+  MessageSquare, Shield, AlertCircle, ChevronRight, User, Share2, Download,
+  Edit3, X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import OrderMap from '@/components/OrderMap';
@@ -22,6 +23,64 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
   const [cancelling, setCancelling] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState<{ isOpen: boolean, type: 'confirm'|'danger'|'prompt', title: string, message: string, onConfirm: (val?: string) => void }>({ isOpen: false, type: 'confirm', title: '', message: '', onConfirm: () => {} });
+  
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    receiverName: '',
+    receiverPhone: '',
+    address: '',
+    productDetail: '',
+  });
+
+  const openEditModal = () => {
+    if (!order) return;
+    setEditForm({
+      receiverName: order.receiverName || '',
+      receiverPhone: order.receiverPhone || '',
+      address: order.address || '',
+      productDetail: order.productDetail || '',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveCustomerInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.receiverName.trim()) {
+      toast.error('กรุณาระบุชื่อผู้รับ');
+      return;
+    }
+    if (!editForm.receiverPhone.trim()) {
+      toast.error('กรุณาระบุเบอร์โทรศัพท์');
+      return;
+    }
+    if (!editForm.address.trim()) {
+      toast.error('กรุณาระบุที่อยู่จัดส่ง');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/proxy/orders/${orderId}/customer-info`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        toast.success('อัปเดตข้อมูลลูกค้าเรียบร้อยแล้ว');
+        setIsEditModalOpen(false);
+        await fetchOrder();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData.message || 'ไม่สามารถอัปเดตข้อมูลได้');
+      }
+    } catch {
+      toast.error('Network Error');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   const SOCKET_URL = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://127.0.0.1:8000' : '');
   const { id: orderId } = use(params);
@@ -226,7 +285,18 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
 
             {/* Details Table */}
             <div className="sp-card">
-              <h3 className="sp-caps" style={{ color: 'var(--n-400)', marginBottom: '1.25rem' }}>ข้อมูลการจัดส่ง</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+                <h3 className="sp-caps" style={{ color: 'var(--n-400)', margin: 0 }}>ข้อมูลการจัดส่ง</h3>
+                {(order.status === 'PENDING' || order.status === 'ACCEPTED') && (
+                  <button
+                    onClick={openEditModal}
+                    className="sp-btn-ghost"
+                    style={{ fontSize: '0.8rem', padding: '0.35rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                  >
+                    <Edit3 size={14} /> แก้ไขข้อมูล
+                  </button>
+                )}
+              </div>
               <div className="sp-split-2">
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                   <User size={18} style={{ color: 'var(--n-300)', marginTop: '0.125rem' }} />
@@ -244,6 +314,12 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
                   </div>
                 </div>
               </div>
+              {order.productDetail && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--n-100)' }}>
+                  <p className="sp-caps" style={{ color: 'var(--n-400)', fontSize: '0.7rem' }}>รายละเอียด / หมายเหตุสินค้า</p>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--n-700)', marginTop: '0.25rem', whiteSpace: 'pre-wrap' }}>{order.productDetail}</p>
+                </div>
+              )}
             </div>
 
             {/* Map Card */}
@@ -338,6 +414,132 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
       )}
 
       <PremiumModal {...modalConfig} onClose={() => setModalConfig(p => ({ ...p, isOpen: false }))} />
+
+      {/* Edit Customer Info Modal */}
+      {isEditModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '1rem',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: 'var(--bg-panel)',
+            borderRadius: '16px',
+            width: '100%', maxWidth: '480px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            overflow: 'hidden',
+            border: '1px solid var(--n-200)',
+            animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--n-200)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ background: 'rgba(25, 118, 210, 0.1)', padding: '8px', borderRadius: '10px', color: 'var(--brand-500)', display: 'flex' }}>
+                  <Edit3 size={18} />
+                </div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: 'var(--n-900)' }}>แก้ไขข้อมูลการจัดส่ง</h3>
+              </div>
+              <button 
+                onClick={() => setIsEditModalOpen(false)} 
+                disabled={savingEdit}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--n-400)', padding: '4px' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomerInfo}>
+              <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '70vh', overflowY: 'auto' }}>
+                <div>
+                  <label className="sp-caps" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--n-600)', marginBottom: '0.35rem' }}>
+                    ชื่อผู้รับ <span style={{ color: 'var(--error-text)' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="sp-input"
+                    value={editForm.receiverName}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, receiverName: e.target.value }))}
+                    placeholder="เช่น สมชาย ใจดี"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="sp-caps" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--n-600)', marginBottom: '0.35rem' }}>
+                    เบอร์โทรศัพท์ <span style={{ color: 'var(--error-text)' }}>*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    className="sp-input"
+                    value={editForm.receiverPhone}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, receiverPhone: e.target.value }))}
+                    placeholder="เช่น 0812345678"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="sp-caps" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--n-600)', marginBottom: '0.35rem' }}>
+                    ที่อยู่จัดส่ง <span style={{ color: 'var(--error-text)' }}>*</span>
+                  </label>
+                  <textarea
+                    className="sp-input"
+                    rows={3}
+                    style={{ resize: 'vertical' }}
+                    value={editForm.address}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                    placeholder="ระบุบ้านเลขที่ ซอย ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="sp-caps" style={{ display: 'block', fontSize: '0.75rem', color: 'var(--n-600)', marginBottom: '0.35rem' }}>
+                    รายละเอียดสินค้า / หมายเหตุ
+                  </label>
+                  <textarea
+                    className="sp-input"
+                    rows={2}
+                    style={{ resize: 'vertical' }}
+                    value={editForm.productDetail}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, productDetail: e.target.value }))}
+                    placeholder="ระบุรายละเอียด เช่น วางไว้หน้าประตู"
+                  />
+                </div>
+              </div>
+
+              <div style={{
+                padding: '1rem 1.5rem',
+                background: 'var(--bg-body)',
+                borderTop: '1px solid var(--n-200)',
+                display: 'flex', gap: '10px', justifyContent: 'flex-end'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={savingEdit}
+                  className="sp-btn-secondary"
+                  style={{ padding: '0.55rem 1.1rem', borderRadius: '8px' }}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEdit}
+                  className="sp-btn-primary"
+                  style={{ padding: '0.55rem 1.25rem', borderRadius: '8px' }}
+                >
+                  {savingEdit ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
