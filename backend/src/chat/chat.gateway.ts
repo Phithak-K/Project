@@ -16,15 +16,9 @@ import { uploadBase64ToStorage } from '../utils/firebase-storage';
 
 @WebSocketGateway({
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://app.localhost:3000',
-      'http://store.localhost:3000',
-      'http://fleet.localhost:3000',
-      'https://app.swiftpath.com',
-      'https://store.swiftpath.com',
-      'https://fleet.swiftpath.com',
-    ],
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, true);
+    },
     credentials: true,
   },
 })
