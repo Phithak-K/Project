@@ -129,12 +129,13 @@ sequenceDiagram
 ### 4.12 Zero-Inline-Styles และ SWR Real-Time Data Caching — v2
 - **Zero-Inline-Styles:** ยกเลิกการใช้ Inline Styles ทั้งหมดในทุกพอร์ทัล (Admin, Merchant, Driver, Customer Tracking) โดยเปลี่ยนมาใช้ Design Tokens ใน `globals.css` และคลาส `.adm-*` เพื่อให้ดีไซน์มีความสม่ำเสมอ โหลดเร็วขึ้น และไม่มี Layout Shift
 - **SWR Caching:** ใช้ `useSWR` ในการจัดการแคชข้อมูลหน้าบ้าน ช่วยให้หน้าเว็บแสดงผลข้อมูลเดิมได้ทันทีโดยไม่ต้องรอโหลดหมุน และทำ Background Revalidation ร่วมกับการดักฟัง Socket Events เพื่อ Mutate แคชทันทีเมื่อมีข้อมูลใหม่เข้ามา
+
 ---
 
 ## 5. การติดตั้งสำหรับการพัฒนาในเครื่อง
 
 ### สิ่งที่ต้องเตรียม
-- Node.js v20+
+- Node.js >=22.23.4 (หรือ v22 LTS ขึ้นไป เพื่อความปลอดภัย)
 - Docker Desktop (สำหรับรัน PostgreSQL)
 - อัปเดตไฟล์ hosts ของระบบ OS (เพื่อให้รองรับซับโดเมน)
   - Windows: `C:\Windows\System32\drivers\etc\hosts`
