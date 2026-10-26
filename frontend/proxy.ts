@@ -211,6 +211,20 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
+  // ── Preflight CORS Options ───────────────────────────────────────────────
+  if (request.method === 'OPTIONS') {
+    const origin = request.headers.get('origin') || '*'
+    return new NextResponse(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-nextjs-data, rsc, next-router-prefetch, next-router-state-tree, next-url',
+      },
+    })
+  }
+
   // ── ดึงข้อมูลพื้นฐาน ────────────────────────────────────────────────────────
   const token    = request.cookies.get('token')?.value
   const userRole = request.cookies.get('role')?.value
@@ -359,7 +373,15 @@ export function proxy(request: NextRequest) {
 
     // Auth + Orders บน Root → เด้งไป app subdomain
     if (isAuthPage || (isSharedPublicPage && !pathname.startsWith('/track')) || pathname.startsWith('/orders')) {
-      return NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
+      const redirectRes = NextResponse.redirect(new URL(getRedirectUrl(pathname, 'app'), request.url))
+      const origin = request.headers.get('origin')
+      if (origin) {
+        redirectRes.headers.set('Access-Control-Allow-Origin', origin)
+        redirectRes.headers.set('Access-Control-Allow-Credentials', 'true')
+        redirectRes.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        redirectRes.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-nextjs-data, rsc, next-router-prefetch, next-router-state-tree, next-url')
+      }
+      return redirectRes
     }
 
     return NextResponse.next()

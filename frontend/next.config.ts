@@ -9,18 +9,26 @@ const nextConfig: NextConfig = {
     'fleet.localhost:3000',
     'store.localhost:3000',
     
-    // ตระกูล swiftpath.com (ที่คุณกำลังใช้อยู่ในรูป)
+    // ตระกูล swiftpath.com
     'swiftpath.com:3000',
     'app.swiftpath.com:3000',
     'fleet.swiftpath.com:3000',
     'store.swiftpath.com:3000',
+
+    // ตระกูล swiftpath-app.xyz
+    'swiftpath-app.xyz',
+    'app.swiftpath-app.xyz',
+    'fleet.swiftpath-app.xyz',
+    'store.swiftpath-app.xyz',
   ],
   output: 'standalone',
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: '127.0.0.1' },
-      { protocol: 'https', hostname: 'swiftpath.com' }
+      { protocol: 'https', hostname: 'swiftpath.com' },
+      { protocol: 'https', hostname: 'swiftpath-app.xyz' },
+      { protocol: 'https', hostname: '*.swiftpath-app.xyz' }
     ],
   },
   async headers() {
@@ -31,6 +39,9 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, PATCH, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization, x-nextjs-data, rsc, next-router-prefetch, next-router-state-tree, next-url' },
         ],
       },
     ];

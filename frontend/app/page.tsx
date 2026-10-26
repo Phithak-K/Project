@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -17,39 +18,57 @@ import {
   WalletCards,
 } from 'lucide-react';
 
-const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000';
-
-const portals = [
-  {
-    label: 'สำหรับลูกค้า',
-    title: 'ส่งง่าย ติดตามได้ทุกจังหวะ',
-    description: 'สร้างรายการจัดส่ง ตรวจสอบสถานะแบบเรียลไทม์ และจัดการค่าใช้จ่ายในที่เดียว',
-    href: '/login',
-    icon: UserRound,
-    action: 'เข้าสู่ระบบลูกค้า',
-    tone: 'customer',
-  },
-  {
-    label: 'สำหรับร้านค้า',
-    title: 'จัดการออเดอร์ให้ธุรกิจเดินไว',
-    description: 'รวมออเดอร์ สินค้า คนขับ และยอดขายไว้บนแดชบอร์ดที่เห็นภาพทันที',
-    href: `//store.${baseDomain}/login`,
-    icon: Store,
-    action: 'เปิด Store Portal',
-    tone: 'merchant',
-  },
-  {
-    label: 'สำหรับคนขับ',
-    title: 'เห็นงานใกล้ตัว รับงานได้ทันที',
-    description: 'ค้นหางานผ่าน Fleet Radar พร้อมเส้นทาง สถานะงาน และรายได้แบบเรียลไทม์',
-    href: `//fleet.${baseDomain}/login`,
-    icon: Truck,
-    action: 'เปิด Fleet Portal',
-    tone: 'driver',
-  },
-];
-
 export default function SwiftPathLanding() {
+  const [baseDomain, setBaseDomain] = useState(
+    process.env.NEXT_PUBLIC_BASE_DOMAIN || 'localhost:3000'
+  );
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const host = window.location.host;
+      if (host.includes('localhost')) {
+        setBaseDomain(host.replace(/^(app|store|fleet|admin)\./, ''));
+      } else {
+        const parts = window.location.hostname.split('.');
+        if (parts.length >= 2) {
+          const derived = parts.slice(-2).join('.');
+          const port = window.location.port ? `:${window.location.port}` : '';
+          setBaseDomain(`${derived}${port}`);
+        }
+      }
+    }
+  }, []);
+
+  const portals = [
+    {
+      label: 'สำหรับลูกค้า',
+      title: 'ส่งง่าย ติดตามได้ทุกจังหวะ',
+      description: 'สร้างรายการจัดส่ง ตรวจสอบสถานะแบบเรียลไทม์ และจัดการค่าใช้จ่ายในที่เดียว',
+      href: `//app.${baseDomain}/login`,
+      icon: UserRound,
+      action: 'เข้าสู่ระบบลูกค้า',
+      tone: 'customer',
+    },
+    {
+      label: 'สำหรับร้านค้า',
+      title: 'จัดการออเดอร์ให้ธุรกิจเดินไว',
+      description: 'รวมออเดอร์ สินค้า คนขับ และยอดขายไว้บนแดชบอร์ดที่เห็นภาพทันที',
+      href: `//store.${baseDomain}/login`,
+      icon: Store,
+      action: 'เปิด Store Portal',
+      tone: 'merchant',
+    },
+    {
+      label: 'สำหรับคนขับ',
+      title: 'เห็นงานใกล้ตัว รับงานได้ทันที',
+      description: 'ค้นหางานผ่าน Fleet Radar พร้อมเส้นทาง สถานะงาน และรายได้แบบเรียลไทม์',
+      href: `//fleet.${baseDomain}/login`,
+      icon: Truck,
+      action: 'เปิด Fleet Portal',
+      tone: 'driver',
+    },
+  ];
+
   return (
     <div className="landing-shell">
       <nav className="landing-nav">
@@ -60,9 +79,9 @@ export default function SwiftPathLanding() {
         <div className="landing-nav-actions">
           <Link href="/guide" className="landing-nav-link">วิธีใช้งาน</Link>
           <Link href="/track" className="landing-nav-link">ติดตามพัสดุ</Link>
-          <Link href="/login" className="landing-nav-cta">
+          <a href={`//app.${baseDomain}/login`} className="landing-nav-cta">
             เข้าสู่ระบบ <ArrowUpRight size={15} />
-          </Link>
+          </a>
         </div>
       </nav>
 
@@ -153,7 +172,7 @@ export default function SwiftPathLanding() {
             <span className="landing-section-tag">Built for daily operations</span>
             <h2>ข้อมูลที่ต้องใช้<br />อยู่ตรงที่ต้องเห็น</h2>
             <p>ลดงานซ้ำและการสลับหน้าจอ ด้วย workflow ที่พาทุกฝ่ายไปในทิศทางเดียวกัน</p>
-            <Link href="/register">สร้างบัญชีลูกค้า <ArrowRight size={16} /></Link>
+            <a href={`//app.${baseDomain}/register`}>สร้างบัญชีลูกค้า <ArrowRight size={16} /></a>
           </div>
           <div className="landing-feature-list">
             {[
