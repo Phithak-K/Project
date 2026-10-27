@@ -198,7 +198,7 @@ export default function CustomerOrderTrackingPage({ params }: { params: Promise<
                     <div style={{ flex: 1, background: isLatest ? 'var(--n-50)' : 'transparent', padding: isLatest ? '0.75rem 1rem' : '0', borderRadius: '8px', border: isLatest ? '1px solid var(--n-200)' : 'none', marginTop: isLatest ? '-8px' : '0' }}>
                       <p style={{ fontSize: '0.85rem', fontWeight: 700, color: isLatest ? 'var(--n-900)' : 'var(--n-500)', marginBottom: '0.25rem' }}>{log.note}</p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--n-400)' }}>
-                        <span>{new Date(log.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                        <span>{new Date(log.createdAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                         {log.location && (
                           <>
                             <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--n-300)' }} />

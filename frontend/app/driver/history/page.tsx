@@ -106,7 +106,7 @@ export default function DriverHistoryPage() {
                       ผู้รับ: {order.receiverName} ({order.receiverPhone})
                     </p>
                     <p className="text-[var(--n-500)] text-xs mt-0.5">
-                      ส่งเมื่อ: {new Date(order.updatedAt).toLocaleString('th-TH')}
+                      ส่งเมื่อ: {new Date(order.updatedAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
                     </p>
                   </div>
                 </div>

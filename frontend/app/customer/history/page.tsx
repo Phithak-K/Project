@@ -238,7 +238,7 @@ export default function CustomerHistoryPage() {
                     </span>
                     <h3 style={{ color: 'var(--n-900)', fontSize: '1rem', fontWeight: 700 }}>#{order.trackingNumber}</h3>
                     <p style={{ color: 'var(--n-500)', fontSize: '0.8rem', marginTop: '0.25rem' }}>
-                      {new Date(order.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {new Date(order.updatedAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -292,9 +292,9 @@ export default function CustomerHistoryPage() {
             <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0, color: '#111', letterSpacing: '0.05em' }}>SWIFTPATH LOGISTICS</h1>
             <h2 style={{ fontSize: '18px', fontWeight: 600, margin: '8px 0', color: '#444' }}>รายงานสรุปยอดใช้จ่ายของลูกค้า (Expense Report)</h2>
             <p style={{ fontSize: '13px', margin: 0, color: '#666' }}>
-              รอบระยะเวลา: <span style={{ color: '#111', fontWeight: 600 }}>{startDate ? new Date(startDate).toLocaleDateString('th-TH') : 'เริ่มต้น'}</span> ถึง <span style={{ color: '#111', fontWeight: 600 }}>{endDate ? new Date(endDate).toLocaleDateString('th-TH') : 'ปัจจุบัน'}</span>
+              รอบระยะเวลา: <span style={{ color: '#111', fontWeight: 600 }}>{startDate ? new Date(startDate).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'เริ่มต้น'}</span> ถึง <span style={{ color: '#111', fontWeight: 600 }}>{endDate ? new Date(endDate).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ปัจจุบัน'}</span>
             </p>
-            <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#888' }}>พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p>
+            <p style={{ fontSize: '11px', margin: '5px 0 0 0', color: '#888' }}>พิมพ์เมื่อ: {new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
           </div>
 
           {/* Executive Summary */}

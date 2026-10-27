@@ -237,7 +237,7 @@ export default function MerchantHistoryPage() {
                     </span>
                     <h3 className="text-[var(--n-900)] text-base font-bold">#{order.trackingNumber}</h3>
                     <p className="text-[var(--n-500)] text-[0.8rem] mt-1">
-                      {new Date(order.updatedAt).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
+                      {new Date(order.updatedAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
                   <div className="text-right">
@@ -291,9 +291,9 @@ export default function MerchantHistoryPage() {
             <h1 className="text-[26px] font-extrabold m-0 text-[#111] tracking-[0.05em]">SWIFTPATH LOGISTICS</h1>
             <h2 className="text-[18px] font-semibold my-2 text-[#444]">รายงานสรุปยอดขายร้านค้า (Sales Report)</h2>
             <p className="text-[13px] m-0 text-[#666]">
-              รอบระยะเวลา: <span className="text-[#111] font-semibold">{startDate ? new Date(startDate).toLocaleDateString('th-TH') : 'เริ่มต้น'}</span> ถึง <span className="text-[#111] font-semibold">{endDate ? new Date(endDate).toLocaleDateString('th-TH') : 'ปัจจุบัน'}</span>
+              รอบระยะเวลา: <span className="text-[#111] font-semibold">{startDate ? new Date(startDate).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'เริ่มต้น'}</span> ถึง <span className="text-[#111] font-semibold">{endDate ? new Date(endDate).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' }) : 'ปัจจุบัน'}</span>
             </p>
-            <p className="text-[11px] mt-1 text-[#888]">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH')}</p>
+            <p className="text-[11px] mt-1 text-[#888]">พิมพ์เมื่อ: {new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}</p>
           </div>
 
           {/* Executive Summary */}

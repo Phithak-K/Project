@@ -414,6 +414,7 @@ export default function TrackingDetailPage() {
                         <div className="flex items-center gap-2 text-xs text-[var(--n-400)]">
                           <span>
                             {new Date(log.createdAt).toLocaleString('th-TH', { 
+                              timeZone: 'Asia/Bangkok',
                               month: 'short', 
                               day: 'numeric', 
                               hour: 'numeric', 

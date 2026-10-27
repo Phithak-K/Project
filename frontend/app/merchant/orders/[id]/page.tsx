@@ -231,7 +231,7 @@ export default function MerchantOrderDetailPage({ params }: { params: Promise<{ 
               <StatusBadge status={order.status} />
             </div>
             <p className="text-[var(--n-500)] text-[0.9rem] mt-1">
-              สร้างเมื่อ {new Date(order.createdAt).toLocaleString('th-TH')}
+              สร้างเมื่อ {new Date(order.createdAt).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}
             </p>
           </div>
           <div className="flex gap-2.5 flex-wrap">

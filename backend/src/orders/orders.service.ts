@@ -682,7 +682,7 @@ export class OrdersService {
     await this.createTrackingLog(
       orderId,
       order.status,
-      `ร้านค้าอัปเดตเวลาเตรียมของเสร็จเป็น: ${new Date(estimatedReadyAt).toLocaleString('th-TH')}`,
+      `ร้านค้าอัปเดตเวลาเตรียมของเสร็จเป็น: ${new Date(estimatedReadyAt).toLocaleString('th-TH', { timeZone: CHART_TZ })}`,
     );
 
     return updatedOrder;
@@ -1703,6 +1703,7 @@ export class OrdersService {
     const rows = orders.map((o) => [
       o.trackingNumber,
       new Date(o.createdAt).toLocaleDateString('th-TH', {
+        timeZone: CHART_TZ,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -1815,7 +1816,7 @@ export class OrdersService {
     if (fs.existsSync(regularFontPath)) doc.font('Kanit');
     doc.fontSize(12).text(`หมายเลขติดตาม (Tracking): ${order.trackingNumber}`);
     doc.text(
-      `วันที่สร้าง: ${new Date(order.createdAt).toLocaleString('th-TH')}`,
+      `วันที่สร้าง: ${new Date(order.createdAt).toLocaleString('th-TH', { timeZone: CHART_TZ })}`,
     );
     doc.moveDown(1);
 
