@@ -103,7 +103,7 @@ export default function MerchantHistoryPage() {
           <div className="flex flex-wrap gap-2">
             <button 
               onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
                 setStartDate(today);
                 setEndDate(today);
               }}
@@ -113,11 +113,9 @@ export default function MerchantHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yStr = yesterday.toISOString().split('T')[0];
-                setStartDate(yStr);
-                setEndDate(yStr);
+                const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                setStartDate(yesterday);
+                setEndDate(yesterday);
               }}
               className="px-3 py-1.5 bg-[var(--n-100)] border border-[var(--n-200)] rounded-full text-[var(--n-700)] text-xs font-semibold cursor-pointer"
             >
@@ -125,11 +123,10 @@ export default function MerchantHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const today = new Date();
-                const last7 = new Date();
-                last7.setDate(today.getDate() - 7);
-                setStartDate(last7.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                const last7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                setStartDate(last7);
+                setEndDate(today);
               }}
               className="px-3 py-1.5 bg-[var(--n-100)] border border-[var(--n-200)] rounded-full text-[var(--n-700)] text-xs font-semibold cursor-pointer"
             >
@@ -137,10 +134,10 @@ export default function MerchantHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                setStartDate(firstDay.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                const firstDay = `${today.slice(0, 7)}-01`;
+                setStartDate(firstDay);
+                setEndDate(today);
               }}
               className="px-3 py-1.5 bg-[var(--n-100)] border border-[var(--n-200)] rounded-full text-[var(--n-700)] text-xs font-semibold cursor-pointer"
             >
@@ -328,7 +325,7 @@ export default function MerchantHistoryPage() {
                   <tr key={order.id} className={`border-b border-[#e9ecef] ${idx % 2 === 0 ? 'bg-white' : 'bg-[#f8f9fa]'}`}>
                     <td className="py-2.5 px-2 text-[#495057] text-center">{idx + 1}</td>
                     <td className="py-2.5 px-2 font-bold text-[#212529]">{order.trackingNumber}</td>
-                    <td className="py-2.5 px-2 text-[#495057]">{new Date(order.updatedAt).toLocaleDateString('th-TH')}</td>
+                    <td className="py-2.5 px-2 text-[#495057]">{new Date(order.updatedAt).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' })}</td>
                     <td className="py-2.5 px-2 text-[#212529] whitespace-nowrap overflow-hidden text-ellipsis">{order.receiverName}</td>
                     <td className={`py-2.5 px-2 text-center font-semibold ${order.paymentMethod === 'COD' ? 'text-[#e65100]' : 'text-[#2e7d32]'}`}>
                       {order.paymentMethod === 'COD' ? 'COD' : 'Prepaid'}

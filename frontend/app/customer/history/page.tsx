@@ -103,7 +103,7 @@ export default function CustomerHistoryPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
             <button 
               onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
                 setStartDate(today);
                 setEndDate(today);
               }}
@@ -113,11 +113,9 @@ export default function CustomerHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yStr = yesterday.toISOString().split('T')[0];
-                setStartDate(yStr);
-                setEndDate(yStr);
+                const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                setStartDate(yesterday);
+                setEndDate(yesterday);
               }}
               style={{ padding: '0.4rem 0.75rem', background: 'var(--n-100)', border: '1px solid var(--n-200)', borderRadius: '20px', color: 'var(--n-700)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -125,11 +123,10 @@ export default function CustomerHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const today = new Date();
-                const last7 = new Date();
-                last7.setDate(today.getDate() - 7);
-                setStartDate(last7.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                const last7 = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                setStartDate(last7);
+                setEndDate(today);
               }}
               style={{ padding: '0.4rem 0.75rem', background: 'var(--n-100)', border: '1px solid var(--n-200)', borderRadius: '20px', color: 'var(--n-700)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -137,10 +134,10 @@ export default function CustomerHistoryPage() {
             </button>
             <button 
               onClick={() => {
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                setStartDate(firstDay.toISOString().split('T')[0]);
-                setEndDate(today.toISOString().split('T')[0]);
+                const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
+                const firstDay = `${today.slice(0, 7)}-01`;
+                setStartDate(firstDay);
+                setEndDate(today);
               }}
               style={{ padding: '0.4rem 0.75rem', background: 'var(--n-100)', border: '1px solid var(--n-200)', borderRadius: '20px', color: 'var(--n-700)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
             >
@@ -329,7 +326,7 @@ export default function CustomerHistoryPage() {
                   <tr key={order.id} style={{ borderBottom: '1px solid #e9ecef', background: idx % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
                     <td style={{ padding: '10px 8px', color: '#495057', textAlign: 'center' }}>{idx + 1}</td>
                     <td style={{ padding: '10px 8px', fontWeight: 700, color: '#212529' }}>{order.trackingNumber}</td>
-                    <td style={{ padding: '10px 8px', color: '#495057' }}>{new Date(order.updatedAt).toLocaleDateString('th-TH')}</td>
+                    <td style={{ padding: '10px 8px', color: '#495057' }}>{new Date(order.updatedAt).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' })}</td>
                     <td style={{ padding: '10px 8px', color: '#212529', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.merchant?.storeName || order.merchant?.name || '-'}</td>
                     <td style={{ padding: '10px 8px', textAlign: 'center', color: order.paymentMethod === 'COD' ? '#e65100' : '#2e7d32', fontWeight: 600 }}>
                       {order.paymentMethod === 'COD' ? 'COD' : 'Prepaid'}

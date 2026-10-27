@@ -39,14 +39,14 @@ export default function MerchantDashboard() {
         setOrders(ordersList);
         
         let pending = 0, shipping = 0, delivered = 0, todaySales = 0;
-        const today = new Date().toDateString();
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' });
         
         ordersList.forEach((o: any) => {
           if (o.status === 'PENDING') pending++;
           if (['ACCEPTED', 'PICKED_UP', 'SHIPPING'].includes(o.status)) shipping++;
           if (o.status === 'DELIVERED') {
             delivered++;
-            if (new Date(o.updatedAt).toDateString() === today) {
+            if (new Date(o.updatedAt).toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' }) === today) {
               todaySales += Number(o.totalPrice || o.price || 0);
             }
           }

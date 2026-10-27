@@ -35,6 +35,28 @@ function toBangkokDateKey(d: Date): string {
   return d.toLocaleDateString('sv-SE', { timeZone: CHART_TZ });
 }
 
+/** คืนค่า Date ของเวลา 00:00:00.000 ของวันนี้ตามเวลาไทย (UTC+7) */
+function getBangkokStartOfDay(date: Date = new Date()): Date {
+  const bkkDateStr = toBangkokDateKey(date);
+  return new Date(`${bkkDateStr}T00:00:00.000+07:00`);
+}
+
+/** แปลงช่วงวันที่ YYYY-MM-DD ให้ครอบคลุม 00:00:00 ถึง 23:59:59.999 ตามเวลาไทย (UTC+7) */
+function parseBangkokDateFilter(startDate?: string, endDate?: string) {
+  const filter: any = {};
+  if (startDate) {
+    filter.gte = startDate.includes('T')
+      ? new Date(startDate)
+      : new Date(`${startDate}T00:00:00.000+07:00`);
+  }
+  if (endDate) {
+    filter.lte = endDate.includes('T')
+      ? new Date(endDate)
+      : new Date(`${endDate}T23:59:59.999+07:00`);
+  }
+  return filter;
+}
+
 /** สร้าง bucket รายวันย้อนหลัง `days` วัน (เก่า -> ใหม่) นับรวมวันนี้ */
 function buildDayKeys(days: number): string[] {
   const now = Date.now();
@@ -497,8 +519,7 @@ export class OrdersService {
   // ==== Merchant Specific Features ====
 
   async getOrderStats(merchantId: number) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = getBangkokStartOfDay();
 
     // [BUG-02 FIX] Run all queries in parallel with Promise.all.
     // Previous implementation: 4 sequential round-trips, used findMany() for a count.
@@ -697,23 +718,13 @@ export class OrdersService {
     const merchantIdNum = Number(merchantId);
     
     // สร้าง Date Filter Clause
-    const dateFilter: any = {};
-    if (startDate) {
-      dateFilter.gte = new Date(startDate);
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      dateFilter.lte = end;
-    }
-
     const whereClause: any = {
       merchantId: merchantIdNum,
       status: OrderStatus.DELIVERED,
     };
 
     if (startDate || endDate) {
-      whereClause.updatedAt = dateFilter;
+      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
     }
 
     // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
@@ -758,15 +769,7 @@ export class OrdersService {
     };
 
     if (startDate || endDate) {
-      whereClause.updatedAt = {};
-      if (startDate) {
-        whereClause.updatedAt.gte = new Date(startDate);
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        whereClause.updatedAt.lte = end;
-      }
+      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
     }
 
     const totalDelivered = await this.prisma.order.count({
@@ -918,24 +921,13 @@ export class OrdersService {
   ) {
     const driverIdNum = Number(driverId);
     
-    // สร้าง Date Filter Clause
-    const dateFilter: any = {};
-    if (startDate) {
-      dateFilter.gte = new Date(startDate);
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      dateFilter.lte = end;
-    }
-
     const whereClause: any = {
       driverId: driverIdNum,
       status: OrderStatus.DELIVERED,
     };
 
     if (startDate || endDate) {
-      whereClause.updatedAt = dateFilter;
+      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
     }
 
     // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
@@ -1399,8 +1391,7 @@ export class OrdersService {
 
   // ==== 📊 Driver Stats ====
   async getDriverStats(driverId: number) {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
+    const startOfDay = getBangkokStartOfDay();
 
     const activeOrdersCount = await this.prisma.order.count({
       where: {
@@ -1668,13 +1659,7 @@ export class OrdersService {
     const whereClause: any = { merchantId: Number(merchantId) };
 
     if (dateFrom || dateTo) {
-      whereClause.createdAt = {};
-      if (dateFrom) whereClause.createdAt.gte = new Date(dateFrom);
-      if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
-        whereClause.createdAt.lte = end;
-      }
+      whereClause.createdAt = parseBangkokDateFilter(dateFrom, dateTo);
     }
 
     const orders = await this.prisma.order.findMany({

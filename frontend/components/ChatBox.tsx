@@ -166,7 +166,7 @@ export default function ChatBox({ orderId, currentRole, receiverRole, receiverId
                   {msg.content && <span>{msg.content}</span>}
                 </div>
                 <span className="sp-msg-time">
-                  {new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(msg.createdAt || Date.now()).toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             );

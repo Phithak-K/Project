@@ -64,7 +64,7 @@ export default function MerchantStatsPage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `swiftpath-orders-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `swiftpath-orders-${new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Bangkok' })}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch { toast.error('Network Error'); }
