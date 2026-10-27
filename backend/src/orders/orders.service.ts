@@ -64,6 +64,35 @@ function buildDayKeys(days: number): string[] {
   );
 }
 
+// ==========================================
+// 📦 Reusable Prisma Query Includes & Selects
+// ==========================================
+
+/** รวมข้อมูลออเดอร์แบบครบถ้วน (สินค้า, ประวัติการจัดส่ง, ร้านค้า, ไรเดอร์, ลูกค้า) */
+export const ORDER_FULL_DETAILS_INCLUDE = {
+  items: true,
+  trackingLogs: { orderBy: { createdAt: 'desc' as const } },
+  merchant: { select: { id: true, storeName: true, phone: true } },
+  driver: { select: { id: true, name: true, phone: true, vehiclePlate: true } },
+  customer: { select: { id: true, name: true } },
+} as const;
+
+/** รวมข้อมูลร้านค้าพื้นฐานสำหรับบัตรงาน */
+export const ORDER_MERCHANT_INFO_INCLUDE = {
+  merchant: { select: { storeName: true, phone: true } },
+} as const;
+
+/** รวมข้อมูลคนขับพื้นฐานสำหรับประวัติร้านค้า */
+export const ORDER_DRIVER_INFO_INCLUDE = {
+  driver: { select: { name: true, phone: true } },
+} as const;
+
+/** รวมข้อมูลคนขับและร้านค้าสำหรับประวัติลูกค้า */
+export const ORDER_CUSTOMER_HISTORY_INCLUDE = {
+  driver: { select: { name: true, phone: true } },
+  merchant: { select: { name: true, storeName: true } },
+} as const;
+
 
 @Injectable()
 export class OrdersService {
@@ -408,13 +437,7 @@ export class OrdersService {
     if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: {
-        trackingLogs: { orderBy: { createdAt: 'desc' } },
-        merchant: { select: { storeName: true, phone: true } },
-        driver: { select: { name: true, phone: true, vehiclePlate: true } },
-        customer: { select: { name: true } },
-        items: true,
-      },
+      include: ORDER_FULL_DETAILS_INCLUDE,
     });
 
     if (!order) throw new BadRequestException('Order not found');
@@ -649,12 +672,7 @@ export class OrdersService {
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
       data: dataToUpdate,
-      include: {
-        items: true,
-        merchant: true,
-        driver: true,
-        trackingLogs: { orderBy: { createdAt: 'desc' } },
-      },
+      include: ORDER_FULL_DETAILS_INCLUDE,
     });
 
     await this.createTrackingLog(
@@ -747,9 +765,7 @@ export class OrdersService {
       where: whereClause,
       orderBy: { updatedAt: 'desc' },
       take: 50,
-      include: {
-        driver: { select: { name: true, phone: true } },
-      },
+      include: ORDER_DRIVER_INFO_INCLUDE,
     });
 
     return {
@@ -789,10 +805,7 @@ export class OrdersService {
       where: whereClause,
       orderBy: { updatedAt: 'desc' },
       take: 50,
-      include: {
-        driver: { select: { name: true, phone: true } },
-        merchant: { select: { name: true, storeName: true } },
-      },
+      include: ORDER_CUSTOMER_HISTORY_INCLUDE,
     });
 
     return {
@@ -911,9 +924,7 @@ export class OrdersService {
         },
       },
       orderBy: { updatedAt: 'desc' },
-      include: {
-        merchant: { select: { storeName: true, phone: true } },
-      },
+      include: ORDER_MERCHANT_INFO_INCLUDE,
     });
   }
 
@@ -957,9 +968,7 @@ export class OrdersService {
       where: whereClause,
       orderBy: { updatedAt: 'desc' },
       take: 50,
-      include: {
-        merchant: { select: { storeName: true, phone: true } },
-      },
+      include: ORDER_MERCHANT_INFO_INCLUDE,
     });
 
     return {
