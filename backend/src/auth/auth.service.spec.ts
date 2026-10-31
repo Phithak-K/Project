@@ -361,5 +361,100 @@ describe('AuthService', () => {
       expect(mockCustomerModel.update).toHaveBeenCalledTimes(1);
     });
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // SECTION 6: forgotPassword() & resetPassword()
+  // ──────────────────────────────────────────────────────────────────────────
+  describe('forgotPassword() & resetPassword()', () => {
+    const testEmail = 'reset@gmail.com';
+    const rawOtp = '654321';
+    const hashedOtp = hashOtp(rawOtp);
+    const futureDate = new Date(Date.now() + 15 * 60 * 1000);
+    const pastDate = new Date(Date.now() - 5 * 60 * 1000);
+
+    it('[TC-FP01] forgotPassword ควร throw เมื่อไม่พบอีเมลในระบบ', async () => {
+      mockCustomerModel.findUnique.mockResolvedValue(null);
+      mockMerchantModel.findUnique.mockResolvedValue(null);
+      mockDriverModel.findUnique.mockResolvedValue(null);
+
+      await expect(service.forgotPassword('notfound@gmail.com')).rejects.toThrow(
+        'ไม่พบบัญชีผู้ใช้นี้ในระบบ',
+      );
+    });
+
+    it('[TC-FP02] forgotPassword ควรบันทึก hashed OTP และส่งอีเมลสำเร็จ', async () => {
+      mockCustomerModel.findUnique.mockResolvedValue({
+        id: 10,
+        email: testEmail,
+        name: 'Reset User',
+        role: 'Customer',
+      });
+      mockCustomerModel.update.mockResolvedValue({ id: 10 });
+      mockMailer.sendMail.mockClear();
+
+      const result = await service.forgotPassword(testEmail);
+
+      expect(result).toHaveProperty('message');
+      expect(mockCustomerModel.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { email: testEmail },
+          data: expect.objectContaining({
+            otpCode: expect.any(String),
+            otpExpires: expect.any(Date),
+          }),
+        }),
+      );
+      expect(mockMailer.sendMail).toHaveBeenCalledTimes(1);
+    });
+
+    it('[TC-RP01] resetPassword ควร throw เมื่อ OTP ไม่ถูกต้อง', async () => {
+      mockCustomerModel.findUnique.mockResolvedValue({
+        id: 10,
+        email: testEmail,
+        otpCode: hashedOtp,
+        otpExpires: futureDate,
+      });
+
+      await expect(
+        service.resetPassword(testEmail, '000000', 'newPassword123'),
+      ).rejects.toThrow('รหัส OTP ไม่ถูกต้อง');
+    });
+
+    it('[TC-RP02] resetPassword ควร throw เมื่อ OTP หมดอายุ', async () => {
+      mockCustomerModel.findUnique.mockResolvedValue({
+        id: 10,
+        email: testEmail,
+        otpCode: hashedOtp,
+        otpExpires: pastDate,
+      });
+
+      await expect(
+        service.resetPassword(testEmail, rawOtp, 'newPassword123'),
+      ).rejects.toThrow('รหัส OTP หมดอายุแล้ว');
+    });
+
+    it('[TC-RP03] resetPassword ควรตั้งรหัสผ่านใหม่และล้าง OTP สำเร็จ', async () => {
+      mockCustomerModel.findUnique.mockResolvedValue({
+        id: 10,
+        email: testEmail,
+        otpCode: hashedOtp,
+        otpExpires: futureDate,
+      });
+      (bcrypt.hash as jest.Mock).mockResolvedValue('$2b$10$hashedNewPassword');
+      mockCustomerModel.update.mockClear();
+
+      const result = await service.resetPassword(testEmail, rawOtp, 'newPassword123');
+
+      expect(result.message).toContain('รีเซ็ตรหัสผ่านสำเร็จ');
+      expect(mockCustomerModel.update).toHaveBeenCalledWith({
+        where: { email: testEmail },
+        data: {
+          password: '$2b$10$hashedNewPassword',
+          otpCode: null,
+          otpExpires: null,
+        },
+      });
+    });
+  });
 });
 
