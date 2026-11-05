@@ -20,10 +20,10 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateCustomerInfoDto } from './dto/update-customer-info.dto';
 import { OrderStatus, Prisma, UserRole } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { uploadBase64ToStorage } from '../utils/firebase-storage';
 import { Response } from 'express';
 import { OrdersExportService } from './orders-export.service';
 import { OrdersAnalyticsService } from './orders-analytics.service';
+import { OrdersDeliveryService } from './orders-delivery.service';
 
 const CHART_TZ = 'Asia/Bangkok';
 
@@ -93,12 +93,19 @@ export class OrdersService {
     private eventEmitter: EventEmitter2,
     @Optional() private ordersExportService?: OrdersExportService,
     @Optional() private ordersAnalyticsService?: OrdersAnalyticsService,
+    @Optional() private ordersDeliveryService?: OrdersDeliveryService,
   ) {
     if (!this.ordersExportService) {
       this.ordersExportService = new OrdersExportService(this.prisma);
     }
     if (!this.ordersAnalyticsService) {
       this.ordersAnalyticsService = new OrdersAnalyticsService(this.prisma);
+    }
+    if (!this.ordersDeliveryService) {
+      this.ordersDeliveryService = new OrdersDeliveryService(
+        this.prisma,
+        this.eventEmitter,
+      );
     }
   }
 
@@ -776,242 +783,38 @@ export class OrdersService {
     return this.ordersAnalyticsService!.getMerchantAnalytics(merchantId);
   }
 
+  // ==== 🛵 Driver Operations (Delegated to OrdersDeliveryService) ====
+
   async findAllAvailable(driverId: number) {
-    const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId },
-      select: { merchantId: true }
-    });
-
-    return this.prisma.order.findMany({
-      where: {
-        driverId: null,
-        status: OrderStatus.PENDING,
-        // If driver is attached to a merchant, only show orders from that merchant
-        ...(driver?.merchantId && { merchantId: driver.merchantId }),
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    return this.ordersDeliveryService!.findAllAvailable(driverId);
   }
 
-  // ✅ New Feature: Fetch assigned/active jobs for a specific driver
   async getDriverActiveJobs(driverId: number) {
-    return this.prisma.order.findMany({
-      where: {
-        driverId: Number(driverId),
-        status: {
-          in: [
-            OrderStatus.ACCEPTED,
-            OrderStatus.PICKED_UP,
-            OrderStatus.SHIPPING,
-          ],
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-      include: ORDER_MERCHANT_INFO_INCLUDE,
-    });
+    return this.ordersDeliveryService!.getDriverActiveJobs(driverId);
   }
 
-  // ✅ New Feature: Fetch driver history and stats (Optimized + Date Filter)
   async getDriverHistory(
     driverId: number,
     startDate?: string,
     endDate?: string,
   ) {
-    const driverIdNum = Number(driverId);
-    
-    const whereClause: any = {
-      driverId: driverIdNum,
-      status: OrderStatus.DELIVERED,
-    };
-
-    if (startDate || endDate) {
-      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
-    }
-
-    // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
-    const totalDelivered = await this.prisma.order.count({
-      where: whereClause,
-    });
-
-    // 2. หายอดเงินสดรวมผ่าน Aggregate เพื่อลด Memory (เฉพาะ Cash/COD/Unpaid)
-    const cashStats = await this.prisma.order.aggregate({
-      _sum: { totalPrice: true },
-      where: {
-        ...whereClause,
-        OR: [
-          { paymentMethod: 'COD' },
-          { paymentMethod: 'Cash' },
-          { paymentStatus: 'Unpaid' }
-        ]
-      },
-    });
-
-    // 3. ดึงประวัติรายการล่าสุด 50 รายการ (ลดภาระ RAM)
-    const orders = await this.prisma.order.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-      include: ORDER_MERCHANT_INFO_INCLUDE,
-    });
-
-    return {
-      stats: {
-        totalDelivered,
-        totalCashCollected: cashStats._sum.totalPrice ? cashStats._sum.totalPrice.toNumber() : 0,
-      },
-      orders,
-    };
+    return this.ordersDeliveryService!.getDriverHistory(
+      driverId,
+      startDate,
+      endDate,
+    );
   }
 
   async acceptOrder(orderId: number, driverId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-
-    const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId },
-    });
-    if (!driver) throw new BadRequestException('Driver not found');
-
-    // 2. ผูกการทำงานทั้งหมดอยู่ใน Database Transaction เดียวกัน ($transaction) ตามมาตรฐาน Atomic Transaction
-    const updatedOrder = await this.prisma.$transaction(async (tx) => {
-      // ขั้นตอนที่ 1: ตรวจสอบสถานะของ Order ก่อนอัปเดต
-      const order = await tx.order.findUnique({
-        where: { id: orderId },
-      });
-
-      if (!order) {
-        throw new NotFoundException('ไม่พบออเดอร์นี้');
-      }
-
-      // ข้อกำหนด 1: หากสถานะไม่ได้เป็น PENDING หรือมีคนขับรับไปแล้ว ต้องโยน ConflictException ทันที
-      if (order.status !== OrderStatus.PENDING || order.driverId !== null) {
-        throw new ConflictException(
-          'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
-        );
-      }
-
-      // ตรวจสอบสิทธิ์ร้านค้า (หากคนขับสังกัดร้านค้า จะรับได้เฉพาะออเดอร์ของร้านตนเอง)
-      if (driver.merchantId && order.merchantId !== driver.merchantId) {
-        throw new ForbiddenException('คุณไม่มีสิทธิ์รับงานข้ามร้านค้า');
-      }
-
-      // ขั้นตอนที่ 2: Atomic Update with Compound WHERE (Concurrency Guard)
-      // ป้องกันกรณี Concurrent Requests แข่งกันเข้ามารับงานพร้อมกันในช่วงเศษเสี้ยววินาที
-      const updateResult = await tx.order.updateMany({
-        where: {
-          id: orderId,
-          driverId: null,
-          status: OrderStatus.PENDING,
-          ...(driver.merchantId ? { merchantId: driver.merchantId } : {}),
-        },
-        data: {
-          driverId,
-          status: OrderStatus.ACCEPTED,
-        },
-      });
-
-      if (updateResult.count === 0) {
-        throw new ConflictException(
-          'ออเดอร์นี้ถูกคนขับท่านอื่นรับไปแล้ว หรือสถานะไม่ถูกต้อง',
-        );
-      }
-
-      // ดึงข้อมูล Order ล่าสุดหลังจากการอัปเดต
-      const orderUpdated = await tx.order.findUnique({
-        where: { id: orderId },
-      });
-
-      // ขั้นตอนที่ 3: บันทึกประวัติการเปลี่ยนสถานะ (Tracking Log) ใน Transaction เดียวกันแบบ Atomic
-      await tx.trackingLog.create({
-        data: {
-          orderId,
-          status: OrderStatus.ACCEPTED,
-          note: 'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า',
-          location: 'ระบบ SwiftPath (Automatic)',
-        },
-      });
-
-      return orderUpdated;
-    });
-
-    // ขั้นตอนที่ 4: ปล่อย Event สู่ระบบ (Event-Driven Architecture)
-    // ส่งทั้ง Push Notification และ WebSocket Real-Time ผ่าน Event Listeners แบบแยกส่วน
-    this.eventEmitter.emit(
-      ORDER_EVENTS.STATUS_UPDATED,
-      new OrderStatusUpdatedEvent(
-        orderId,
-        OrderStatus.ACCEPTED,
-        updatedOrder,
-        'คนขับกดรับงานแล้ว กำลังเดินทางไปรับพัสดุที่ร้านค้า',
-      ),
-    );
-
-    return updatedOrder;
+    return this.ordersDeliveryService!.acceptOrder(orderId, driverId);
   }
 
   async pickupOrder(orderId: number, driverId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.driverId !== driverId)
-      throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
-    if (order.status !== OrderStatus.ACCEPTED)
-      throw new BadRequestException('ต้องรับงานก่อน (ACCEPTED)');
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.PICKED_UP },
-    });
-
-    await this.createTrackingLog(
-      orderId,
-      'PICKED_UP',
-      'คนขับรับพัสดุจากร้านค้าเรียบร้อยแล้ว',
-    );
-    this.eventEmitter.emit(
-      ORDER_EVENTS.STATUS_UPDATED,
-      new OrderStatusUpdatedEvent(
-        orderId,
-        OrderStatus.PICKED_UP,
-        updatedOrder,
-        'คนขับรับพัสดุจากร้านค้าเรียบร้อยแล้ว',
-      ),
-    );
-    return updatedOrder;
+    return this.ordersDeliveryService!.pickupOrder(orderId, driverId);
   }
 
   async startShippingOrder(orderId: number, driverId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.driverId !== driverId)
-      throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
-    if (order.status !== OrderStatus.PICKED_UP)
-      throw new BadRequestException('ต้องรับของก่อน (PICKED_UP)');
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.SHIPPING },
-    });
-
-    await this.createTrackingLog(
-      orderId,
-      'SHIPPING',
-      'พัสดุกำลังเดินทางไปหาผู้รับพัสดุ',
-    );
-    this.eventEmitter.emit(
-      ORDER_EVENTS.STATUS_UPDATED,
-      new OrderStatusUpdatedEvent(
-        orderId,
-        OrderStatus.SHIPPING,
-        updatedOrder,
-        'พัสดุกำลังเดินทางไปหาผู้รับพัสดุ',
-      ),
-    );
-    return updatedOrder;
+    return this.ordersDeliveryService!.startShippingOrder(orderId, driverId);
   }
 
   async completeOrder(
@@ -1019,225 +822,15 @@ export class OrdersService {
     driverId: number,
     proofOfDeliveryBase64?: string,
   ) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    if (!proofOfDeliveryBase64)
-      throw new BadRequestException(
-        'ต้องแนบรูปลิงก์หลักฐานการจัดส่ง (Proof of Delivery URL)',
-      );
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.driverId !== driverId)
-      throw new ForbiddenException('คุณไม่ใช่คนขับที่รับออเดอร์นี้');
-    if (order.status !== OrderStatus.SHIPPING)
-      throw new BadRequestException('ต้องเริ่มการจัดส่งก่อน (SHIPPING)');
-
-    let proofUrl: string | null = null;
-    try {
-      if (proofOfDeliveryBase64) {
-        proofUrl = await uploadBase64ToStorage(
-          proofOfDeliveryBase64,
-          `proofs/${order.trackingNumber}`,
-        );
-      }
-    } catch (e: any) {
-      throw new BadRequestException('อัปโหลดหลักฐานไม่สำเร็จ: ' + e.message);
-    }
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: OrderStatus.DELIVERED,
-        proofOfDelivery: proofUrl,
-      },
-    });
-
-    await this.createTrackingLog(
+    return this.ordersDeliveryService!.completeOrder(
       orderId,
-      'DELIVERED',
-      'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้วพร้อมหลักฐาน',
+      driverId,
+      proofOfDeliveryBase64,
     );
-    this.eventEmitter.emit(
-      ORDER_EVENTS.STATUS_UPDATED,
-      new OrderStatusUpdatedEvent(
-        orderId,
-        OrderStatus.DELIVERED,
-        updatedOrder,
-        'พัสดุถูกจัดส่งถึงมือผู้รับเรียบร้อยแล้วพร้อมหลักฐาน',
-      ),
-    );
-    return updatedOrder;
   }
 
-  // ==== 💰 Enterprise Features: Payment & Wallet ====
   async payOrder(orderId: number, driverId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.driverId !== driverId)
-      throw new ForbiddenException('สิทธิ์ถูกปฏิเสธ');
-    if (order.status !== OrderStatus.DELIVERED)
-      throw new BadRequestException(
-        '[BUG-002 FIX] ชำระเงินได้เฉพาะออเดอร์ที่จัดส่งสำเร็จแล้ว (DELIVERED) เท่านั้น',
-      );
-    if (order.paymentStatus === 'Paid')
-      throw new BadRequestException('ออเดอร์นี้ชำระเงินแล้ว');
-
-    // [DATA INTEGRITY] ใช้ Prisma.Decimal ป้องกัน Precision Loss
-    const amountToPayDecimal = new Prisma.Decimal(
-      order.totalPrice || order.price || 0,
-    );
-    const amountToPay = amountToPayDecimal.toNumber();
-
-    // [P0 FIX] สมการสมดุลการเงิน (Zero-Sum Game)
-    // 1. Customer จ่าย = amountToPay
-    // 2. Driver รับ = 20% ของ amountToPay (หรือสามารถปรับเป็นค่าจัดส่งตายตัวได้)
-    // 3. Platform รับ = insuranceFee
-    // 4. Merchant รับ = ส่วนที่เหลือ (amountToPay - driverCut - insuranceFee)
-    const driverCut = amountToPayDecimal.mul(0.2).toNumber();
-    const insuranceFeeNum = Number(order.insuranceFee);
-    const merchantCut = amountToPayDecimal
-      .minus(driverCut)
-      .minus(insuranceFeeNum)
-      .toNumber();
-
-    // เริ่ม Transaction พร้อม ป้องกัน Race Condition
-    await this.prisma.$transaction(async (tx) => {
-      // 0. Atomic lock to prevent double-spend
-      const lockUpdate = await tx.order.updateMany({
-        where: { id: orderId, paymentStatus: 'Unpaid' },
-        data: { paymentStatus: 'Paid' },
-      });
-
-      if (lockUpdate.count === 0) {
-        throw new BadRequestException(
-          'ออเดอร์นี้ชำระเงินไปแล้ว หรืออยู่ระหว่างทำรายการ',
-        );
-      }
-
-      // 1. หักเงินลูกค้า (ถ้าจ่ายผ่าน Wallet) หรือ หักเงินคนขับ (ถ้าเป็น Cash on Delivery)
-      if (order.customerId && order.paymentMethod !== 'COD') {
-        const updateResult = await tx.customer.updateMany({
-          where: {
-            id: order.customerId,
-            balance: { gte: amountToPay }, // Guard: Balance must be >= amountToPay
-          },
-          data: { balance: { decrement: amountToPay } },
-        });
-
-        if (updateResult.count === 0) {
-          throw new BadRequestException(
-            `ยอดเงินลูกค้าไม่เพียงพอ (ต้องการ ฿${amountToPay.toFixed(2)})`,
-          );
-        }
-        await tx.transaction.create({
-          data: {
-            amount: amountToPay,
-            type: 'DEBIT',
-            note: `ชำระค่าออเดอร์ #${order.trackingNumber}`,
-            userId: order.customerId,
-            userRole: 'Customer',
-            orderId: order.id,
-          },
-        });
-      } else {
-        // [Cash on Delivery] ลูกค้าไม่ได้ลงทะเบียน / เลือกจ่ายเงินสดตอนรับของ
-        // คนขับรับเงินสดมาจากลูกค้าเต็มจำนวน แล้วนำไปหักล้างในระบบ Wallet
-        // คนขับมีเงินสดในมือเพิ่มขึ้น แต่เงินในแอปจะลดลงเท่ากับส่วนที่ต้องนำส่งให้ร้านและแพลตฟอร์ม
-        const driverOwed = merchantCut + insuranceFeeNum;
-        if (driverOwed > 0) {
-          const updateResult = await tx.driver.updateMany({
-            where: { id: driverId, balance: { gte: driverOwed } },
-            data: { balance: { decrement: driverOwed } },
-          });
-          if (updateResult.count === 0)
-            throw new BadRequestException(
-              `ยอดเงินเครดิตคนขับไม่เพียงพอสำหรับการหักเงินสด (COD) ต้องมีขั้นต่ำ ฿${driverOwed.toFixed(2)}`,
-            );
-
-          await tx.transaction.create({
-            data: {
-              amount: driverOwed,
-              type: 'DEBIT',
-              note: `นำส่งเงินสด COD เข้าสู่ระบบ #${order.trackingNumber}`,
-              userId: driverId,
-              userRole: 'Driver',
-              orderId: order.id,
-            },
-          });
-        }
-      }
-
-      // 2. เพิ่มเงินให้ร้านค้า
-      if (order.merchantId && merchantCut > 0) {
-        await tx.merchant.update({
-          where: { id: order.merchantId },
-          data: { balance: { increment: merchantCut } },
-        });
-        await tx.transaction.create({
-          data: {
-            amount: merchantCut,
-            type: 'CREDIT',
-            note: `รับเงินค่าสินค้า #${order.trackingNumber}`,
-            userId: order.merchantId,
-            userRole: 'Merchant',
-            orderId: order.id,
-          },
-        });
-      }
-
-      // 3. เพิ่มเงินให้คนขับ (เฉพาะกรณี Wallet) เพราะถ้า COD เงินสดอยู่กับคนขับแล้ว
-      if (order.customerId && order.paymentMethod !== 'COD' && driverCut > 0) {
-        await tx.driver.update({
-          where: { id: driverId },
-          data: { balance: { increment: driverCut } },
-        });
-        await tx.transaction.create({
-          data: {
-            amount: driverCut,
-            type: 'CREDIT',
-            note: `ค่ารอบจัดส่ง #${order.trackingNumber}`,
-            userId: driverId,
-            userRole: 'Driver',
-            orderId: order.id,
-          },
-        });
-      }
-
-      // 4. หักค่าประกัน (Platform Revenue)
-      if (order.hasInsurance && insuranceFeeNum > 0) {
-        await tx.transaction.create({
-          data: {
-            amount: insuranceFeeNum,
-            type: 'CREDIT',
-            note: `รายได้ค่าเบี้ยประกันสินค้า #${order.trackingNumber}`,
-            userId: 0,
-            userRole: 'Platform',
-            orderId: order.id,
-          },
-        });
-      }
-    });
-
-    const refreshedOrder = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (refreshedOrder) {
-      this.eventEmitter.emit(
-        ORDER_EVENTS.STATUS_UPDATED,
-        new OrderStatusUpdatedEvent(
-          orderId,
-          refreshedOrder.status,
-          refreshedOrder,
-          'ชำระเงินและโอนเข้า Wallet สำเร็จ',
-        ),
-      );
-    }
-
-    return { success: true, message: 'ชำระเงินและโอนเข้า Wallet สำเร็จ' };
+    return this.ordersDeliveryService!.payOrder(orderId, driverId);
   }
 
   // ==== ⭐ Enterprise Features: Rating System ====
