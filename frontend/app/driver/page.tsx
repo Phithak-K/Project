@@ -84,6 +84,9 @@ export default function DriverDashboard() {
           <Link href="/driver/radar" className="sp-btn-primary px-3.5 py-1.5 text-xs uppercase flex items-center gap-1.5">
             <Navigation size={12} /> เรดาร์
           </Link>
+          <Link href="/driver/route" className="flex items-center gap-1.5 text-[var(--brand-600)] text-xs uppercase font-bold no-underline hover:text-[var(--brand-700)]">
+            <Navigation size={12} /> เส้นทาง
+          </Link>
           <Link href="/driver/history" className="flex items-center gap-1.5 text-[var(--n-600)] text-xs uppercase font-bold no-underline hover:text-[var(--n-900)]">
             ประวัติ
           </Link>
@@ -177,6 +180,30 @@ export default function DriverDashboard() {
             </div>
             <span className="sp-mono text-[var(--n-500)]">[{orders.length}]</span>
           </div>
+
+          {orders.length > 0 && (
+            <div className="mb-6 p-4 rounded-xl border border-[var(--brand-200)] bg-gradient-to-r from-[var(--brand-50)] to-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--brand-500)] text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <Navigation size={20} />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-[var(--n-900)] text-sm">
+                    จัดลำดับเส้นทางส่งอัตโนมัติ (Route Optimization)
+                  </h4>
+                  <p className="text-xs text-[var(--n-600)] mt-0.5">
+                    เรียงลำดับจุดส่งที่สั้นที่สุด พร้อมเปิด Google Maps นำทางทุกจุดในคลิกเดียว
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/driver/route"
+                className="sp-btn-primary px-4 py-2 text-xs font-bold rounded-lg shrink-0 flex items-center gap-1.5 shadow-sm whitespace-nowrap no-underline self-stretch sm:self-auto justify-center"
+              >
+                <Navigation size={13} /> ดูแผนที่เส้นทาง
+              </Link>
+            </div>
+          )}
 
           {orders.length === 0 ? (
             <div className="py-16 text-center">
