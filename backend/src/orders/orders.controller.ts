@@ -61,6 +61,21 @@ export class OrdersController {
   // ==== Driver Routes ====
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.Driver)
+  @Get('driver/route-optimization')
+  getRouteOptimization(
+    @Req() req: any,
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+  ) {
+    return this.ordersService.optimizeDeliveryRoute(
+      Number(req.user.userId),
+      lat ? parseFloat(lat) : undefined,
+      lng ? parseFloat(lng) : undefined,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.Driver)
   @Get('driver/my-jobs')
   getDriverActiveJobs(@Req() req: any) {
     return this.ordersService.getDriverActiveJobs(Number(req.user.userId));

@@ -499,4 +499,257 @@ export class OrdersDeliveryService {
 
     return { success: true, message: 'ชำระเงินและโอนเข้า Wallet สำเร็จ' };
   }
+
+  /**
+   * จัดลำดับเส้นทางส่งอัตโนมัติ (Multi-Stop Route Optimization) สำหรับคนขับ
+   * ใช้อัลกอริทึม Nearest Neighbor (Greedy TSP) คำนวณด้วย Haversine Formula
+   * เปรียบเทียบระยะทางกับลำดับ FIFO เดิม พร้อมสร้าง Google Maps Universal Directions URL
+   */
+  async optimizeDeliveryRoute(
+    driverId: number,
+    currentLat?: number,
+    currentLng?: number,
+  ): Promise<RouteOptimizationResult> {
+    const activeOrders = await this.getDriverActiveJobs(driverId);
+
+    // คัดกรองออเดอร์ที่มีและไม่มีพิกัด GPS
+    const validOrders: any[] = [];
+    const unroutedOrders: UnroutedOrder[] = [];
+
+    for (const order of activeOrders) {
+      if (
+        order.lat !== null &&
+        order.lat !== undefined &&
+        order.lng !== null &&
+        order.lng !== undefined &&
+        !isNaN(Number(order.lat)) &&
+        !isNaN(Number(order.lng))
+      ) {
+        validOrders.push({
+          ...order,
+          lat: Number(order.lat),
+          lng: Number(order.lng),
+        });
+      } else {
+        unroutedOrders.push({
+          orderId: order.id,
+          trackingNumber: order.trackingNumber,
+          receiverName: order.receiverName,
+          address: order.address,
+          reason: 'ไม่มีข้อมูลพิกัด GPS (lat/lng)',
+        });
+      }
+    }
+
+    if (validOrders.length === 0) {
+      const hasDriverGps =
+        currentLat !== undefined &&
+        currentLng !== undefined &&
+        !isNaN(Number(currentLat)) &&
+        !isNaN(Number(currentLng));
+
+      return {
+        origin: hasDriverGps
+          ? { lat: Number(currentLat), lng: Number(currentLng) }
+          : null,
+        originType: hasDriverGps ? 'DRIVER_GPS' : 'NONE',
+        totalStops: 0,
+        totalDistanceKm: 0,
+        totalEstimatedDurationMin: 0,
+        unoptimizedTotalDistanceKm: 0,
+        savedDistanceKm: 0,
+        savingsPercentage: 0,
+        stops: [],
+        unroutedOrders,
+        googleMapsUrl: null,
+      };
+    }
+
+    // กำหนดจุดเริ่มต้น (Origin)
+    let origin: { lat: number; lng: number };
+    let originType: 'DRIVER_GPS' | 'FIRST_ORDER' = 'DRIVER_GPS';
+
+    if (
+      currentLat !== undefined &&
+      currentLng !== undefined &&
+      !isNaN(Number(currentLat)) &&
+      !isNaN(Number(currentLng))
+    ) {
+      origin = { lat: Number(currentLat), lng: Number(currentLng) };
+      originType = 'DRIVER_GPS';
+    } else {
+      origin = { lat: validOrders[0].lat, lng: validOrders[0].lng };
+      originType = 'FIRST_ORDER';
+    }
+
+    // 1. คำนวณระยะทางแบบเดิม (Unoptimized FIFO Sequence) เพื่อใช้เป็น Benchmark
+    let unoptimizedDistance = 0;
+    let prevPoint = origin;
+    for (const order of validOrders) {
+      unoptimizedDistance += calculateHaversineDistance(
+        prevPoint.lat,
+        prevPoint.lng,
+        order.lat,
+        order.lng,
+      );
+      prevPoint = { lat: order.lat, lng: order.lng };
+    }
+    unoptimizedDistance = Number(unoptimizedDistance.toFixed(2));
+
+    // 2. จัดลำดับด้วยอัลกอริทึม Nearest Neighbor (Greedy TSP)
+    const unvisited = [...validOrders];
+    let currentPoint = origin;
+    const optimizedStops: OptimizedStop[] = [];
+    let cumulativeDistance = 0;
+    let totalDurationMin = 0;
+
+    let step = 1;
+    while (unvisited.length > 0) {
+      let nearestIndex = 0;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < unvisited.length; i++) {
+        const dist = calculateHaversineDistance(
+          currentPoint.lat,
+          currentPoint.lng,
+          unvisited[i].lat,
+          unvisited[i].lng,
+        );
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestIndex = i;
+        }
+      }
+
+      const nextStop = unvisited.splice(nearestIndex, 1)[0];
+      cumulativeDistance += minDistance;
+      // ประมาณการเวลาเดินทาง (ความเร็วเฉลี่ย 30 กม./ชม. = 2 นาที/กม. + เวลาส่งมอบ 3 นาทีต่อจุด)
+      const legDuration =
+        Math.max(1, Math.round((minDistance / 30) * 60)) + 3;
+      totalDurationMin += legDuration;
+
+      optimizedStops.push({
+        step,
+        orderId: nextStop.id,
+        trackingNumber: nextStop.trackingNumber,
+        receiverName: nextStop.receiverName,
+        receiverPhone: nextStop.receiverPhone,
+        address: nextStop.address,
+        lat: nextStop.lat,
+        lng: nextStop.lng,
+        status: nextStop.status,
+        legDistanceKm: Number(minDistance.toFixed(2)),
+        cumulativeDistanceKm: Number(cumulativeDistance.toFixed(2)),
+        estimatedMinutesFromPrev: legDuration,
+      });
+
+      currentPoint = { lat: nextStop.lat, lng: nextStop.lng };
+      step++;
+    }
+
+    cumulativeDistance = Number(cumulativeDistance.toFixed(2));
+    const savedDistanceKm = Math.max(
+      0,
+      Number((unoptimizedDistance - cumulativeDistance).toFixed(2)),
+    );
+    const savingsPercentage =
+      unoptimizedDistance > 0
+        ? Number(((savedDistanceKm / unoptimizedDistance) * 100).toFixed(1))
+        : 0;
+
+    // 3. สร้าง Google Maps Universal Directions URL
+    let googleMapsUrl: string | null = null;
+    if (optimizedStops.length === 1) {
+      const dest = optimizedStops[0];
+      googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+    } else if (optimizedStops.length > 1) {
+      const destination = optimizedStops[optimizedStops.length - 1];
+      const waypoints = optimizedStops
+        .slice(0, -1)
+        .map((s) => `${s.lat},${s.lng}`)
+        .join('|');
+      googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&waypoints=${encodeURIComponent(waypoints)}&travelmode=driving`;
+    }
+
+    return {
+      origin,
+      originType,
+      totalStops: optimizedStops.length,
+      totalDistanceKm: cumulativeDistance,
+      totalEstimatedDurationMin: totalDurationMin,
+      unoptimizedTotalDistanceKm: unoptimizedDistance,
+      savedDistanceKm,
+      savingsPercentage,
+      stops: optimizedStops,
+      unroutedOrders,
+      googleMapsUrl,
+    };
+  }
 }
+
+/**
+ * คำนวณระยะทางตามแนวเส้นรอบวงโลก (Great Circle Distance) ด้วย Haversine Formula
+ * @param lat1 ละติจูดจุดที่ 1 (องศา)
+ * @param lon1 ลองจิจูดจุดที่ 1 (องศา)
+ * @param lat2 ละติจูดจุดที่ 2 (องศา)
+ * @param lon2 ลองจิจูดจุดที่ 2 (องศา)
+ * @returns ระยะทางเป็นกิโลเมตร (km) ปัดเศษทศนิยม 2 ตำแหน่ง
+ */
+export function calculateHaversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  if (lat1 === lat2 && lon1 === lon2) return 0;
+  const R = 6371; // รัศมีเฉลี่ยของโลก (กิโลเมตร)
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(2));
+}
+
+export interface OptimizedStop {
+  step: number;
+  orderId: number;
+  trackingNumber: string;
+  receiverName: string;
+  receiverPhone: string;
+  address: string;
+  lat: number;
+  lng: number;
+  status: string;
+  legDistanceKm: number;
+  cumulativeDistanceKm: number;
+  estimatedMinutesFromPrev: number;
+}
+
+export interface UnroutedOrder {
+  orderId: number;
+  trackingNumber: string;
+  receiverName: string;
+  address: string;
+  reason: string;
+}
+
+export interface RouteOptimizationResult {
+  origin: { lat: number; lng: number } | null;
+  originType: 'DRIVER_GPS' | 'FIRST_ORDER' | 'NONE';
+  totalStops: number;
+  totalDistanceKm: number;
+  totalEstimatedDurationMin: number;
+  unoptimizedTotalDistanceKm: number;
+  savedDistanceKm: number;
+  savingsPercentage: number;
+  stops: OptimizedStop[];
+  unroutedOrders: UnroutedOrder[];
+  googleMapsUrl: string | null;
+}
+
+

@@ -833,6 +833,18 @@ export class OrdersService {
     return this.ordersDeliveryService!.payOrder(orderId, driverId);
   }
 
+  async optimizeDeliveryRoute(
+    driverId: number,
+    currentLat?: number,
+    currentLng?: number,
+  ) {
+    return this.ordersDeliveryService!.optimizeDeliveryRoute(
+      driverId,
+      currentLat,
+      currentLng,
+    );
+  }
+
   // ==== ⭐ Enterprise Features: Rating System ====
   async rateOrder(
     orderId: number,

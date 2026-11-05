@@ -5,7 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { OrdersDeliveryService } from './orders-delivery.service';
+import { OrdersDeliveryService, calculateHaversineDistance } from './orders-delivery.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { OrderStatus, Prisma } from '@prisma/client';
@@ -467,6 +467,192 @@ describe('OrdersDeliveryService', () => {
           where: { id: 50, balance: { gte: 300 } },
         }),
       );
+    });
+  });
+
+  describe('calculateHaversineDistance', () => {
+    it('should return 0 when two points are identical', () => {
+      const dist = calculateHaversineDistance(13.7563, 100.5018, 13.7563, 100.5018);
+      expect(dist).toBe(0);
+    });
+
+    it('should calculate accurate distance between Siam Paragon and IconSiam (~3.42 km)', () => {
+      const dist = calculateHaversineDistance(13.7466, 100.5349, 13.7267, 100.5107);
+      expect(dist).toBeGreaterThan(3.3);
+      expect(dist).toBeLessThan(3.6);
+      expect(dist).toBe(3.42);
+    });
+
+    it('should calculate 1 degree longitude on equator (~111.19 km)', () => {
+      const dist = calculateHaversineDistance(0, 0, 0, 1);
+      expect(dist).toBeCloseTo(111.19, 1);
+    });
+  });
+
+  describe('optimizeDeliveryRoute', () => {
+    it('should return 0 stops and null googleMapsUrl when driver has no active jobs', () => {
+      return (async () => {
+        mockPrismaService.order.findMany.mockResolvedValue([]);
+
+        const result = await service.optimizeDeliveryRoute(10, 13.75, 100.5);
+
+        expect(result.totalStops).toBe(0);
+        expect(result.totalDistanceKm).toBe(0);
+        expect(result.googleMapsUrl).toBeNull();
+        expect(result.originType).toBe('DRIVER_GPS');
+        expect(result.origin).toEqual({ lat: 13.75, lng: 100.5 });
+      })();
+    });
+
+    it('should return originType NONE when no jobs and no driver GPS provided', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+
+      const result = await service.optimizeDeliveryRoute(10);
+
+      expect(result.totalStops).toBe(0);
+      expect(result.originType).toBe('NONE');
+      expect(result.origin).toBeNull();
+      expect(result.googleMapsUrl).toBeNull();
+    });
+
+    it('should isolate orders without GPS coordinates into unroutedOrders', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([
+        {
+          id: 101,
+          trackingNumber: 'TRACK-NO-GPS',
+          receiverName: 'สมชาย ไร้พิกัด',
+          receiverPhone: '0811111111',
+          address: 'บ้านไม่มีจีพีเอส',
+          lat: null,
+          lng: null,
+          status: OrderStatus.SHIPPING,
+        },
+      ]);
+
+      const result = await service.optimizeDeliveryRoute(10, 13.75, 100.5);
+
+      expect(result.totalStops).toBe(0);
+      expect(result.unroutedOrders.length).toBe(1);
+      expect(result.unroutedOrders[0].orderId).toBe(101);
+      expect(result.unroutedOrders[0].reason).toContain('ไม่มีข้อมูลพิกัด');
+    });
+
+    it('should optimize single stop and generate point-to-point Google Maps URL', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([
+        {
+          id: 201,
+          trackingNumber: 'TRACK-SINGLE',
+          receiverName: 'สมศรี มีพิกัด',
+          receiverPhone: '0822222222',
+          address: 'สยามพารากอน',
+          lat: 13.7466,
+          lng: 100.5349,
+          status: OrderStatus.PICKED_UP,
+        },
+      ]);
+
+      const result = await service.optimizeDeliveryRoute(10, 13.7267, 100.5107); // จาก IconSiam
+
+      expect(result.totalStops).toBe(1);
+      expect(result.totalDistanceKm).toBe(3.42);
+      expect(result.stops[0].orderId).toBe(201);
+      expect(result.stops[0].step).toBe(1);
+      expect(result.googleMapsUrl).toContain('origin=13.7267,100.5107');
+      expect(result.googleMapsUrl).toContain('destination=13.7466,100.5349');
+      expect(result.googleMapsUrl).toContain('travelmode=driving');
+    });
+
+    it('should fallback to first order coordinates if driver coordinates are not provided', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([
+        {
+          id: 301,
+          trackingNumber: 'TRACK-FALLBACK-1',
+          receiverName: 'ลูกค้า 1',
+          receiverPhone: '0810000001',
+          address: 'จุด 1',
+          lat: 13.75,
+          lng: 100.5,
+          status: OrderStatus.ACCEPTED,
+        },
+        {
+          id: 302,
+          trackingNumber: 'TRACK-FALLBACK-2',
+          receiverName: 'ลูกค้า 2',
+          receiverPhone: '0810000002',
+          address: 'จุด 2',
+          lat: 13.76,
+          lng: 100.51,
+          status: OrderStatus.SHIPPING,
+        },
+      ]);
+
+      const result = await service.optimizeDeliveryRoute(10); // ไม่ส่ง lat, lng
+
+      expect(result.originType).toBe('FIRST_ORDER');
+      expect(result.origin).toEqual({ lat: 13.75, lng: 100.5 });
+      expect(result.totalStops).toBe(2);
+    });
+
+    it('should reorder multi-stop delivery using Nearest Neighbor TSP and save distance compared to FIFO', async () => {
+      // Driver starts at (0, 0)
+      // Unoptimized FIFO order:
+      // Order 1 (Far: 0, 3) -> Order 2 (Near: 0, 1) -> Order 3 (Mid: 0, 2)
+      // Distance FIFO: (0,0)->(0,3) [333km] + (0,3)->(0,1) [222km] + (0,1)->(0,2) [111km] = 666km
+      // Optimized: (0,0)->(0,1) [111km] -> (0,2) [111km] -> (0,3) [111km] = 333km (~50% savings!)
+      mockPrismaService.order.findMany.mockResolvedValue([
+        {
+          id: 1,
+          trackingNumber: 'TRACK-FAR',
+          receiverName: 'ไกลสุด',
+          receiverPhone: '0811111111',
+          address: 'จุดไกล 3',
+          lat: 0,
+          lng: 3,
+          status: OrderStatus.SHIPPING,
+        },
+        {
+          id: 2,
+          trackingNumber: 'TRACK-NEAR',
+          receiverName: 'ใกล้สุด',
+          receiverPhone: '0822222222',
+          address: 'จุดใกล้ 1',
+          lat: 0,
+          lng: 1,
+          status: OrderStatus.SHIPPING,
+        },
+        {
+          id: 3,
+          trackingNumber: 'TRACK-MID',
+          receiverName: 'ปานกลาง',
+          receiverPhone: '0833333333',
+          address: 'จุดกลาง 2',
+          lat: 0,
+          lng: 2,
+          status: OrderStatus.SHIPPING,
+        },
+      ]);
+
+      const result = await service.optimizeDeliveryRoute(10, 0, 0);
+
+      expect(result.totalStops).toBe(3);
+      // ตรวจสอบลำดับการส่งว่าใกล้สุดก่อน: Order 2 -> Order 3 -> Order 1
+      expect(result.stops[0].orderId).toBe(2);
+      expect(result.stops[0].step).toBe(1);
+      expect(result.stops[1].orderId).toBe(3);
+      expect(result.stops[1].step).toBe(2);
+      expect(result.stops[2].orderId).toBe(1);
+      expect(result.stops[2].step).toBe(3);
+
+      // ตรวจสอบการประหยัดระยะทาง
+      expect(result.totalDistanceKm).toBeLessThan(result.unoptimizedTotalDistanceKm);
+      expect(result.savedDistanceKm).toBeGreaterThan(300);
+      expect(result.savingsPercentage).toBeGreaterThan(45);
+
+      // ตรวจสอบ Google Maps Multi-stop URL (waypoints และ destination)
+      expect(result.googleMapsUrl).toContain('origin=0,0');
+      expect(result.googleMapsUrl).toContain('destination=0,3'); // ปลายทางสุดท้ายคือ Order 1
+      expect(result.googleMapsUrl).toContain('waypoints=');
+      expect(result.googleMapsUrl).toContain('travelmode=driving');
     });
   });
 });
