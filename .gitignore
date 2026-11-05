@@ -18,3 +18,6 @@ system_architecture.svg
 ~*.tmp
 *.tmp
 scratch
+friends-papers/
+*.pptx
+slides_assets/
