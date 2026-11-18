@@ -1,8 +1,6 @@
 import {
   Injectable,
   BadRequestException,
-  ConflictException,
-  NotFoundException,
   ForbiddenException,
   InternalServerErrorException,
   Optional,
@@ -11,78 +9,30 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WeatherService } from '../weather/weather.service';
 import { MailerService } from '@nestjs-modules/mailer';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import {
-  ORDER_EVENTS,
-  OrderCreatedEvent,
-  OrderStatusUpdatedEvent,
-} from './events';
+import { ORDER_EVENTS, OrderCreatedEvent } from './events';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateCustomerInfoDto } from './dto/update-customer-info.dto';
-import { OrderStatus, Prisma, UserRole } from '@prisma/client';
+import { OrderStatus, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Response } from 'express';
 import { OrdersExportService } from './orders-export.service';
 import { OrdersAnalyticsService } from './orders-analytics.service';
 import { OrdersDeliveryService } from './orders-delivery.service';
+import { OrdersMerchantService } from './orders-merchant.service';
+import { OrdersCustomerService } from './orders-customer.service';
+import {
+  ORDER_FULL_DETAILS_INCLUDE,
+  ORDER_MERCHANT_INFO_INCLUDE,
+  ORDER_DRIVER_INFO_INCLUDE,
+  ORDER_CUSTOMER_HISTORY_INCLUDE,
+} from './orders.utils';
 
-const CHART_TZ = 'Asia/Bangkok';
-
-/** แปลงเวลาเป็นวันที่ YYYY-MM-DD ตามเวลาไทย */
-function toBangkokDateKey(d: Date): string {
-  return d.toLocaleDateString('sv-SE', { timeZone: CHART_TZ });
-}
-
-/** คืนค่า Date ของเวลา 00:00:00.000 ของวันนี้ตามเวลาไทย (UTC+7) */
-function getBangkokStartOfDay(date: Date = new Date()): Date {
-  const bkkDateStr = toBangkokDateKey(date);
-  return new Date(`${bkkDateStr}T00:00:00.000+07:00`);
-}
-
-/** แปลงช่วงวันที่ YYYY-MM-DD ให้ครอบคลุม 00:00:00 ถึง 23:59:59.999 ตามเวลาไทย (UTC+7) */
-function parseBangkokDateFilter(startDate?: string, endDate?: string) {
-  const filter: any = {};
-  if (startDate) {
-    filter.gte = startDate.includes('T')
-      ? new Date(startDate)
-      : new Date(`${startDate}T00:00:00.000+07:00`);
-  }
-  if (endDate) {
-    filter.lte = endDate.includes('T')
-      ? new Date(endDate)
-      : new Date(`${endDate}T23:59:59.999+07:00`);
-  }
-  return filter;
-}
-
-// ==========================================
-// 📦 Reusable Prisma Query Includes & Selects
-// ==========================================
-
-/** รวมข้อมูลออเดอร์แบบครบถ้วน (สินค้า, ประวัติการจัดส่ง, ร้านค้า, ไรเดอร์, ลูกค้า) */
-export const ORDER_FULL_DETAILS_INCLUDE = {
-  items: true,
-  trackingLogs: { orderBy: { createdAt: 'desc' as const } },
-  merchant: { select: { id: true, storeName: true, phone: true } },
-  driver: { select: { id: true, name: true, phone: true, vehiclePlate: true } },
-  customer: { select: { id: true, name: true } },
-} as const;
-
-/** รวมข้อมูลร้านค้าพื้นฐานสำหรับบัตรงาน */
-export const ORDER_MERCHANT_INFO_INCLUDE = {
-  merchant: { select: { storeName: true, phone: true } },
-} as const;
-
-/** รวมข้อมูลคนขับพื้นฐานสำหรับประวัติร้านค้า */
-export const ORDER_DRIVER_INFO_INCLUDE = {
-  driver: { select: { name: true, phone: true } },
-} as const;
-
-/** รวมข้อมูลคนขับและร้านค้าสำหรับประวัติลูกค้า */
-export const ORDER_CUSTOMER_HISTORY_INCLUDE = {
-  driver: { select: { name: true, phone: true } },
-  merchant: { select: { name: true, storeName: true } },
-} as const;
-
+export {
+  ORDER_FULL_DETAILS_INCLUDE,
+  ORDER_MERCHANT_INFO_INCLUDE,
+  ORDER_DRIVER_INFO_INCLUDE,
+  ORDER_CUSTOMER_HISTORY_INCLUDE,
+};
 
 @Injectable()
 export class OrdersService {
@@ -94,6 +44,8 @@ export class OrdersService {
     @Optional() private ordersExportService?: OrdersExportService,
     @Optional() private ordersAnalyticsService?: OrdersAnalyticsService,
     @Optional() private ordersDeliveryService?: OrdersDeliveryService,
+    @Optional() private ordersMerchantService?: OrdersMerchantService,
+    @Optional() private ordersCustomerService?: OrdersCustomerService,
   ) {
     if (!this.ordersExportService) {
       this.ordersExportService = new OrdersExportService(this.prisma);
@@ -106,6 +58,15 @@ export class OrdersService {
         this.prisma,
         this.eventEmitter,
       );
+    }
+    if (!this.ordersMerchantService) {
+      this.ordersMerchantService = new OrdersMerchantService(
+        this.prisma,
+        this.eventEmitter,
+      );
+    }
+    if (!this.ordersCustomerService) {
+      this.ordersCustomerService = new OrdersCustomerService(this.prisma);
     }
   }
 
@@ -397,41 +358,20 @@ export class OrdersService {
     });
   }
 
+  // ==== 🏪 Merchant Operations (Delegated to OrdersMerchantService) ====
+
   async getMyOrders(merchantId: number, page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.prisma.order.findMany({
-        where: { merchantId: Number(merchantId) },
-        orderBy: { createdAt: 'desc' },
-        include: { trackingLogs: true },
-        skip,
-        take: limit,
-      }),
-      this.prisma.order.count({ where: { merchantId: Number(merchantId) } }),
-    ]);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return this.ordersMerchantService!.getMyOrders(merchantId, page, limit);
   }
+
+  // ==== 🛒 Customer Operations (Delegated to OrdersCustomerService) ====
 
   async getCustomerOrders(
     customerId: number,
     page: number = 1,
     limit: number = 10,
   ) {
-    const skip = (page - 1) * limit;
-    const [data, total] = await Promise.all([
-      this.prisma.order.findMany({
-        where: { customerId: Number(customerId) },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          trackingLogs: true,
-          merchant: { select: { storeName: true } },
-        },
-        skip,
-        take: limit,
-      }),
-      this.prisma.order.count({ where: { customerId: Number(customerId) } }),
-    ]);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return this.ordersCustomerService!.getCustomerOrders(customerId, page, limit);
   }
 
   async getOrderById(orderId: number, userId: number, role: string) {
@@ -461,62 +401,7 @@ export class OrdersService {
   }
 
   async getPublicOrderTracking(trackingNumber: string) {
-    if (!trackingNumber)
-      throw new BadRequestException('Tracking number is required');
-
-    // ✅ MEDIUM-02 FIX: Validate format — ป้องกันส่ง payload ยาวไม่จำกัด
-    if (!/^SP[A-Z0-9-]{8,15}$/.test(trackingNumber)) {
-      throw new BadRequestException(
-        'รูปแบบหมายเลขพัสดุไม่ถูกต้อง (ตัวอย่าง: SP1A2B3C4D5E, SP-DEMO-001)',
-      );
-    }
-
-    const order = await this.prisma.order.findUnique({
-      where: { trackingNumber },
-      select: {
-        id: true,
-        trackingNumber: true,
-        productName: true,
-        status: true,
-        weatherWarning: true,
-        estimatedMinutes: true,
-        estimatedReadyAt: true,
-        lat: true,
-        lng: true,
-        driver: {
-          select: { name: true, vehiclePlate: true, vehicleType: true },
-        },
-        trackingLogs: {
-          where: { isPublic: true },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            status: true,
-            note: true,
-            location: true,
-            lat: true,
-            lng: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
-
-    if (!order) throw new BadRequestException('ไม่พบข้อมูลพัสดุสำหรับรหัสนี้');
-
-    // ✅ MEDIUM-01 FIX: Fuzzy lat/lng — ลดความแม่นยำเหลือ ~1km (แสดงโซนบนแมปได้แต่ระบุบ้านไม่ได้)
-    const fuzzyLogs = order.trackingLogs.map((log) => ({
-      ...log,
-      lat: log.lat != null ? Math.round(log.lat * 100) / 100 : null,
-      lng: log.lng != null ? Math.round(log.lng * 100) / 100 : null,
-    }));
-
-    return {
-      ...order,
-      lat: order.lat != null ? Math.round(order.lat * 100) / 100 : null,
-      lng: order.lng != null ? Math.round(order.lng * 100) / 100 : null,
-      trackingLogs: fuzzyLogs,
-    };
+    return this.ordersCustomerService!.getPublicOrderTracking(trackingNumber);
   }
 
   async getOrderMessages(orderId: number, userId: number, role: string) {
@@ -544,49 +429,17 @@ export class OrdersService {
     });
   }
 
-  // ==== Merchant Specific Features ====
+  // ==== Merchant Specific Features (Delegated to OrdersMerchantService) ====
 
   async getOrderStats(merchantId: number) {
     return this.ordersAnalyticsService!.getOrderStats(merchantId);
   }
 
   async cancelOrderByMerchant(orderId: number, merchantId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.merchantId !== merchantId)
-      throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
-    if (order.status !== OrderStatus.PENDING) {
-      throw new BadRequestException(
-        'ยกเลิกได้เฉพาะออเดอร์ที่ยังไม่มีคนขับรับ (สถานะ PENDING) เท่านั้น',
-      );
-    }
-
-    const canceledOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status: OrderStatus.CANCELLED },
-    });
-
-    await this.createTrackingLog(
+    return this.ordersMerchantService!.cancelOrderByMerchant(
       orderId,
-      'CANCELLED',
-      'ร้านค้ายกเลิกออเดอร์นี้แล้ว',
+      merchantId,
     );
-
-    this.eventEmitter.emit(
-      ORDER_EVENTS.STATUS_UPDATED,
-      new OrderStatusUpdatedEvent(
-        orderId,
-        OrderStatus.CANCELLED,
-        canceledOrder,
-        'ร้านค้ายกเลิกออเดอร์นี้แล้ว',
-      ),
-    );
-
-    return canceledOrder;
   }
 
   async updateCustomerInfoByMerchant(
@@ -594,66 +447,11 @@ export class OrdersService {
     merchantId: number,
     dto: UpdateCustomerInfoDto,
   ) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.merchantId !== merchantId)
-      throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
-
-    if (
-      order.status !== OrderStatus.PENDING &&
-      order.status !== OrderStatus.ACCEPTED
-    ) {
-      throw new BadRequestException(
-        'ไม่สามารถแก้ไขข้อมูลจัดส่งได้ในสถานะนี้ (พัสดุอยู่ระหว่างนำส่งหรือเสร็จสิ้นแล้ว)',
-      );
-    }
-
-    const dataToUpdate: any = {};
-    if (dto.receiverName && dto.receiverName.trim()) {
-      dataToUpdate.receiverName = dto.receiverName.trim();
-    }
-    if (dto.receiverPhone && dto.receiverPhone.trim()) {
-      dataToUpdate.receiverPhone = dto.receiverPhone.trim();
-    }
-    if (dto.address && dto.address.trim()) {
-      dataToUpdate.address = dto.address.trim();
-    }
-    if (dto.productDetail !== undefined) {
-      dataToUpdate.productDetail = dto.productDetail.trim();
-    }
-
-    if (Object.keys(dataToUpdate).length === 0) {
-      return order;
-    }
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: dataToUpdate,
-      include: ORDER_FULL_DETAILS_INCLUDE,
-    });
-
-    await this.createTrackingLog(
+    return this.ordersMerchantService!.updateCustomerInfoByMerchant(
       orderId,
-      order.status,
-      'ร้านค้าแก้ไขข้อมูลผู้รับ / สถานที่จัดส่ง',
+      merchantId,
+      dto,
     );
-
-    if (this.eventEmitter) {
-      this.eventEmitter.emit(
-        ORDER_EVENTS.STATUS_UPDATED,
-        new OrderStatusUpdatedEvent(
-          orderId,
-          order.status,
-          updatedOrder,
-          'ร้านค้าแก้ไขข้อมูลผู้รับ / สถานที่จัดส่ง',
-        ),
-      );
-    }
-    return updatedOrder;
   }
 
   async updatePreparationTime(
@@ -661,121 +459,36 @@ export class OrdersService {
     merchantId: number,
     estimatedReadyAt: string,
   ) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (order.merchantId !== merchantId)
-      throw new ForbiddenException('คุณไม่ใช่เจ้าของร้านค้านี้');
-
-    // ร้านค้าควรอัปเดตเวลาได้ตอน PENDING หรือ SHIPPING ก็ได้ (เช่น ของมาช้า)
-    if (
-      order.status === OrderStatus.DELIVERED ||
-      order.status === OrderStatus.CANCELLED
-    ) {
-      throw new BadRequestException('ไม่สามารถเปลี่ยนเวลาเตรียมของได้แล้ว');
-    }
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { estimatedReadyAt: new Date(estimatedReadyAt) },
-    });
-
-    await this.createTrackingLog(
+    return this.ordersMerchantService!.updatePreparationTime(
       orderId,
-      order.status,
-      `ร้านค้าอัปเดตเวลาเตรียมของเสร็จเป็น: ${new Date(estimatedReadyAt).toLocaleString('th-TH', { timeZone: CHART_TZ })}`,
+      merchantId,
+      estimatedReadyAt,
     );
-
-    return updatedOrder;
   }
 
-  // ✅ New Feature: Fetch merchant history and stats (Optimized + Date Filter)
   async getMerchantHistory(
     merchantId: number,
     startDate?: string,
     endDate?: string,
   ) {
-    const merchantIdNum = Number(merchantId);
-    
-    // สร้าง Date Filter Clause
-    const whereClause: any = {
-      merchantId: merchantIdNum,
-      status: OrderStatus.DELIVERED,
-    };
-
-    if (startDate || endDate) {
-      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
-    }
-
-    // 1. หาจำนวนงานทั้งหมดในช่วยเวลาที่เลือก (ระดับ DB)
-    const totalDelivered = await this.prisma.order.count({
-      where: whereClause,
-    });
-
-    // 2. หายอดขายรวมผ่าน Aggregate เพื่อลด Memory
-    const stats = await this.prisma.order.aggregate({
-      _sum: { totalPrice: true },
-      where: whereClause,
-    });
-
-    // 3. ดึงประวัติรายการล่าสุด 50 รายการ (ลดภาระ RAM)
-    const orders = await this.prisma.order.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-      include: ORDER_DRIVER_INFO_INCLUDE,
-    });
-
-    return {
-      stats: {
-        totalDelivered,
-        totalRevenue: stats._sum.totalPrice ? stats._sum.totalPrice.toNumber() : 0,
-      },
-      orders,
-    };
+    return this.ordersMerchantService!.getMerchantHistory(
+      merchantId,
+      startDate,
+      endDate,
+    );
   }
 
-  // ==== Customer Routes ====
+  // ==== Customer Routes (Delegated to OrdersCustomerService) ====
   async getCustomerHistory(
     customerId: number,
     startDate?: string,
     endDate?: string,
   ) {
-    const whereClause: any = {
+    return this.ordersCustomerService!.getCustomerHistory(
       customerId,
-      status: OrderStatus.DELIVERED,
-    };
-
-    if (startDate || endDate) {
-      whereClause.updatedAt = parseBangkokDateFilter(startDate, endDate);
-    }
-
-    const totalDelivered = await this.prisma.order.count({
-      where: whereClause,
-    });
-
-    const stats = await this.prisma.order.aggregate({
-      _sum: { totalPrice: true },
-      where: whereClause,
-    });
-
-    const orders = await this.prisma.order.findMany({
-      where: whereClause,
-      orderBy: { updatedAt: 'desc' },
-      take: 50,
-      include: ORDER_CUSTOMER_HISTORY_INCLUDE,
-    });
-
-    return {
-      stats: {
-        totalDelivered,
-        totalSpent: stats._sum.totalPrice ? stats._sum.totalPrice.toNumber() : 0,
-      },
-      orders,
-    };
+      startDate,
+      endDate,
+    );
   }
 
   // ==== 🆕 Analytics Dashboard Feature (Delegated to OrdersAnalyticsService) ====
@@ -845,7 +558,7 @@ export class OrdersService {
     );
   }
 
-  // ==== ⭐ Enterprise Features: Rating System ====
+  // ==== ⭐ Enterprise Features: Rating System (Delegated to OrdersCustomerService) ====
   async rateOrder(
     orderId: number,
     userId: number,
@@ -853,41 +566,13 @@ export class OrdersService {
     score: number,
     comment?: string,
   ) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-    if (score < 1 || score > 5)
-      throw new BadRequestException('คะแนนต้องอยู่ระหว่าง 1 ถึง 5');
-
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
-    if (!order) throw new BadRequestException('ไม่พบออเดอร์นี้');
-    if (!order.driverId) throw new BadRequestException('ออเดอร์นี้ไม่มีคนขับ');
-    // [H-03] FIX: Verify ownership before rating
-    if (order.status !== OrderStatus.DELIVERED)
-      throw new BadRequestException('ต้องจัดส่งสำเร็จก่อนจึงจะให้คะแนนได้');
-    if (role === 'Customer' && order.customerId !== userId)
-      throw new ForbiddenException('คุณไม่ใช่เจ้าของออเดอร์นี้');
-    if (role === 'Merchant' && order.merchantId !== userId)
-      throw new ForbiddenException('คุณไม่ใช่เจ้าของออเดอร์นี้');
-
-    const existingRating = await this.prisma.rating.findUnique({
-      where: { orderId },
-    });
-    if (existingRating)
-      throw new BadRequestException('ออเดอร์นี้ถูกให้คะแนนไปแล้ว');
-
-    const newRating = await this.prisma.rating.create({
-      data: {
-        score,
-        comment,
-        orderId,
-        raterId: userId,
-        raterRole: role as UserRole,
-        driverId: order.driverId,
-      },
-    });
-
-    return newRating;
+    return this.ordersCustomerService!.rateOrder(
+      orderId,
+      userId,
+      role,
+      score,
+      comment,
+    );
   }
 
   // ==== 📊 Driver Stats (Delegated to OrdersAnalyticsService) ====
@@ -900,101 +585,18 @@ export class OrdersService {
     return this.ordersAnalyticsService!.getAdminStats();
   }
 
-  // ==== ✅ SME Feature: Merchant Assigns Driver ====
+  // ==== ✅ SME Feature: Merchant Assigns Driver (Delegated to OrdersMerchantService) ====
   async assignDriver(orderId: number, merchantId: number, driverId: number) {
-    if (isNaN(orderId)) throw new BadRequestException('Invalid order ID');
-
-    // Verify driver belongs to this merchant first
-    const driver = await this.prisma.driver.findUnique({
-      where: { id: driverId },
-    });
-    if (!driver) throw new BadRequestException('ไม่พบข้อมูลคนขับ');
-    if (driver.merchantId && driver.merchantId !== merchantId) {
-      throw new ForbiddenException('คนขับคนนี้ไม่ได้สังกัดร้านของคุณ');
-    }
-
-    try {
-      // [SEC-02 ARC FIX] Use Atomic update with compound WHERE clause — same pattern as acceptOrder.
-      // This eliminates the TOCTOU race condition that existed when doing findUnique then update separately.
-      // If two concurrent assign requests race, only one will match { status: PENDING } and succeed;
-      // the other will get P2025 (record not found) and be rejected cleanly.
-      const updatedOrder = await this.prisma.order.update({
-        where: {
-          id: orderId,
-          merchantId, // Guard: caller must own this order
-          status: OrderStatus.PENDING, // Guard: can only assign to PENDING orders
-        },
-        data: { driverId, status: OrderStatus.ACCEPTED },
-      });
-
-      await this.createTrackingLog(
-        orderId,
-        'ACCEPTED',
-        `ร้านค้ามอบหมายงานให้ ${driver.name || 'คนขับ'} (ทะเบียน: ${driver.vehiclePlate || '-'})`,
-      );
-
-      this.eventEmitter.emit(
-        ORDER_EVENTS.STATUS_UPDATED,
-        new OrderStatusUpdatedEvent(
-          orderId,
-          OrderStatus.ACCEPTED,
-          updatedOrder,
-          `ร้านค้ามอบหมายงานให้ ${driver.name || 'คนขับ'} (ทะเบียน: ${driver.vehiclePlate || '-'})`,
-        ),
-      );
-
-      return updatedOrder;
-    } catch (error: any) {
-      // P2025 = record matching the WHERE clause not found
-      if (error.code === 'P2025') {
-        throw new BadRequestException(
-          'ไม่พบออเดอร์นี้ หรือออเดอร์ไม่ได้อยู่ในสถานะที่สามารถมอบหมายได้ (ต้องเป็น PENDING และเป็นออเดอร์ของคุณ)',
-        );
-      }
-      throw error;
-    }
+    return this.ordersMerchantService!.assignDriver(
+      orderId,
+      merchantId,
+      driverId,
+    );
   }
 
-  // ==== ✅ SME Feature: ค้นหาประวัติออเดอร์ด้วยเบอร์โทรผู้รับ ====
+  // ==== ✅ SME Feature: ค้นหาประวัติออเดอร์ด้วยเบอร์โทรผู้รับ (Delegated to OrdersCustomerService) ====
   async getOrdersByPhone(phone: string) {
-    if (!phone || phone.length < 9)
-      throw new BadRequestException(
-        'กรุณาระบุเบอร์โทรที่ถูกต้อง (อย่างน้อย 9 หลัก)',
-      );
-
-    const orders = await this.prisma.order.findMany({
-      where: { receiverPhone: phone },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        trackingNumber: true,
-        productName: true,
-        status: true,
-        totalPrice: true,
-        price: true,
-        receiverName: true,
-        address: true,
-        createdAt: true,
-        estimatedMinutes: true,
-        items: {
-          select: {
-            productName: true,
-            quantity: true,
-            unitPrice: true,
-            totalPrice: true,
-          },
-        },
-        merchant: { select: { storeName: true, phone: true } },
-        trackingLogs: {
-          where: { isPublic: true },
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-          select: { status: true, note: true, createdAt: true },
-        },
-      },
-    });
-
-    return orders;
+    return this.ordersCustomerService!.getOrdersByPhone(phone);
   }
 
   // ==== ✅ SME Feature: Export รายการออเดอร์เป็น CSV (Delegated to OrdersExportService) ====
