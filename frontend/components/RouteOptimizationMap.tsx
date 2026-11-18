@@ -31,8 +31,19 @@ export default function RouteOptimizationMap({
   height = '380px',
 }: RouteOptimizationMapProps) {
   const [mapReady, setMapReady] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
+
+  // Sync with Driver Night Mode (html.driver-dark)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const checkDark = () => setIsDark(document.documentElement.classList.contains('driver-dark'));
+    checkDark();
+    const observer = new MutationObserver(checkDark);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   // Load Leaflet dynamically (matching project standards)
   useEffect(() => {
@@ -96,9 +107,15 @@ export default function RouteOptimizationMap({
       scrollWheelZoom: true,
     }).setView(defaultCenter, 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    const tileUrl = isDark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const tileAttribution = isDark
+      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+      : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+
+    L.tileLayer(tileUrl, {
+      attribution: tileAttribution,
       maxZoom: 19,
     }).addTo(map);
 
@@ -211,7 +228,7 @@ export default function RouteOptimizationMap({
         mapInstanceRef.current = null;
       }
     };
-  }, [mapReady, origin, originType, stops]);
+  }, [mapReady, origin, originType, stops, isDark]);
 
   return (
     <div
@@ -222,7 +239,7 @@ export default function RouteOptimizationMap({
         borderRadius: '12px',
         overflow: 'hidden',
         border: '1px solid var(--n-200, #e5e7eb)',
-        background: '#f8fafc',
+        background: 'var(--n-50, #f8fafc)',
       }}
     >
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
@@ -235,7 +252,7 @@ export default function RouteOptimizationMap({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(255,255,255,0.8)',
+            background: 'var(--n-50, rgba(255,255,255,0.85))',
             zIndex: 10,
           }}
         >
@@ -244,14 +261,14 @@ export default function RouteOptimizationMap({
               style={{
                 width: '32px',
                 height: '32px',
-                border: '3px solid #e2e8f0',
+                border: '3px solid var(--n-200, #e2e8f0)',
                 borderTopColor: '#f25a19',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
                 margin: '0 auto',
               }}
             />
-            <p style={{ fontSize: '11px', color: '#64748b', marginTop: '8px', fontWeight: 600 }}>
+            <p style={{ fontSize: '11px', color: 'var(--n-500, #64748b)', marginTop: '8px', fontWeight: 600 }}>
               กำลังโหลดแผนที่เส้นทาง...
             </p>
           </div>

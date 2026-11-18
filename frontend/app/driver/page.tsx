@@ -182,7 +182,7 @@ export default function DriverDashboard() {
           </div>
 
           {orders.length > 0 && (
-            <div className="mb-6 p-4 rounded-xl border border-[var(--brand-200)] bg-gradient-to-r from-[var(--brand-50)] to-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+            <div className="mb-6 p-4 rounded-xl border border-[var(--brand-200)] bg-gradient-to-r from-[var(--brand-50)] to-[var(--n-50)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--brand-500)] text-white flex items-center justify-center shrink-0 shadow-sm">
                   <Navigation size={20} />

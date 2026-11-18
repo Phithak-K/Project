@@ -178,18 +178,18 @@ export default function DriverRouteOptimizationPage() {
             {/* GPS Status Indicator Badge */}
             <div className="flex items-center gap-2">
               {gpsStatus === 'ready' && (
-                <span className="sp-badge bg-green-50 text-green-700 border border-green-200 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
+                <span className="sp-badge bg-[var(--success-bg)] text-[var(--success-text)] border border-[var(--n-200)] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-[var(--success-text)] animate-ping" />
                   ใช้ GPS สดของคนขับ
                 </span>
               )}
               {gpsStatus === 'denied' && (
-                <span className="sp-badge bg-amber-50 text-amber-700 border border-amber-200 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-semibold">
+                <span className="sp-badge bg-[var(--warning-bg)] text-[var(--warning-text)] border border-[var(--n-200)] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 font-semibold">
                   พิกัดเริ่มต้น: จุดส่งแรก
                 </span>
               )}
               {gpsStatus === 'acquiring' && (
-                <span className="sp-badge bg-slate-100 text-slate-600 text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                <span className="sp-badge bg-[var(--n-100)] text-[var(--n-600)] border border-[var(--n-200)] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5">
                   <RefreshCw size={11} className="animate-spin" /> ค้นหา GPS...
                 </span>
               )}
@@ -259,15 +259,15 @@ export default function DriverRouteOptimizationPage() {
 
             {/* Savings Notice Card */}
             {data.savedDistanceKm > 0 && (
-              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-700">
+              <div className="p-4 rounded-xl bg-[var(--success-bg)] border border-[var(--n-200)] text-[var(--n-900)] flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[var(--n-50)] flex items-center justify-center shrink-0 text-[var(--success-text)]">
                   <TrendingDown size={22} />
                 </div>
                 <div className="text-sm">
-                  <p className="font-extrabold text-emerald-800 text-base">
+                  <p className="font-extrabold text-[var(--success-text)] text-base">
                     ประหยัดระยะทางได้ {data.savedDistanceKm} กม. (-{data.savingsPercentage}%)
                   </p>
-                  <p className="text-emerald-700 text-xs mt-0.5">
+                  <p className="text-[var(--n-700)] text-xs mt-0.5">
                     เทียบกับลำดับเดิมที่ต้องวิ่ง {data.unoptimizedTotalDistanceKm} กม. (คำนวณด้วย Nearest Neighbor TSP)
                   </p>
                 </div>
@@ -275,7 +275,7 @@ export default function DriverRouteOptimizationPage() {
             )}
 
             {/* ── ⭐ PRIMARY CTA: เปิด Google Maps นำทางทั้งหมดในคลิกเดียว ── */}
-            <div className="sp-card p-5 rounded-2xl border-2 border-[var(--brand-500)] bg-gradient-to-br from-[var(--brand-50)] to-white shadow-md">
+            <div className="sp-card p-5 rounded-2xl border-2 border-[var(--brand-500)] bg-gradient-to-br from-[var(--brand-50)] to-[var(--n-50)] shadow-md">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
@@ -324,18 +324,18 @@ export default function DriverRouteOptimizationPage() {
 
             {/* ── Unrouted Orders Warning (if any) ── */}
             {data.unroutedOrders && data.unroutedOrders.length > 0 && (
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-                <div className="flex items-center gap-2 font-bold text-sm mb-2 text-amber-800">
+              <div className="p-4 rounded-xl bg-[var(--warning-bg)] border border-[var(--n-200)] text-[var(--n-900)]">
+                <div className="flex items-center gap-2 font-bold text-sm mb-2 text-[var(--warning-text)]">
                   <AlertTriangle size={18} />
                   พบ {data.unroutedOrders.length} ออเดอร์ที่ยังไม่มีพิกัด GPS:
                 </div>
                 <div className="space-y-1.5 pl-6">
                   {data.unroutedOrders.map((un, idx) => (
-                    <div key={idx} className="text-xs flex justify-between items-center text-amber-800">
+                    <div key={idx} className="text-xs flex justify-between items-center text-[var(--n-700)]">
                       <span>• <strong>{un.trackingNumber}</strong> ({un.receiverName}) — {un.address}</span>
                       <Link
                         href={`/driver/orders/${un.orderId}`}
-                        className="underline text-[11px] font-bold text-amber-900 ml-2"
+                        className="underline text-[11px] font-bold text-[var(--warning-text)] ml-2"
                       >
                         ดูออเดอร์
                       </Link>
@@ -396,7 +396,7 @@ export default function DriverRouteOptimizationPage() {
                             {stop.receiverPhone && (
                               <a
                                 href={`tel:${stop.receiverPhone}`}
-                                className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                                className="text-[var(--success-text)] hover:opacity-80 flex items-center gap-1"
                               >
                                 <Phone size={12} /> {stop.receiverPhone}
                               </a>
