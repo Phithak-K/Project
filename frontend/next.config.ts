@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
     'store.swiftpath-app.xyz',
   ],
   output: 'standalone',
+  experimental: {
+    agentUpgrade: 'security',
+  },
   images: {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
