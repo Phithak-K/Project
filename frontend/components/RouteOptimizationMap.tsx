@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { Crosshair } from 'lucide-react';
 
 export interface OptimizedStopItem {
   step: number;
@@ -34,6 +35,8 @@ export default function RouteOptimizationMap({
   const [isDark, setIsDark] = useState(false);
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
+  const boundsRef = useRef<any>(null);
+  const singlePointRef = useRef<[number, number] | null>(null);
 
   // Sync with Driver Night Mode (html.driver-dark)
   useEffect(() => {
@@ -215,8 +218,12 @@ export default function RouteOptimizationMap({
 
       // Fit map to view all points with comfortable padding
       const bounds = L.latLngBounds(latLngPoints);
+      boundsRef.current = bounds;
+      singlePointRef.current = null;
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
     } else if (latLngPoints.length === 1) {
+      boundsRef.current = null;
+      singlePointRef.current = latLngPoints[0];
       map.setView(latLngPoints[0], 14);
     }
 
@@ -229,6 +236,16 @@ export default function RouteOptimizationMap({
       }
     };
   }, [mapReady, origin, originType, stops, isDark]);
+
+  const handleRecenter = () => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    if (boundsRef.current) {
+      map.fitBounds(boundsRef.current, { padding: [50, 50], maxZoom: 16, animate: true });
+    } else if (singlePointRef.current) {
+      map.setView(singlePointRef.current, 14, { animate: true });
+    }
+  };
 
   return (
     <div
@@ -243,6 +260,19 @@ export default function RouteOptimizationMap({
       }}
     >
       <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+
+      {mapReady && (origin || stops.length > 0) && (
+        <button
+          type="button"
+          onClick={handleRecenter}
+          title="จัดกึ่งกลางเส้นทางทั้งหมด"
+          aria-label="จัดกึ่งกลางเส้นทางทั้งหมด"
+          className="absolute top-3 right-3 z-[850] flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold shadow-md border border-[var(--n-200)] bg-[var(--n-50)] text-[var(--n-900)] hover:border-[var(--brand-500)] transition-colors cursor-pointer"
+        >
+          <Crosshair size={14} className="text-[var(--brand-500)]" />
+          <span>ดูภาพรวม</span>
+        </button>
+      )}
 
       {!mapReady && (
         <div
